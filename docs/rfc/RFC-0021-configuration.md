@@ -73,10 +73,11 @@ Spalte „Wirkung“: **Neuberechnung** löst eine versionierte Neuberechnung au
 | `[segments.route_matching] direction_reference_m` | optional, Vorgabe `50.0` | Neuberechnung | nein |
 | `[garmin] api_base_url` | optional, Vorgabe `https://personal.connectapi.garmin.com` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests) | Betrieb | nein |
 | `[garmin] request_delay_ms` | optional, Vorgabe `1000`, höchstens `60000` (Pause vor jedem Download) | Betrieb | nein |
+| `[places] nominatim_url` | optional, Vorgabe `https://nominatim.openstreetmap.org` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests); Rückwärtssuche des Ortsvorschlags (RFC-0017), etwa für eine eigene Nominatim-Instanz | Betrieb | nein |
 
 Feste Werte in V1 (nicht konfigurierbar): fünf aufbewahrte Sicherungsstände, genau eine Vollsicherung.
 
-Schlüssel, Anfangsdatum und Intervall des Garmin-Abrufs stehen nicht in der TOML, sondern in der Datenbank und werden in der Oberfläche gepflegt (RFC-0008 Abschnitt 10).
+Schlüssel, Anfangsdatum und Intervall des Garmin-Abrufs stehen nicht in der TOML, sondern in der Datenbank und werden in der Oberfläche gepflegt (RFC-0008 Abschnitt 10). Ebenso, ob der Ortsvorschlag OpenStreetMap fragen darf (Einstellungen → Orte).
 
 ## 3. Prüfungen beim Start
 

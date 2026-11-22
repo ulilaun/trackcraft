@@ -18,7 +18,7 @@ Docker: Backendport nicht direkt veröffentlichen, interne Containerverbindung d
 
 ## Daten und externe Dienste
 
-Positions-, Aktivitäts- und Gesundheitsdaten lokal; keine Telemetrie oder externe Trainingssynchronisation. Externe Hintergrundkarte ausdrücklich erlaubt, Internet nötig; IP/Kartenausschnitte beim Anbieter können betrachtete Orte verraten. Kein Upload vollständiger Aktivitätstracks dafür. OSM-Standardkarte gemäß Nutzungsrichtlinie, Attribution Pflicht.
+Positions-, Aktivitäts- und Gesundheitsdaten lokal; keine Telemetrie oder externe Trainingssynchronisation. Externe Hintergrundkarte ausdrücklich erlaubt, Internet nötig; IP/Kartenausschnitte beim Anbieter können betrachtete Orte verraten. Kein Upload vollständiger Aktivitätstracks dafür. OSM-Standardkarte gemäß Nutzungsrichtlinie, Attribution Pflicht. Ortsvorschlag (RFC-0017): Ohne eigenen Treffer fragt das Backend OpenStreetMap Nominatim mit der auf gut 10 m gerundeten Startkoordinate einer Aktivität; abschaltbar unter Einstellungen → Orte.
 
 PWA keine dauerhafte Offline-Trainings-/API-Kopie auf Clients, nur statische UI-Assets. Flüchtiger Arbeitsspeichercache bleibt möglich.
 

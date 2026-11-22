@@ -326,6 +326,22 @@ export interface ActivityUpdate {
   total_time_ms?: number;
 }
 
+/** GET /activities/{id}/location-suggestion (#22): `null` ohne Vorschlag. */
+export interface LocationSuggestion {
+  location: string;
+  source: "own" | "osm";
+  /** Abstand zum nächsten Start mit diesem Ort (nur eigene Daten) */
+  distance_m: number | null;
+}
+export interface LocationSuggestionResponse {
+  data: LocationSuggestion | null;
+}
+
+/** GET/PATCH /places/settings (#22) */
+export interface PlaceSettingsResponse {
+  data: { osm_enabled: boolean };
+}
+
 export interface DeletionPreviewResponse {
   data: {
     object_type: "activity" | "segment";

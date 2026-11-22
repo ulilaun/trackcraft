@@ -6,6 +6,7 @@ pub mod garmin;
 pub mod guard;
 pub mod import;
 pub mod load;
+pub mod places;
 pub mod profile;
 pub mod seasons;
 pub mod segments;
@@ -72,6 +73,8 @@ pub fn router(state: AppState) -> Router {
         .route("/activities/{id}/deletion-preview", get(activities::deletion_preview))
         .route("/activities/{id}/track", get(activities::track))
         .route("/activities/{id}/efforts", get(activities::efforts))
+        .route("/activities/{id}/location-suggestion", get(places::suggestion))
+        .route("/places/settings", get(places::get_settings).patch(places::update_settings))
         .route("/stats/dashboard", get(activities::dashboard))
         .route("/stats", get(stats::overview))
         .route("/stats/periods", get(stats::periods))

@@ -103,21 +103,26 @@ fn check(status: reqwest::StatusCode) -> Result<(), ClientError> {
     }
 }
 
+/// HTTP-Client nach außen: rustls mit ring und den Mozilla-Wurzeln, gleich auf Windows, Linux und im Container.
+/// Kennung nur „TrackCraft/<Version>“, keine Daten der Installation.
+pub fn https_client(connect: Duration, total: Duration) -> anyhow::Result<reqwest::Client> {
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let roots = rustls::RootCertStore { roots: webpki_roots::TLS_SERVER_ROOTS.to_vec() };
+    let tls = rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    Ok(reqwest::Client::builder()
+        .tls_backend_preconfigured(tls)
+        .user_agent(concat!("TrackCraft/", env!("CARGO_PKG_VERSION")))
+        .connect_timeout(connect)
+        .timeout(total)
+        .build()?)
+}
+
 impl Client {
     pub fn new(base: &str) -> anyhow::Result<Self> {
-        // rustls mit ring und den Mozilla-Wurzeln: gleich auf Windows, Linux und im Container.
-        let provider = Arc::new(rustls::crypto::ring::default_provider());
-        let roots = rustls::RootCertStore { roots: webpki_roots::TLS_SERVER_ROOTS.to_vec() };
-        let tls = rustls::ClientConfig::builder_with_provider(provider)
-            .with_safe_default_protocol_versions()?
-            .with_root_certificates(roots)
-            .with_no_client_auth();
-        let http = reqwest::Client::builder()
-            .tls_backend_preconfigured(tls)
-            .user_agent(concat!("TrackCraft/", env!("CARGO_PKG_VERSION")))
-            .connect_timeout(Duration::from_secs(20))
-            .timeout(Duration::from_secs(180))
-            .build()?;
+        let http = https_client(Duration::from_secs(20), Duration::from_secs(180))?;
         Ok(Self { http, base: base.trim_end_matches('/').to_string() })
     }
 

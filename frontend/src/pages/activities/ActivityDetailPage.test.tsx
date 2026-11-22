@@ -25,6 +25,7 @@ const calls: string[] = [];
 const writes: { method: string; url: string; body: unknown }[] = [];
 let patchError: unknown = null;
 let efforts: Effort[] = [];
+let suggestion: unknown = null;
 
 function effort(over: Partial<Effort> = {}): Effort {
   return {
@@ -76,6 +77,7 @@ beforeEach(() => {
   writes.length = 0;
   patchError = null;
   efforts = [];
+  suggestion = null;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -105,6 +107,7 @@ beforeEach(() => {
       if (url.endsWith("/config")) return json(200, config);
       const u = new URL(url, "http://x");
       if (u.pathname.endsWith("/track")) return json(200, track);
+      if (u.pathname.endsWith("/location-suggestion")) return json(200, { data: suggestion });
       if (u.pathname.endsWith("/efforts"))
         return json(200, { data: efforts, meta: { total: efforts.length, calculation: { status: "current", version_id: "v", published_at: null } } });
       const one = /\/activities\/(\w+)$/.exec(u.pathname);
@@ -201,6 +204,43 @@ describe("Aktivitätsdetail", () => {
     expect(writes).toEqual([
       { method: "PATCH", url: "/api/v1/activities/a1", body: { title: "Runde Feldberg", location: null, sport_class: "ebike", sub_sport: null } },
     ]);
+  });
+
+  it("leerer Ort: Vorschlag ist vorbelegt und wird gespeichert (#22)", async () => {
+    suggestion = { location: "Musterdorf", source: "own", distance_m: 56.4 };
+    setup("run");
+    await screen.findByRole("heading", { name: "Lauf" });
+    fireEvent.click(screen.getByRole("button", { name: "Bearbeiten" }));
+    const dialog = screen.getByRole("dialog");
+    // Der Hinweis steht im selben <label> wie bei den übrigen Feldern
+    await waitFor(() => expect(within(dialog).getByLabelText(/^Ort/)).toHaveValue("Musterdorf"));
+    expect(within(dialog).getByText("Vorschlag aus deinen Aktivitäten und Strecken (56 m vom Start).")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(writes).toEqual([{ method: "PATCH", url: "/api/v1/activities/run", body: { location: "Musterdorf" } }]));
+  });
+
+  it("Ortsvorschlag von OpenStreetMap lässt sich überschreiben oder leeren", async () => {
+    suggestion = { location: "Beispielstadt", source: "osm", distance_m: null };
+    setup("run");
+    await screen.findByRole("heading", { name: "Lauf" });
+    fireEvent.click(screen.getByRole("button", { name: "Bearbeiten" }));
+    const dialog = screen.getByRole("dialog");
+    const field = within(dialog).getByLabelText("Ort");
+    await waitFor(() => expect(field).toHaveValue("Beispielstadt"));
+    expect(within(dialog).getByText("Vorschlag von OpenStreetMap.")).toBeInTheDocument();
+    // Geleert bleibt leer, der Hinweis verschwindet, es gibt nichts zu speichern
+    fireEvent.change(field, { target: { value: "" } });
+    expect(field).toHaveValue("");
+    expect(within(dialog).queryByText("Vorschlag von OpenStreetMap.")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Speichern" })).toBeDisabled();
+  });
+
+  it("vorhandener Ort: kein Vorschlag abgefragt", async () => {
+    setup("a1");
+    await screen.findByRole("heading", { name: "Runde Wald" });
+    fireEvent.click(screen.getByRole("button", { name: "Bearbeiten" }));
+    expect(within(screen.getByRole("dialog")).getByLabelText("Ort")).toHaveValue("Taunus");
+    expect(calls.some((c) => c.includes("location-suggestion"))).toBe(false);
   });
 
   it("Untertyp aus dem Katalog wählen oder neu anlegen", async () => {

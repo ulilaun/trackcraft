@@ -187,6 +187,42 @@ paths:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityTrackResponse'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /activities/{id}/location-suggestion:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Activities]
+      operationId: getLocationSuggestion
+      summary: Ortsvorschlag aus eigenen Daten, sonst OpenStreetMap
+      description: 'RFC-0017 „Ortsvorschlag“. `data: null` ohne Vorschlag (keine Position, nichts im Umkreis, OpenStreetMap abgeschaltet oder gestört).'
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/LocationSuggestionResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /places/settings:
+    get:
+      tags: [Activities]
+      operationId: getPlaceSettings
+      summary: Ob der Ortsvorschlag OpenStreetMap fragen darf
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/PlaceSettingsResponse'}}}}
+    patch:
+      tags: [Activities]
+      operationId: updatePlaceSettings
+      summary: Einstellung ändern
+      description: 'Sicherungsrelevant.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [osm_enabled]
+              properties:
+                osm_enabled: {type: boolean}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/PlaceSettingsResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
   /activities/{id}/efforts:
     parameters:
       - {$ref: '#/components/parameters/Id'}
@@ -1124,6 +1160,28 @@ components:
         effort_count: {type: integer, minimum: 0, description: 'Versuche und Bestzeiten, die entfallen'}
         affected_segment_count: {type: integer, minimum: 0, description: 'Segmente, deren Ergebnisse neu berechnet werden'}
         original_file_removed: {type: [boolean, 'null'], description: 'Nur bei Aktivitäten: Datei wird entfernt, weil keine weitere Aktivität darauf verweist. Bei Segmenten null.'}
+    LocationSuggestionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [location, source, distance_m]
+              properties:
+                location: {type: string}
+                source: {type: string, enum: [own, osm]}
+                distance_m: {type: [number, 'null'], description: 'Abstand des nächsten Starts mit diesem Ort; nur bei `own`'}
+    PlaceSettingsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [osm_enabled]
+          properties:
+            osm_enabled: {type: boolean}
     DeletionPreviewResponse:
       type: object
       required: [data]

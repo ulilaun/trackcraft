@@ -31,7 +31,7 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 **Aktivitäten**
 - Liste mit Filtern (Sportklasse, Zeitraum, Saison, Strecke), Sortierung und Summenzeile.
 - Detailseite mit Kennzahlen, Karte (OpenStreetMap) und Höhen-, Puls- und Geschwindigkeitsprofil, beide mit gemeinsamer Markierung.
-- Titel, Sportart, Beschreibung und Zeit bearbeiten; Löschen mit Vorschau, was dabei wegfällt.
+- Titel, Sportart, Ort, Beschreibung und Zeit bearbeiten; ein leerer Ort wird aus deinen anderen Aktivitäten oder per OpenStreetMap vorgeschlagen. Löschen mit Vorschau, was dabei wegfällt.
 - Sportklassen Radfahren, E-Bike, Laufen, Skifahren, Schwimmen und Studio, Untertypen (z. B. Rennrad, MTB, Trail) in der Oberfläche pflegbar.
 
 **Segmente und Strecken**
@@ -76,6 +76,8 @@ Das Setup fragt nach dem Namen des Rechners im Heimnetz (z. B. `trackcraft.home.
 tile_url    = "https://tiles.example.org/{z}/{x}/{y}.png"
 attribution = "© OpenStreetMap-Mitwirkende, Kacheln: Beispielanbieter"
 ```
+
+**Ortsvorschlag:** Findet TrackCraft keinen bekannten Ort in der Nähe des Starts, fragt der Server den Dienst Nominatim von OpenStreetMap (`nominatim.openstreetmap.org`) mit der auf gut 10 m gerundeten Startkoordinate. Das lässt sich unter Einstellungen → Orte abschalten; mit `[places] nominatim_url` geht auch eine eigene Nominatim-Instanz.
 
 ## Entwicklung
 
