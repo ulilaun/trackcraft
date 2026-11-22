@@ -4,7 +4,9 @@ import {
   apiDelete,
   apiGet,
   apiPatch,
+  apiPost,
   type DeletionPreviewResponse,
+  type NameTransferResponse,
   type Segment,
   type SegmentCategory,
   type SegmentKind,
@@ -181,6 +183,66 @@ export function SegmentDeleteDialog({ segment: s, onClose, onDeleted }: { segmen
           </ul>
         )}
         {remove.error && <Problem error={remove.error} />}
+      </div>
+    </Dialog>
+  );
+}
+
+/** Name und Ort einer Strecke auf alle Aktivitäten mit gültiger Durchfahrt übernehmen (#23), mit Vorschau der Anzahl. */
+export function NameTransferDialog({ segment: s, onClose }: { segment: Segment; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const flash = useFlash();
+  const preview = useQuery({
+    queryKey: ["segments", "name-transfer", s.id],
+    queryFn: () => apiGet<NameTransferResponse>(`/segments/${s.id}/name-transfer`),
+    gcTime: 0,
+  });
+  const apply = useMutation({
+    mutationFn: () => apiPost<NameTransferResponse>(`/segments/${s.id}/name-transfer`, {}),
+    onSuccess: (r) => {
+      void queryClient.invalidateQueries({ queryKey: ["activities"] });
+      void queryClient.invalidateQueries({ queryKey: ["segments", "attempts", s.id] });
+      flash(t("nameTransfer.done", { n: r.data.changed_count }));
+      onClose();
+    },
+  });
+  const p = preview.data?.data;
+  const busy = apply.isPending;
+
+  return (
+    <Dialog
+      title={t("nameTransfer.title")}
+      onClose={onClose}
+      busy={busy}
+      footer={
+        <>
+          <button type="button" className={secondaryButton} onClick={onClose} disabled={busy} data-autofocus>
+            {t("edit.cancel")}
+          </button>
+          <button type="button" className={primaryButton} disabled={!p || p.changed_count === 0 || busy} onClick={() => apply.mutate()}>
+            {busy ? t("nameTransfer.busy") : t("nameTransfer.confirm")}
+          </button>
+        </>
+      }
+    >
+      <div className="grid gap-3 text-sm">
+        {preview.error ? (
+          <Problem error={preview.error} />
+        ) : !p ? (
+          <p className="text-muted">{t("state.loading")}</p>
+        ) : (
+          <>
+            <p>{p.location ? t("nameTransfer.whatLocation", { name: p.name, location: p.location }) : t("nameTransfer.what", { name: p.name })}</p>
+            <p className="text-muted">
+              {p.activity_count === 0
+                ? t("nameTransfer.empty")
+                : p.changed_count === 0
+                  ? t("nameTransfer.none")
+                  : t("nameTransfer.count", { changed: p.changed_count, total: p.activity_count })}
+            </p>
+          </>
+        )}
+        {apply.error && <Problem error={apply.error} />}
       </div>
     </Dialog>
   );

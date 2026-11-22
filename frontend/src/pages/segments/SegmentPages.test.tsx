@@ -84,6 +84,9 @@ beforeEach(() => {
       if (method !== "GET") {
         const body: unknown = init?.body ? JSON.parse(String(init.body)) : null;
         writes.push({ method, url, body });
+        if (url.includes("/name-transfer")) {
+          return json(200, { data: { name: "Hausrunde", location: "Aischfeld", activity_count: 5, changed_count: 4 } });
+        }
         if (method === "DELETE") {
           deleted = true;
           return new Response(null, { status: 204 });
@@ -93,6 +96,9 @@ beforeEach(() => {
       }
       calls.push(url);
       const meta = { calculation: { status: "current", version_id: "v", published_at: null } };
+      if (url.includes("/name-transfer")) {
+        return json(200, { data: { name: "Hausrunde", location: "Aischfeld", activity_count: 5, changed_count: 4 } });
+      }
       if (url.includes("/deletion-preview")) {
         return json(200, { data: { object_type: "segment", effort_count: 3, affected_segment_count: 0, original_file_removed: null } });
       }
@@ -223,6 +229,27 @@ describe("Segmentseite", () => {
     current = { ...current, history: { status: "complete", processed_items: 212, total_items: 212 } };
     fireEvent.click(screen.getByText("Aktivitäten vergleichen"));
     await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/aktivitaeten?zeitraum=alle&strecke=r1&sort=total_time_ms"));
+  });
+
+  it("Strecke: Name und Ort auf die Aktivitäten übernehmen, mit Anzahl vorher (#23)", async () => {
+    current = segment({ id: "r1", name: "Hausrunde", kind: "route", category: "loop", category_auto: "loop", location: "Aischfeld" });
+    setup("/strecken/r1");
+    fireEvent.click(await screen.findByRole("button", { name: "Name übernehmen" }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      await within(dialog).findByText("Alle Aktivitäten mit gültiger Durchfahrt bekommen den Titel „Hausrunde“ und den Ort „Aischfeld“."),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("4 von 5 Aktivitäten ändern sich; eigene Titel und Orte werden überschrieben.")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Übernehmen" }));
+    await waitFor(() => expect(writes).toEqual([{ method: "POST", url: "/api/v1/segments/r1/name-transfer", body: {} }]));
+    expect(await screen.findByText("4 Aktivitäten umbenannt.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("Segmente haben keinen Knopf zum Übernehmen des Namens", async () => {
+    setup("/segmente/s1");
+    expect(await screen.findByRole("button", { name: "Bearbeiten" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Name übernehmen" })).not.toBeInTheDocument();
   });
 
   it("Bearbeiten schickt nur geänderte Felder und meldet die Neuauswertung beim Artwechsel", async () => {

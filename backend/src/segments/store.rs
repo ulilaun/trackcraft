@@ -978,3 +978,93 @@ mod tests {
         assert_eq!(auto_category("route", &short, 333.0, 750.0), Some("point_to_point"));
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Streckenname auf Aktivitäten übernehmen (#23)
+
+/// Aktivitäten mit gültiger Durchfahrt der Strecke (gerechnete Fassung).
+const ROUTE_ACTIVITIES: &str = "SELECT DISTINCT activity_id FROM segment_efforts WHERE segment_id = ? AND status = 'valid' \
+     AND calculation_version_id = (SELECT id FROM calculation_versions WHERE status = 'published')";
+
+#[derive(Debug)]
+pub enum NameTransferError {
+    NotFound,
+    NotRoute,
+    Internal(anyhow::Error),
+}
+
+impl<E: Into<anyhow::Error>> From<E> for NameTransferError {
+    fn from(e: E) -> Self {
+        Self::Internal(e.into())
+    }
+}
+
+struct RouteName {
+    name: String,
+    location: Option<String>,
+}
+
+async fn route_name(conn: &mut SqliteConnection, id: &str) -> Result<RouteName, NameTransferError> {
+    let row = sqlx::query("SELECT kind, name, location FROM segments WHERE id = ?").bind(id).fetch_optional(&mut *conn).await?;
+    let Some(r) = row else { return Err(NameTransferError::NotFound) };
+    if r.get::<String, _>("kind") != "route" {
+        return Err(NameTransferError::NotRoute);
+    }
+    Ok(RouteName { name: r.get("name"), location: r.get("location") })
+}
+
+/// Bedingung „ändert sich“: anderer Titel, oder die Strecke hat einen Ort und die Aktivität einen anderen.
+const CHANGES: &str = "(title <> ?1 OR (?2 IS NOT NULL AND location IS NOT ?2))";
+
+fn transfer_view(r: &RouteName, activities: i64, changed: i64) -> Value {
+    json!({ "name": r.name, "location": r.location, "activity_count": activities, "changed_count": changed })
+}
+
+/// Wie viele Aktivitäten die Strecke betrifft und wie viele sich beim Übernehmen ändern würden.
+pub async fn name_transfer_preview(db: &Db, id: &str) -> Result<Value, NameTransferError> {
+    let mut conn = db.reader.acquire().await?;
+    let r = route_name(&mut conn, id).await?;
+    let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT count(*) FROM activities WHERE id IN ({ROUTE_ACTIVITIES})")))
+        .bind(id)
+        .fetch_one(&mut *conn)
+        .await?;
+    let changed: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT count(*) FROM activities WHERE {CHANGES} AND id IN ({})",
+        ROUTE_ACTIVITIES.replace('?', "?3")
+    )))
+    .bind(&r.name)
+    .bind(&r.location)
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await?;
+    Ok(transfer_view(&r, total, changed))
+}
+
+/// Setzt Titel und – falls die Strecke einen hat – Ort aller Aktivitäten mit gültiger Durchfahrt (Uli 22.11.2026:
+/// alle, auch eigene Titel und vorhandene Orte).
+pub async fn name_transfer(db: &Db, id: &str) -> Result<Value, NameTransferError> {
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    let r = route_name(&mut tx, id).await?;
+    let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT count(*) FROM activities WHERE id IN ({ROUTE_ACTIVITIES})")))
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await?;
+    let changed = sqlx::query(sqlx::AssertSqlSafe(format!(
+        "UPDATE activities SET title = ?1, location = coalesce(?2, location), revision = revision + 1, updated_at_ms = ?4 \
+         WHERE {CHANGES} AND id IN ({})",
+        ROUTE_ACTIVITIES.replace('?', "?3")
+    )))
+    .bind(&r.name)
+    .bind(&r.location)
+    .bind(id)
+    .bind(now)
+    .execute(&mut *tx)
+    .await?
+    .rows_affected() as i64;
+    if changed > 0 {
+        db::bump_revision(&mut tx, now).await?;
+    }
+    tx.commit().await?;
+    Ok(transfer_view(&r, total, changed))
+}

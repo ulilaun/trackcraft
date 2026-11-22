@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ListFilter, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, ListFilter, Pencil, Tags, Trash2 } from "lucide-react";
 import { ApiError, apiGet, type Effort, type SegmentResponse, type SegmentTrackResponse } from "../../api/client";
 import { Card, KpiCard } from "../../components/Card";
 import { useFlash } from "../../components/Flash";
@@ -16,7 +16,7 @@ import { ActivityMap } from "../activities/ActivityMap";
 import { Medal } from "../activities/SegmentEfforts";
 import { useSeasons } from "../seasons/useSeasons";
 import { ElevationProfile, ProgressionChart } from "./SegmentCharts";
-import { SegmentDeleteDialog, SegmentEditDialog } from "./SegmentDialogs";
+import { NameTransferDialog, SegmentDeleteDialog, SegmentEditDialog } from "./SegmentDialogs";
 import {
   board,
   effortKmh,
@@ -50,7 +50,7 @@ export function SegmentDetailPage() {
   const tz = cfg?.timezone;
   const flash = useFlash();
   const [hover, setHover] = useState<number | null>(null);
-  const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"edit" | "delete" | "names" | null>(null);
   // Zeitraum: Art, gewähltes Jahr und gewählte Saison (ohne Wahl laufendes Jahr bzw. Vorgabesaison)
   const [mode, setMode] = useState<BoardPeriod["kind"]>("all");
   const [pickedYear, setPickedYear] = useState<number | null>(null);
@@ -176,6 +176,12 @@ export function SegmentDetailPage() {
                 <ListFilter size={14} />
                 {t("segment.compare")}
               </Link>
+            )}
+            {s.kind === "route" && (
+              <button type="button" className={textButton} onClick={() => setDialog("names")}>
+                <Tags size={14} />
+                {t("segment.nameTransfer")}
+              </button>
             )}
             <button type="button" className={textButton} onClick={() => setDialog("edit")}>
               <Pencil size={14} />
@@ -381,6 +387,7 @@ export function SegmentDetailPage() {
       </Card>
 
       {dialog === "edit" && <SegmentEditDialog segment={s} onClose={() => setDialog(null)} />}
+      {dialog === "names" && <NameTransferDialog segment={s} onClose={() => setDialog(null)} />}
       {dialog === "delete" && <SegmentDeleteDialog segment={s} onClose={() => setDialog(null)} onDeleted={afterDelete} />}
     </div>
   );
