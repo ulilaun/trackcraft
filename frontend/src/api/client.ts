@@ -803,6 +803,8 @@ export interface LoadSettings {
   /** Foster: Aufschlag auf die Ermüdung bei Monotonie über 2,0 */
   foster_surcharge: boolean;
   foster_surcharge_pct: number;
+  /** Form = Fitness − Gewicht × Ermüdung (#24), 0,25 bis 3 */
+  fatigue_weight: number;
 }
 
 export type CurveModel = "standard" | "two_curve";
@@ -842,6 +844,15 @@ export interface FormForecastDay {
   strain: number | null;
 }
 
+export interface FormSnapshot {
+  date: string;
+  fitness: number;
+  fatigue: number;
+  form: number;
+  monotony: number | null;
+  strain: number | null;
+}
+
 export interface FormResponse {
   data: {
     today: string;
@@ -865,6 +876,8 @@ export interface FormResponse {
       monotony: number | null;
       strain: number | null;
       strain_week_ago: number | null;
+      /** Kachelreihen (#25): vor 30 und 7 Tagen, in 7 Tagen mit der gewählten Vorschau */
+      compare: { month_ago: FormSnapshot; week_ago: FormSnapshot; week_ahead: FormSnapshot | null };
     };
     /** Ab dieser Monotonie warnt die Seite (Foster) */
     monotony_warn: number;

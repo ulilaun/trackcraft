@@ -12,6 +12,22 @@ const input = "w-24 rounded-lg border border-line bg-card-2 px-2 py-1.5 text-rig
 const legend = "mb-1 text-xs font-semibold uppercase tracking-wide text-muted";
 const MODELS: CurveModel[] = ["standard", "two_curve"];
 
+/** Vorlagen (#24): füllen Modell, Zeitkonstanten und Gewicht. */
+const PRESETS = {
+  standard: { model: "standard", fitness: 42, fatigue: 7, weight: 1 },
+  sporttracks: { model: "standard", fitness: 21, fatigue: 12, weight: 0.75 },
+} as const;
+type Preset = keyof typeof PRESETS;
+
+/** Dezimalzahl mit Komma oder Punkt, höchstens zwei Nachkommastellen. */
+const decimal = (s: string, lo: number, hi: number): number | null => {
+  const m = /^\s*(\d)(?:[.,](\d{1,2}))?\s*$/.exec(s);
+  if (!m) return null;
+  const v = Number(`${m[1]}.${m[2] ?? "0"}`);
+  return v >= lo && v <= hi ? v : null;
+};
+const weightText = (v: number) => String(v).replace(".", ",");
+
 const whole = (s: string, lo: number, hi: number): number | null => {
   if (!/^\d{1,3}$/.test(s.trim())) return null;
   const v = Number(s);
@@ -32,6 +48,7 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
   const [model, setModel] = useState<CurveModel>(settings.curve_model);
   const [fitness, setFitness] = useState(String(settings.fitness_days));
   const [fatigue, setFatigue] = useState(String(settings.fatigue_days));
+  const [weight, setWeight] = useState(weightText(settings.fatigue_weight));
   const [aerobic, setAerobic] = useState(String(settings.aerobic_days));
   const [anaerobic, setAnaerobic] = useState(String(settings.anaerobic_days));
   const [bonus, setBonus] = useState(String(settings.rest_bonus_pct));
@@ -45,6 +62,18 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
 
   const f = whole(fitness, 7, 120);
   const g = whole(fatigue, 2, 30);
+  const w = decimal(weight, 0.25, 3);
+  const preset = (Object.keys(PRESETS) as Preset[]).find((k) => {
+    const v = PRESETS[k];
+    return model === v.model && f === v.fitness && g === v.fatigue && w === v.weight;
+  });
+  const applyPreset = (k: Preset) => {
+    const v = PRESETS[k];
+    setModel(v.model);
+    setFitness(String(v.fitness));
+    setFatigue(String(v.fatigue));
+    setWeight(weightText(v.weight));
+  };
   const a = whole(aerobic, 2, 30);
   const b = whole(anaerobic, 2, 30);
   const r = whole(bonus, 0, 50);
@@ -54,6 +83,7 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
     f == null ||
     g == null ||
     g >= f ||
+    w == null ||
     a == null ||
     b == null ||
     Math.max(a, b) >= f ||
@@ -67,6 +97,7 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
         curve_model: model,
         fitness_days: f,
         fatigue_days: g,
+        fatigue_weight: w,
         aerobic_days: a,
         anaerobic_days: b,
         rest_bonus_pct: r,
@@ -102,6 +133,26 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
     >
       <div className="grid gap-5">
         <fieldset className="grid gap-2">
+          <legend className={legend}>{t("form.settings.preset")}</legend>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("form.settings.preset")}>
+            {(Object.keys(PRESETS) as Preset[]).map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={preset === k}
+                onClick={() => applyPreset(k)}
+                className={`rounded-full border px-3 py-1 text-sm ${preset === k ? "border-transparent bg-accent-strong text-white" : "border-line bg-card-2 text-muted hover:text-text"}`}
+              >
+                {t(`form.preset.${k}` as TextKey)}
+              </button>
+            ))}
+            {!preset && <span className="self-center text-xs text-muted">{t("form.preset.custom")}</span>}
+          </div>
+          {preset && <p className="text-xs text-muted">{t(`form.preset.hint.${preset}` as TextKey)}</p>}
+        </fieldset>
+
+        <fieldset className="grid gap-2">
           <legend className={legend}>{t("form.settings.model")}</legend>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("form.settings.model")}>
             {MODELS.map((m) => (
@@ -129,7 +180,12 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
                 <NumberField label={t("form.settings.restBonus")} value={bonus} onChange={setBonus} />
               </>
             )}
+            <label className="grid gap-1">
+              <span className="text-xs font-medium text-muted">{t("form.settings.weight")}</span>
+              <input className={input} inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} />
+            </label>
           </div>
+          <p className="text-xs text-muted">{t("form.settings.weightHint")}</p>
         </fieldset>
 
         <fieldset className="grid gap-2">

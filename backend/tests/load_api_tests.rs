@@ -305,3 +305,47 @@ async fn settings_and_form_curve_with_forecast() {
     let v = get(&f, "/api/v1/form?forecast=steady&forecast_days=3").await;
     assert!(v["forecast"]["days"][0]["fatigue_aerobic"].is_number());
 }
+
+#[tokio::test]
+async fn fatigue_weight_and_comparison_values() {
+    let f = fixture().await;
+    let s = get(&f, "/api/v1/form/settings").await;
+    assert_eq!(s["fatigue_weight"], 1.0);
+    for bad in [json!(0.1), json!(3.5), json!("viel")] {
+        let (st, _) = send(&f, Method::PATCH, "/api/v1/form/settings", Some(json!({ "fatigue_weight": bad }))).await;
+        assert_eq!(st, StatusCode::BAD_REQUEST, "{bad}");
+    }
+    import(&f, &gpx("cycling", T0, 361, None)).await;
+    import(&f, &gpx("cycling", T0 + 2 * 86_400, 361, None)).await;
+    refresh(&f).await;
+
+    // Form = Fitness − Gewicht × Ermüdung, jeweils des Vortags
+    let check = |v: &Value, w: f64| {
+        let days = v["days"].as_array().unwrap();
+        for p in days.windows(2) {
+            let expect = p[0]["fitness"].as_f64().unwrap() - w * p[0]["fatigue"].as_f64().unwrap();
+            assert!((p[1]["form"].as_f64().unwrap() - expect).abs() < 0.2, "{} {expect}", p[1]);
+        }
+    };
+    check(&get(&f, "/api/v1/form?from=2026-07-01&to=2026-07-10").await, 1.0);
+    // Vorlage „SportTracks-ähnlich“
+    let (st, v) =
+        send(&f, Method::PATCH, "/api/v1/form/settings", Some(json!({ "fitness_days": 21, "fatigue_days": 12, "fatigue_weight": 0.754 })))
+            .await;
+    assert_eq!(st, StatusCode::OK, "{v}");
+    assert_eq!(v["data"]["fatigue_weight"], 0.75);
+    check(&get(&f, "/api/v1/form?from=2026-07-01&to=2026-07-10").await, 0.75);
+
+    // Vergleichswerte der Kachelreihen: vor 30 und 7 Tagen, in 7 Tagen
+    let v = get(&f, "/api/v1/form?forecast=rest&forecast_days=0").await;
+    let today: chrono::NaiveDate = v["today"].as_str().unwrap().parse().unwrap();
+    let c = &v["current"]["compare"];
+    for (k, offset) in [("month_ago", -30i64), ("week_ago", -7), ("week_ahead", 7)] {
+        let date: chrono::NaiveDate = c[k]["date"].as_str().unwrap().parse().unwrap();
+        assert_eq!((date - today).num_days(), offset, "{k}");
+        assert!(c[k]["fitness"].is_number() && c[k]["fatigue"].is_number() && c[k]["form"].is_number(), "{c}");
+    }
+    // Ruhe: Fitness in einer Woche nicht größer als heute (die Fahrten liegen Monate zurück, beides fast 0)
+    assert!(c["week_ahead"]["fitness"].as_f64().unwrap() <= v["current"]["fitness"].as_f64().unwrap());
+    assert_eq!(c["week_ago"]["fitness"], v["current"]["fitness_week_ago"]);
+}

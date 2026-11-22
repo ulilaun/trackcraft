@@ -179,6 +179,8 @@ pub enum CurveModel {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CurveParams {
     pub fitness_days: f64,
+    /// Form = Fitness − Gewicht × Ermüdung (#24); 1,0 = gleich gewichtet
+    pub fatigue_weight: f64,
     pub model: CurveModel,
     /// Aufschlag auf die Ermüdung an Tagen mit Monotonie über [`MONOTONY_WARN`] (Foster), z. B. 0,15; `None`: aus
     pub foster_surcharge: Option<f64>,
@@ -250,7 +252,7 @@ impl Curve {
     }
 
     pub fn step(&mut self, date: NaiveDate, load: DayLoad) -> DayValue {
-        let form = self.fitness - self.fatigue();
+        let form = self.fitness - self.p.fatigue_weight * self.fatigue();
         if self.window.len() == WINDOW {
             self.window.pop_front();
         }
@@ -357,7 +359,8 @@ mod tests {
         assert!(from_samples(&[vec![pt(0, 120)]], &z, 1.92).is_none());
     }
 
-    const STD: CurveParams = CurveParams { fitness_days: 42.0, model: CurveModel::Standard { fatigue_days: 7.0 }, foster_surcharge: None };
+    const STD: CurveParams =
+        CurveParams { fitness_days: 42.0, fatigue_weight: 1.0, model: CurveModel::Standard { fatigue_days: 7.0 }, foster_surcharge: None };
 
     fn steady(days: u64, load: DayLoad) -> BTreeMap<NaiveDate, DayLoad> {
         let d0 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();

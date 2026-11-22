@@ -70,7 +70,12 @@ pub struct Settings {
     pub rest_bonus_pct: u32,
     pub foster_surcharge: bool,
     pub foster_surcharge_pct: u32,
+    /// Form = Fitness − Gewicht × Ermüdung (#24)
+    pub fatigue_weight: f64,
 }
+
+/// Erlaubter Bereich des Ermüdungsgewichts.
+pub const FATIGUE_WEIGHT_RANGE: (f64, f64) = (0.25, 3.0);
 
 pub const CURVE_MODELS: [&str; 2] = ["standard", "two_curve"];
 
@@ -87,6 +92,7 @@ impl Settings {
             "rest_bonus_pct": self.rest_bonus_pct,
             "foster_surcharge": self.foster_surcharge,
             "foster_surcharge_pct": self.foster_surcharge_pct,
+            "fatigue_weight": self.fatigue_weight,
         })
     }
 
@@ -98,6 +104,7 @@ impl Settings {
     pub fn curve(&self) -> model::CurveParams {
         model::CurveParams {
             fitness_days: self.fitness_days as f64,
+            fatigue_weight: self.fatigue_weight,
             model: if self.curve_model == "two_curve" {
                 model::CurveModel::TwoCurve {
                     aerobic_days: self.aerobic_days as f64,
@@ -117,7 +124,7 @@ pub const SEX_FACTORS: [f64; 2] = [1.92, 1.67];
 pub async fn settings(db: &Db) -> anyhow::Result<Settings> {
     let r = sqlx::query(
         "SELECT sex_factor, fitness_days, fatigue_days, estimate_per_hour, curve_model, aerobic_days, anaerobic_days, \
-         rest_bonus_pct, foster_surcharge, foster_surcharge_pct FROM load_settings WHERE id = 1",
+         rest_bonus_pct, foster_surcharge, foster_surcharge_pct, fatigue_weight FROM load_settings WHERE id = 1",
     )
     .fetch_one(&db.reader)
     .await?;
@@ -138,6 +145,7 @@ pub async fn settings(db: &Db) -> anyhow::Result<Settings> {
         rest_bonus_pct: int("rest_bonus_pct"),
         foster_surcharge: r.get::<i64, _>("foster_surcharge") == 1,
         foster_surcharge_pct: int("foster_surcharge_pct"),
+        fatigue_weight: r.get("fatigue_weight"),
     })
 }
 
@@ -155,6 +163,7 @@ pub struct SettingsInput {
     pub rest_bonus_pct: Option<u32>,
     pub foster_surcharge: Option<bool>,
     pub foster_surcharge_pct: Option<u32>,
+    pub fatigue_weight: Option<f64>,
 }
 
 fn in_range(field: &'static str, v: Option<u32>, lo: u32, hi: u32, message: &'static str) -> Result<Option<u32>, Error> {
@@ -191,6 +200,14 @@ pub async fn update_settings(db: &Db, input: &SettingsInput) -> Result<Settings,
     if let Some(p) = in_range("foster_surcharge_pct", input.foster_surcharge_pct, 1, 50, "Surcharge must be 1 to 50 percent")? {
         new.foster_surcharge_pct = p;
     }
+    if let Some(w) = input.fatigue_weight {
+        let (lo, hi) = FATIGUE_WEIGHT_RANGE;
+        if !w.is_finite() || !(lo..=hi).contains(&w) {
+            return Err(invalid("fatigue_weight", "out_of_range", "Fatigue weight must be 0.25 to 3"));
+        }
+        // Zwei Nachkommastellen genügen, die Oberfläche zeigt nicht mehr
+        new.fatigue_weight = (w * 100.0).round() / 100.0;
+    }
     if let Some(b) = input.foster_surcharge {
         new.foster_surcharge = b;
     }
@@ -224,7 +241,7 @@ pub async fn update_settings(db: &Db, input: &SettingsInput) -> Result<Settings,
     let mut tx = db.writer.begin().await?;
     sqlx::query(
         "UPDATE load_settings SET sex_factor = ?, fitness_days = ?, fatigue_days = ?, estimate_per_hour = ?, curve_model = ?, \
-         aerobic_days = ?, anaerobic_days = ?, rest_bonus_pct = ?, foster_surcharge = ?, foster_surcharge_pct = ?, updated_at_ms = ? \
+         aerobic_days = ?, anaerobic_days = ?, rest_bonus_pct = ?, foster_surcharge = ?, foster_surcharge_pct = ?, fatigue_weight = ?, updated_at_ms = ? \
          WHERE id = 1",
     )
     .bind(new.sex_factor)
@@ -237,6 +254,7 @@ pub async fn update_settings(db: &Db, input: &SettingsInput) -> Result<Settings,
     .bind(new.rest_bonus_pct as i64)
     .bind(new.foster_surcharge as i64)
     .bind(new.foster_surcharge_pct as i64)
+    .bind(new.fatigue_weight)
     .bind(now)
     .execute(&mut *tx)
     .await?;
@@ -796,6 +814,19 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
     let n = all.len();
     let week = |a: usize, b: usize| all[n.saturating_sub(b)..n.saturating_sub(a)].iter().map(|d| d.load.total).sum::<f64>();
     let week_ago = &all[n.saturating_sub(8).min(n - 1)];
+    // Kachelreihen der Formseite (#25): vor 30 und 7 Tagen sowie in 7 Tagen mit der gewählten Vorschau
+    let month_ago = &all[n.saturating_sub(31).min(n - 1)];
+    let ahead = model::forecast(&curve, today, daily, 7);
+    let snap = |d: &DayValue| {
+        json!({
+            "date": d.date.to_string(),
+            "fitness": round1(d.fitness),
+            "fatigue": round1(d.fatigue),
+            "form": round1(d.form),
+            "monotony": opt1(d.monotony),
+            "strain": d.strain.map(|v| v.round()),
+        })
+    };
     let sets = zone_sets(db).await?;
     Ok(json!({
         "today": today.to_string(),
@@ -819,6 +850,11 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
             "monotony": opt1(last.monotony),
             "strain": last.strain.map(|v| v.round()),
             "strain_week_ago": week_ago.strain.map(|v| v.round()),
+            "compare": {
+                "month_ago": snap(month_ago),
+                "week_ago": snap(week_ago),
+                "week_ahead": ahead.last().map(snap),
+            },
         },
         "days": days,
         "forecast": { "mode": if q.forecast == Forecast::Rest { "rest" } else { "steady" }, "daily_load": round1(daily.total), "days": forecast },
