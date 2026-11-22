@@ -61,6 +61,7 @@ impl ApiError {
         Self::new(StatusCode::BAD_REQUEST, "segment_too_short", "Segment is shorter than the minimum length");
     pub const ROUTE_ALREADY_MATCHED: Self =
         Self::new(StatusCode::CONFLICT, "route_already_matched", "Activity already has an attempt on a route");
+    pub const SEGMENT_NOT_ROUTE: Self = Self::new(StatusCode::CONFLICT, "segment_not_route", "Only a route passes its name to activities");
     pub const SEGMENT_DIRECTION_UNDETERMINABLE: Self =
         Self::new(StatusCode::BAD_REQUEST, "segment_direction_undeterminable", "Direction at start or end cannot be determined");
     pub const HR_ZONE_SET_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "hr_zone_set_not_found", "Heart rate zone set not found");

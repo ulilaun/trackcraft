@@ -13,7 +13,7 @@ use super::AppState;
 use super::error::ApiError;
 use super::import::{paging, parse_json};
 use crate::segments::evaluation::RANKED;
-use crate::segments::store::{self, CreateError, KINDS, ListQuery, Period};
+use crate::segments::store::{self, CreateError, KINDS, ListQuery, NameTransferError, Period};
 use crate::{calculation, jobs, seasons};
 
 fn create_error(e: CreateError) -> Response {
@@ -112,6 +112,25 @@ pub async fn deletion_preview(State(state): State<AppState>, Path(id): Path<Stri
         Some(p) => Ok(Json(json!({ "data": p }))),
         None => Err(ApiError::SEGMENT_NOT_FOUND),
     }
+}
+
+fn name_transfer_result(r: Result<Value, NameTransferError>) -> Result<Json<Value>, ApiError> {
+    match r {
+        Ok(v) => Ok(Json(json!({ "data": v }))),
+        Err(NameTransferError::NotFound) => Err(ApiError::SEGMENT_NOT_FOUND),
+        Err(NameTransferError::NotRoute) => Err(ApiError::SEGMENT_NOT_ROUTE),
+        Err(NameTransferError::Internal(e)) => Err(ApiError::from(e)),
+    }
+}
+
+/// Vorschau: Wie viele Aktivitäten Name und Ort der Strecke bekämen (#23).
+pub async fn name_transfer_preview(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Value>, ApiError> {
+    name_transfer_result(store::name_transfer_preview(&state.db, &id).await)
+}
+
+/// Name und Ort der Strecke auf alle Aktivitäten mit gültiger Durchfahrt übernehmen (#23).
+pub async fn name_transfer(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Value>, ApiError> {
+    name_transfer_result(store::name_transfer(&state.db, &id).await)
 }
 
 pub async fn track(
