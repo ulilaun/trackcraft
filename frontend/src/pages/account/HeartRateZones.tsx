@@ -21,6 +21,7 @@ import { SportIcon } from "../../components/SportIcon";
 import { t, type TextKey } from "../../i18n";
 import { SPORT_CLASSES } from "../../utils/sports";
 import { germanDate } from "../seasons/seasonModel";
+import { addDays } from "../../utils/format";
 import {
   DEFAULT_BOUNDS,
   ZONE_MODELS,
@@ -197,9 +198,10 @@ function ZoneEditor({
     void queryClient.invalidateQueries({ queryKey: ["form"] });
     void queryClient.invalidateQueries({ queryKey: ["activities"] });
   };
+  // „update“ ändert den gewählten Stand, „create“ legt einen weiteren Stand an (ab seinem Datum bis zum nächsten).
   const save = useMutation({
-    mutationFn: () =>
-      set
+    mutationFn: (mode: "update" | "create") =>
+      set && mode === "update"
         ? apiPatch<HrZoneSetResponse>(`/hr-zones/${set.id}`, zoneInput(form))
         : apiPost<HrZoneSetResponse>("/hr-zones", { ...zoneInput(form), sport_class: scope }),
     onSuccess: (r) => {
@@ -222,6 +224,9 @@ function ZoneEditor({
     save.reset();
   };
   const setModel = (model: ZoneModel) => set_({ model, bounds: DEFAULT_BOUNDS[model].map(String) });
+  // Ein weiterer Stand braucht ein Datum, an dem in dieser Sportklasse noch keiner beginnt.
+  const dateTaken = history.some((h) => h.valid_from === form.valid_from);
+  const dateMoved = !!set && form.valid_from !== set.valid_from;
   const top = lower ? Math.max(max, (lower[4] ?? 0) + 5) : 0;
   const scale = lower ? top - (lower[0] ?? 0) : 0;
 
@@ -230,7 +235,7 @@ function ZoneEditor({
       className="grid gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!problem && !busy) save.mutate();
+        if (!problem && !busy) save.mutate("update");
       }}
     >
       <p className="text-xs text-muted">
@@ -242,6 +247,7 @@ function ZoneEditor({
             <label className="grid gap-1">
               <span className="text-xs font-medium text-muted">{t("zones.validFrom")}</span>
               <input type="date" className={input} value={form.valid_from} disabled={busy} onChange={(e) => set_({ valid_from: e.target.value })} />
+              {dateMoved && <span className="text-xs text-warn">{t("zones.dateMoved")}</span>}
             </label>
             <div className="grid content-start gap-1">
               <label className="grid gap-1">
@@ -337,14 +343,17 @@ function ZoneEditor({
         <div className="grid content-start gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t("zones.history")}</h3>
           <ul className="grid gap-1">
-            {history.map((h) => (
+            {history.map((h, i) => (
               <li key={h.id}>
                 <button
                   type="button"
                   onClick={() => onPick(h.id)}
                   className={`num flex w-full justify-between gap-3 rounded-lg px-2 py-1.5 text-left text-sm ${set?.id === h.id ? "bg-card-2 font-semibold" : "hover:bg-card-2"}`}
                 >
-                  <span>{germanDate(h.valid_from)}</span>
+                  <span>
+                    {germanDate(h.valid_from)} –{" "}
+                    {history[i + 1] ? germanDate(addDays(history[i + 1]!.valid_from, -1)) : t("zones.open")}
+                  </span>
                   <span className="text-muted">
                     {h.max_hr} / {h.resting_hr}
                     {h.threshold_hr ? ` / ${h.threshold_hr}` : ""}
@@ -381,9 +390,20 @@ function ZoneEditor({
         </p>
       )}
       {(save.error || remove.error) && <Problem error={save.error ?? remove.error} />}
-      <div className="flex justify-end border-t border-line pt-3">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+        {set && dateTaken && <span className="mr-auto text-xs text-muted">{t("zones.newNeedsDate")}</span>}
+        {set && (
+          <button
+            type="button"
+            className={secondaryButton}
+            disabled={!!problem || busy || dateTaken}
+            onClick={() => save.mutate("create")}
+          >
+            {t("zones.saveAsNew")}
+          </button>
+        )}
         <button type="submit" className={primaryButton} disabled={!!problem || busy}>
-          {save.isPending ? t("edit.saving") : t("zones.save")}
+          {save.isPending ? t("edit.saving") : t(set ? "zones.saveChanges" : "zones.save")}
         </button>
       </div>
     </form>

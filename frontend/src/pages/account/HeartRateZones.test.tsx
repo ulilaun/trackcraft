@@ -73,9 +73,26 @@ describe("HF-Zonen auf der Kontoseite", () => {
     fireEvent.change(max, { target: { value: "190" } });
     // 50 + 140 × 0,5 = 120
     expect(screen.getByTestId("zone-bpm-1")).toHaveTextContent("120–133");
-    fireEvent.click(screen.getByRole("button", { name: "Speichern" }));
+    fireEvent.click(screen.getByRole("button", { name: "Diesen Stand ändern" }));
     await waitFor(() => expect(writes).toHaveLength(1));
     expect(writes[0]).toMatchObject({ method: "PATCH", url: "/api/v1/hr-zones/g1", body: { max_hr: 190, resting_hr: 50, model: "reserve" } });
+  });
+
+  it("weiterer Stand mit anderem Datum; Verlauf zeigt die Geltungszeiträume", async () => {
+    sets = [general, { ...general, id: "g2", valid_from: "2020-03-01", max_hr: 178 }];
+    setup();
+    expect(await screen.findByText(/01\.01\.2018 – 29\.02\.2020/)).toBeInTheDocument();
+    expect(screen.getByText(/01\.03\.2020 – heute/)).toBeInTheDocument();
+    // Neuester Stand ist gewählt; gleiches Datum: kein weiterer Stand möglich
+    const asNew = screen.getByRole("button", { name: "Als neuen Stand speichern" });
+    expect(asNew).toBeDisabled();
+    expect(screen.getByText(/ein anderes „Gültig ab“ wählen/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Gültig ab"), { target: { value: "2024-01-01" } });
+    expect(screen.getByText(/Verschiebt diesen Stand/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Max. HF"), { target: { value: "176" } });
+    fireEvent.click(asNew);
+    await waitFor(() => expect(writes).toHaveLength(1));
+    expect(writes[0]).toMatchObject({ method: "POST", url: "/api/v1/hr-zones", body: { sport_class: null, valid_from: "2024-01-01", max_hr: 176 } });
   });
 
   it("Friel braucht die Schwellen-HF; neuer Stand ab heute wird angelegt", async () => {
