@@ -1,0 +1,30 @@
+# TrackCraft auf der Docker-Plattform (RFC-0005). Die Version steht immer ausgeschrieben, nie `stable` oder `latest`.
+# Im Release-Paket ersetzt der Release-Workflow ${TRACKCRAFT_VERSION} durch die genaue Version.
+name: trackcraft
+
+services:
+  trackcraft-backend:
+    image: ghcr.io/ulilaun/trackcraft-backend:${TRACKCRAFT_VERSION}
+    container_name: trackcraft-backend
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    volumes:
+      - ./config:/config:ro            # trackcraft.toml (Vorlage: trackcraft.container.example.toml)
+      - ./data:/data                   # Datenbank, Originale, Logs, Migrationssicherung
+      - /pfad/zum/sicherungsziel:/backup-target   # USB-Laufwerk oder NAS-Ordner, anpassen
+    networks: [trackcraft-network]
+    # Kein veröffentlichter Port: nur Nginx im Frontend-Container spricht das Backend an.
+
+  trackcraft-frontend:
+    image: ghcr.io/ulilaun/trackcraft-frontend:${TRACKCRAFT_VERSION}
+    container_name: trackcraft-frontend
+    restart: unless-stopped
+    depends_on: [trackcraft-backend]
+    ports:
+      - "127.0.0.1:8081:8080"          # nur lokal; der Reverse Proxy (z. B. DSM) leitet HTTPS hierher
+    networks: [trackcraft-network]
+
+networks:
+  trackcraft-network:
+    name: trackcraft-network

@@ -1,0 +1,14 @@
+TrackCraft – Lizenzen der ausgelieferten Rust-Abhängigkeiten
+==============================================================
+
+TrackCraft selbst steht unter AGPL-3.0-or-later (Datei LICENSE).
+
+{{#each licenses}}
+------------------------------------------------------------------------
+{{name}} ({{id}})
+Verwendet von:
+{{#each used_by}}  - {{crate.name}} {{crate.version}}
+{{/each}}
+{{text}}
+
+{{/each}}

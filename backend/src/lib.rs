@@ -1,0 +1,29 @@
+//! TrackCraft-Backend. Modulaufteilung nach RFC-0004; Fachmodule (domain, geo, import, segment …) folgen ab M1.
+
+pub mod activities;
+pub mod api;
+pub mod audit;
+pub mod calculation;
+pub mod cert;
+pub mod commands;
+pub mod config;
+pub mod db;
+pub mod domain;
+pub mod garmin;
+pub mod geo;
+pub mod import;
+pub mod import_job;
+pub mod install;
+pub mod jobs;
+pub mod localtime;
+pub mod logging;
+pub mod platform;
+pub mod profile;
+pub mod seasons;
+pub mod segments;
+pub mod server;
+pub mod sports;
+pub mod startup;
+pub mod stats;
+pub mod tls;
+pub mod version;

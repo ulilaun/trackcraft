@@ -1,0 +1,14 @@
+# Build-Ausgaben
+backend/target/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+*.tsbuildinfo
+dist/
+
+# Laufzeitdaten und private Testdaten nie ins Repository (RFC-0014)
+data/
+*.db
+*.db-wal
+*.db-shm
+*.pem

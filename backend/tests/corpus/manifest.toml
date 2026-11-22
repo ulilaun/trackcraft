@@ -1,0 +1,4925 @@
+# Testkorpus-Manifest (RFC-0014): erwartete Kennzahlen je Datei, ohne Koordinaten.
+# Erzeugt mit TRACKCRAFT_UPDATE_MANIFEST=1, Änderungen nur bewusst und im Diff geprüft.
+# Werte nach RFC-0008 mit der Beispielkonfiguration; Distanz und Hysterese auf 0,1 m.
+
+[[file]]
+path = "edge/2023-07-02-10-02-17.fit"
+sha256 = "225323cdfd98e2ac305be38b53f9bc91cd222c2adafdf0aecbeef16ae21eb5b7"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-07-02T08:02:17+00:00"
+total_time_ms = 2163692
+distance_m = 7102.8
+distance_origin = "file"
+ascent_file_m = 4.0
+ascent_hysteresis_m = 810.8
+avg_hr = 136
+raw_points = 1098
+points = 1098
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-07-02-10-38-35.fit"
+sha256 = "0b315155d1c2cb51204a6217e929ae9b4a5abfcc7e1f9011d26f567b48db8623"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-07-02T08:38:35+00:00"
+total_time_ms = 624577
+distance_m = 2730.9
+distance_origin = "file"
+ascent_file_m = 3.0
+ascent_hysteresis_m = 6.8
+avg_hr = 124
+raw_points = 410
+points = 410
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-07-02-11-04-33.fit"
+sha256 = "5bda255023b584201197c975b9368ae7460efde83d59d18b5490ccfa99514b98"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-07-02T09:04:33+00:00"
+total_time_ms = 2878764
+distance_m = 14914.9
+distance_origin = "file"
+ascent_file_m = 17.0
+ascent_hysteresis_m = 25.4
+avg_hr = 137
+raw_points = 2242
+points = 2242
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-07-02-12-10-03.fit"
+sha256 = "cbc55ebc7682c3ed24750434e3bb99c791e68eb074aa942cf346c41add6553f4"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-07-02T10:10:03+00:00"
+total_time_ms = 2664557
+distance_m = 12969.1
+distance_origin = "file"
+ascent_file_m = 30.0
+ascent_hysteresis_m = 40.6
+avg_hr = 128
+raw_points = 1750
+points = 1750
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-07-09-08-52-20.fit"
+sha256 = "173bcbaaf80566da973ea7c4db57bd60cfd0692572c7857a4f888ca7b3433062"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2023-07-09T06:52:20+00:00"
+total_time_ms = 25766403
+distance_m = 143121.8
+distance_origin = "file"
+ascent_file_m = 2919.0
+ascent_hysteresis_m = 2818.4
+avg_hr = 137
+raw_points = 8787
+points = 8787
+dropped = 4
+sections = 1
+
+[[file]]
+path = "edge/2023-07-16-09-12-38.fit"
+sha256 = "bcddff8320dc66e55df044b3cc1184fa41425fa2bb755313ece4dffcbe898a6c"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2023-07-16T07:12:38+00:00"
+total_time_ms = 20647544
+distance_m = 136853.2
+distance_origin = "file"
+ascent_file_m = 2412.0
+ascent_hysteresis_m = 2322.4
+avg_hr = 131
+raw_points = 7494
+points = 7494
+dropped = 19
+sections = 1
+
+[[file]]
+path = "edge/2023-07-30-14-00-44.fit"
+sha256 = "3b8ee4f65081bf644af260616a6c9b93c26dfea95789c1b0f336b67c6ded27e6"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2023-07-30T12:00:44+00:00"
+total_time_ms = 10993892
+distance_m = 92399.6
+distance_origin = "file"
+ascent_file_m = 471.0
+ascent_hysteresis_m = 340.4
+avg_hr = 136
+raw_points = 3076
+points = 3076
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-08-11-16-57-18.fit"
+sha256 = "bdd0fcb42af7b92ac2cf70b6a73bbad5c6e5a958f7f042dce063703e0bb04f7b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-08-11T14:57:18+00:00"
+total_time_ms = 7233081
+distance_m = 42282.8
+distance_origin = "file"
+ascent_file_m = 727.0
+ascent_hysteresis_m = 641.4
+avg_hr = 135
+raw_points = 6058
+points = 6058
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-08-13-11-23-11.fit"
+sha256 = "9fb0cbe2a4eb2c8993c455ded9ec3f3519539481177c50d12c1abca928ce510d"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-08-13T09:23:11+00:00"
+total_time_ms = 8116634
+distance_m = 48127.1
+distance_origin = "file"
+ascent_file_m = 863.0
+ascent_hysteresis_m = 783.4
+avg_hr = 133
+raw_points = 6779
+points = 6779
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-08-20-09-56-42.fit"
+sha256 = "ebcea541e96f76decf1e911036d34d2d1e8ba2307b691bbf3372f4e4579344ff"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-08-20T07:56:42+00:00"
+total_time_ms = 21098532
+distance_m = 84174.3
+distance_origin = "file"
+ascent_file_m = 2145.0
+ascent_hysteresis_m = 2007.6
+avg_hr = 139
+raw_points = 17228
+points = 17228
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-08-27-11-25-22.fit"
+sha256 = "b502cdde37973902fba77bd2872dc727fbbbaa177cf1a75e8d0d3be9f1c00a0d"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-08-27T09:25:22+00:00"
+total_time_ms = 10499663
+distance_m = 65560.2
+distance_origin = "file"
+ascent_file_m = 870.0
+ascent_hysteresis_m = 759.6
+avg_hr = 134
+raw_points = 7817
+points = 7817
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-09-03-10-39-14.fit"
+sha256 = "74f2a5b1e7edf8a1cfd2497e1beb510afec62106888d92180bc32859eb16fd1f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2023-09-03T08:39:14+00:00"
+total_time_ms = 19820214
+distance_m = 123891.0
+distance_origin = "file"
+ascent_file_m = 2288.0
+ascent_hysteresis_m = 2179.4
+avg_hr = 140
+raw_points = 7241
+points = 7241
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2023-10-01-10-46-58.fit"
+sha256 = "1253c0164a9308d8764f99dddd87a9537901bbd5962821014b7def07fd9ee793"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-10-01T08:46:58+00:00"
+total_time_ms = 18695294
+distance_m = 73747.3
+distance_origin = "file"
+ascent_file_m = 1975.0
+ascent_hysteresis_m = 1848.4
+avg_hr = 142
+raw_points = 15834
+points = 15834
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-10-03-10-29-26.fit"
+sha256 = "ed4fd965bdb7ba117466a2581566140db43cb989e25653e2979b1f9bd098ab9a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-10-03T08:29:26+00:00"
+total_time_ms = 12428048
+distance_m = 57869.9
+distance_origin = "file"
+ascent_file_m = 1345.0
+ascent_hysteresis_m = 1265.4
+avg_hr = 137
+raw_points = 10533
+points = 10533
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-10-08-10-32-34.fit"
+sha256 = "6963d1afedae7533d81c038954a9177b022ac33f8ff2ef51a6bcf7904d7a9c72"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-10-08T08:32:34+00:00"
+total_time_ms = 19591746
+distance_m = 91814.5
+distance_origin = "file"
+ascent_file_m = 1645.0
+ascent_hysteresis_m = 1516.6
+avg_hr = 138
+raw_points = 13959
+points = 13959
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-10-29-14-45-34.fit"
+sha256 = "5f5e1afab21d4c92e687e98a8b8dc67ea4651f40c675aede9b23ac0839f42fc0"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-10-29T13:45:34+00:00"
+total_time_ms = 7338555
+distance_m = 37309.3
+distance_origin = "file"
+ascent_file_m = 506.0
+ascent_hysteresis_m = 452.4
+avg_hr = 128
+raw_points = 4765
+points = 4765
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-11-01-11-31-41.fit"
+sha256 = "ac7f990343b44089e9ba8a42964c68dfcb8ca0b9fb5a0817b8cda7da96bdf7b8"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-11-01T10:31:41+00:00"
+total_time_ms = 12955479
+distance_m = 66599.1
+distance_origin = "file"
+ascent_file_m = 1131.0
+ascent_hysteresis_m = 1006.0
+avg_hr = 137
+raw_points = 9582
+points = 9582
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-12-17-12-24-27.fit"
+sha256 = "a50112063f44e657a56149ffbfc47f76823c6b255a4041300eb0c5d35a8b9e58"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2023-12-17T11:24:27+00:00"
+total_time_ms = 7826113
+distance_m = 41411.9
+distance_origin = "file"
+ascent_file_m = 660.0
+ascent_hysteresis_m = 577.6
+avg_hr = 132
+raw_points = 5809
+points = 5809
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2023-12-26-12-24-38.fit"
+sha256 = "9fbf2a7d7ae09ae1d47733b859ee722812e887e55f8b2aa962dea294dedc7128"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2023-12-26T11:24:38+00:00"
+total_time_ms = 11894370
+distance_m = 88650.3
+distance_origin = "file"
+ascent_file_m = 482.0
+ascent_hysteresis_m = 356.6
+avg_hr = 134
+raw_points = 3091
+points = 3091
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-01-01-10-39-48.fit"
+sha256 = "e67bf65762b4c28f68ecfb35407ab9817343d7b97234cea3a04785192bafc997"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-01-01T09:39:48+00:00"
+total_time_ms = 11902987
+distance_m = 88612.6
+distance_origin = "file"
+ascent_file_m = 475.0
+ascent_hysteresis_m = 342.4
+avg_hr = 135
+raw_points = 3029
+points = 3029
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-01-28-12-05-29.fit"
+sha256 = "e4607f3c458c2c592efd1273f48626d9715a72ac9c3762f0bd31c505a4e45ca3"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-01-28T11:05:29+00:00"
+total_time_ms = 14902838
+distance_m = 110699.5
+distance_origin = "file"
+ascent_file_m = 551.0
+ascent_hysteresis_m = 422.6
+avg_hr = 132
+raw_points = 3783
+points = 3783
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-01-29-12-30-11.fit"
+sha256 = "2a60adc878f67460b379ae036f6597d620b2f4bd928cc80fa1d23b8b00556855"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-01-29T11:30:11+00:00"
+total_time_ms = 13740191
+distance_m = 105625.7
+distance_origin = "file"
+ascent_file_m = 704.0
+ascent_hysteresis_m = 583.2
+avg_hr = 133
+raw_points = 3755
+points = 3755
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-02-04-11-12-34.fit"
+sha256 = "c9c45d91a1816948fca64dd6cf9b8c11f485af57e5be1aff3091da27c53d6bfe"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-02-04T10:12:34+00:00"
+total_time_ms = 11286966
+distance_m = 88833.4
+distance_origin = "file"
+ascent_file_m = 483.0
+ascent_hysteresis_m = 365.8
+avg_hr = 132
+raw_points = 2920
+points = 2920
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-02-11-11-20-13.fit"
+sha256 = "d2d0e2dd41c9510bfeb61dcfe9db99e37e020d937fd484812ca8cbe0b51ed4fb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-02-11T10:20:13+00:00"
+total_time_ms = 12017466
+distance_m = 86991.2
+distance_origin = "file"
+ascent_file_m = 702.0
+ascent_hysteresis_m = 601.8
+avg_hr = 133
+raw_points = 3429
+points = 3429
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-02-18-10-34-54.fit"
+sha256 = "e7b2ed11f164cad4918f9d1cc4c10c2969edb670f5a3b57a1b0f0162d7b6631c"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-02-18T09:34:54+00:00"
+total_time_ms = 14824570
+distance_m = 105580.3
+distance_origin = "file"
+ascent_file_m = 786.0
+ascent_hysteresis_m = 635.0
+avg_hr = 136
+raw_points = 4025
+points = 4025
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-02-25-10-55-38.fit"
+sha256 = "fc04e6dda9d7c30c73c6ff65bc585dfd3bc32e2f617c910b39d17c3fc4c2e4c1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-02-25T09:55:38+00:00"
+total_time_ms = 15820744
+distance_m = 112346.9
+distance_origin = "file"
+ascent_file_m = 1104.0
+ascent_hysteresis_m = 986.4
+avg_hr = 136
+raw_points = 4575
+points = 4575
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-03-11-02-32.fit"
+sha256 = "5a6cc9a028114b29b077e02c1391418beb54a02f419bf9c9336f85a72c42bdf0"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-03-03T10:02:32+00:00"
+total_time_ms = 14267484
+distance_m = 113156.9
+distance_origin = "file"
+ascent_file_m = 537.0
+ascent_hysteresis_m = 447.4
+avg_hr = 133
+raw_points = 3713
+points = 3713
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-09-15-21-55.fit"
+sha256 = "83b669eef54d7077f8ff2f1d1d60ab5a2f5a4973c93c595aca7619709d01cb5e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-09T14:21:55+00:00"
+total_time_ms = 4190536
+distance_m = 12695.0
+distance_origin = "file"
+ascent_file_m = 360.0
+ascent_hysteresis_m = 382.0
+avg_hr = 135
+raw_points = 3168
+points = 3168
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-10-11-35-33.fit"
+sha256 = "8aaaf86a468e98e2a9b2afeb518ed0566ad2b4e06a8917619a3b76b7c9ad1c7b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-03-10T10:35:33+00:00"
+total_time_ms = 19806548
+distance_m = 133234.2
+distance_origin = "file"
+ascent_file_m = 1170.0
+ascent_hysteresis_m = 1043.2
+avg_hr = 137
+raw_points = 5875
+points = 5875
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-12-09-01-29.fit"
+sha256 = "e9ab578beeb87c667ffb7a29728043eb3a816d4b93dee2ced84a4171493ca80e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-03-12T08:01:29+00:00"
+total_time_ms = 27126434
+distance_m = 133840.7
+distance_origin = "file"
+ascent_file_m = 2404.0
+ascent_hysteresis_m = 2308.8
+avg_hr = 132
+raw_points = 8938
+points = 8938
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-13-09-43-46.fit"
+sha256 = "ce8f08c52d88634894ed5d7dd7df1ab15e136887e81027143b2967d3555e5336"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-13T08:43:46+00:00"
+total_time_ms = 14069627
+distance_m = 32475.7
+distance_origin = "file"
+ascent_file_m = 999.0
+ascent_hysteresis_m = 981.6
+avg_hr = 122
+raw_points = 8819
+points = 8819
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-13-14-31-16.fit"
+sha256 = "2ac4306a83e6ce635ed1a632857da9a915e672434a31210ef0b046b5193a69cc"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-13T13:31:16+00:00"
+total_time_ms = 7399713
+distance_m = 23329.6
+distance_origin = "file"
+ascent_file_m = 337.0
+ascent_hysteresis_m = 303.8
+avg_hr = 137
+raw_points = 4697
+points = 4697
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-14-08-27-00.fit"
+sha256 = "8442600fc03305cb8508da576a1e34449b7860403579d70af234d9e950c34a73"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-14T07:27:00+00:00"
+total_time_ms = 731258
+distance_m = 3263.0
+distance_origin = "file"
+ascent_file_m = 22.0
+ascent_hysteresis_m = 12.0
+avg_hr = 118
+raw_points = 431
+points = 431
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-14-09-36-28.fit"
+sha256 = "49152497cf6ea60b0980ba71b44309690317e2bb7a9a8dca040e129b81077a1d"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-14T08:36:28+00:00"
+total_time_ms = 21651003
+distance_m = 50532.3
+distance_origin = "file"
+ascent_file_m = 1623.0
+ascent_hysteresis_m = 1569.0
+avg_hr = 131
+raw_points = 14973
+points = 14973
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-15-09-35-20.fit"
+sha256 = "9fb1e2b2a55079b082be18af79a6acf4e4828c59c547ad92b5f0221b4399fbec"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-15T08:35:20+00:00"
+total_time_ms = 18618368
+distance_m = 42679.8
+distance_origin = "file"
+ascent_file_m = 1172.0
+ascent_hysteresis_m = 1136.2
+avg_hr = 118
+raw_points = 11913
+points = 11913
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-16-09-37-10.fit"
+sha256 = "5e3a62a768be08c443933e2ab832d697dcd4e4c5145e5787456b6e69767b2ceb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-03-16T08:37:10+00:00"
+total_time_ms = 29021591
+distance_m = 116125.7
+distance_origin = "file"
+ascent_file_m = 1480.0
+ascent_hysteresis_m = 1374.0
+avg_hr = 125
+raw_points = 6815
+points = 6815
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-21-15-41-43.fit"
+sha256 = "88e72520eb39987319610962ed02be8c8de74984f45121eaf168656f87a3779a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-03-21T14:41:43+00:00"
+total_time_ms = 4681974
+distance_m = 27561.1
+distance_origin = "file"
+ascent_file_m = 413.0
+ascent_hysteresis_m = 353.0
+avg_hr = 139
+raw_points = 3548
+points = 3548
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-03-29-12-09-21.fit"
+sha256 = "01dbb30e5f1f6e10316a58d5f113e5cd154f74083a8cfee5c124531c86fb3d62"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-03-29T11:09:21+00:00"
+total_time_ms = 11348304
+distance_m = 94762.1
+distance_origin = "file"
+ascent_file_m = 586.0
+ascent_hysteresis_m = 484.0
+avg_hr = 134
+raw_points = 3246
+points = 3246
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-03-31-11-49-32.fit"
+sha256 = "e2facd263c52b0722684636f17b6012b7c91d8cb3a6717528ea22a93f1cbaf9d"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-03-31T09:49:32+00:00"
+total_time_ms = 15134365
+distance_m = 113769.4
+distance_origin = "file"
+ascent_file_m = 1172.0
+ascent_hysteresis_m = 1054.8
+avg_hr = 134
+raw_points = 4665
+points = 4665
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-04-05-15-59-01.fit"
+sha256 = "2a268ec3290f8591637c0c635003b81fef6e2fe8a5183e7af99f840b11629cb9"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-04-05T13:59:01+00:00"
+total_time_ms = 7575356
+distance_m = 42991.7
+distance_origin = "file"
+ascent_file_m = 757.0
+ascent_hysteresis_m = 656.8
+avg_hr = 136
+raw_points = 6342
+points = 6342
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-04-07-09-57-34.fit"
+sha256 = "c8aff9e7310ebb669f606cb85dafdcee29799ff8af6df7b008ed6f946ad8797b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-04-07T07:57:34+00:00"
+total_time_ms = 20676961
+distance_m = 129226.8
+distance_origin = "file"
+ascent_file_m = 2251.0
+ascent_hysteresis_m = 2166.2
+avg_hr = 134
+raw_points = 7187
+points = 7187
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2024-04-14-09-31-00.fit"
+sha256 = "bfc54a12ceebd4ac38af8806ed0889662b8c3648b662c8ed9d8f1a65ad2e3848"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-04-14T07:31:00+00:00"
+total_time_ms = 22934822
+distance_m = 130446.6
+distance_origin = "file"
+ascent_file_m = 2843.0
+ascent_hysteresis_m = 2745.0
+avg_hr = 135
+raw_points = 8227
+points = 8227
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-04-28-11-01-55.fit"
+sha256 = "5a8efc80021fec4842443eab0166643410c7e84595930ff8ae7513f732f0cf99"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-04-28T09:01:55+00:00"
+total_time_ms = 18640376
+distance_m = 79277.2
+distance_origin = "file"
+ascent_file_m = 1907.0
+ascent_hysteresis_m = 1771.2
+avg_hr = 131
+raw_points = 15396
+points = 15396
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-04-30-15-09-28.fit"
+sha256 = "2683e92f8bce6995c82aa3e0217fdd636cec9e579ac0254eb28f8118ad7bbaeb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-04-30T13:09:28+00:00"
+total_time_ms = 10465460
+distance_m = 59292.5
+distance_origin = "file"
+ascent_file_m = 863.0
+ascent_hysteresis_m = 762.2
+avg_hr = 136
+raw_points = 7715
+points = 7715
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-05-01-10-28-12.fit"
+sha256 = "0387a6d570bdb818af203d105497a75117d2ba9d080f35625918376638f35cb9"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-05-01T08:28:12+00:00"
+total_time_ms = 21210689
+distance_m = 124614.6
+distance_origin = "file"
+ascent_file_m = 2343.0
+ascent_hysteresis_m = 2231.2
+avg_hr = 136
+raw_points = 7332
+points = 7332
+dropped = 16
+sections = 1
+
+[[file]]
+path = "edge/2024-05-09-09-50-40.fit"
+sha256 = "21b4cd8acc33df1c757a52e90354832faf69e3e1e4d9155ade0572acf05aab93"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-05-09T07:50:40+00:00"
+total_time_ms = 21836511
+distance_m = 131807.5
+distance_origin = "file"
+ascent_file_m = 2426.0
+ascent_hysteresis_m = 2337.6
+avg_hr = 134
+raw_points = 7416
+points = 7416
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-05-12-09-17-41.fit"
+sha256 = "57fe1c7b71f4704bfa7dc8d2a29dac1bec892092c60cfb38795dd3973c0287ce"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-05-12T07:17:41+00:00"
+total_time_ms = 13176188
+distance_m = 53752.4
+distance_origin = "file"
+ascent_file_m = 1208.0
+ascent_hysteresis_m = 1114.6
+avg_hr = 129
+raw_points = 10056
+points = 10056
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-05-19-10-29-59.fit"
+sha256 = "48015c8e874907d05b2fba82b231891aea624861cd67e0448584f49c526cc5fd"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-05-19T08:29:59+00:00"
+total_time_ms = 17895563
+distance_m = 126141.8
+distance_origin = "file"
+ascent_file_m = 1517.0
+ascent_hysteresis_m = 1380.0
+avg_hr = 134
+raw_points = 5759
+points = 5759
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2024-05-20-09-51-14.fit"
+sha256 = "68c86fb610343cb78baa7aa0eb7402a8980a62817ab567cf3685a13dfa8f6a91"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-05-20T07:51:14+00:00"
+total_time_ms = 20753428
+distance_m = 122849.3
+distance_origin = "file"
+ascent_file_m = 2376.0
+ascent_hysteresis_m = 2303.8
+avg_hr = 136
+raw_points = 7620
+points = 7620
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2024-05-28-15-58-10.fit"
+sha256 = "eaa563b7f8aa054fd0fee079b6eeb2dc5a9cd4abd35be86ee570f46d02fa1629"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-05-28T13:58:10+00:00"
+total_time_ms = 7372519
+distance_m = 42843.8
+distance_origin = "file"
+ascent_file_m = 773.0
+ascent_hysteresis_m = 680.8
+avg_hr = 134
+raw_points = 6112
+points = 6112
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2024-06-04-16-46-30.fit"
+sha256 = "b716945ef52e50ee0957d4c3c21d2a76d19d6053948fea5baf12e2805a35d839"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-06-04T14:46:30+00:00"
+total_time_ms = 4921064
+distance_m = 32293.1
+distance_origin = "file"
+ascent_file_m = 437.0
+ascent_hysteresis_m = 372.6
+avg_hr = 131
+raw_points = 3803
+points = 3803
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-06-09-09-50-08.fit"
+sha256 = "a20dab50aa55c0776727c2bcde443e0ffccd401c7acc5a331e96099daf849183"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-06-09T07:50:08+00:00"
+total_time_ms = 16660518
+distance_m = 121645.9
+distance_origin = "file"
+ascent_file_m = 1563.0
+ascent_hysteresis_m = 1421.4
+avg_hr = 138
+raw_points = 5503
+points = 5503
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2024-06-16-09-50-25.fit"
+sha256 = "c9491bd89b66fe3a532eb3e501e43d3cfd59ea5b176adf6d51f48e13d7d0b1b3"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-06-16T07:50:25+00:00"
+total_time_ms = 21876288
+distance_m = 130329.8
+distance_origin = "file"
+ascent_file_m = 2625.0
+ascent_hysteresis_m = 2515.2
+avg_hr = 136
+raw_points = 8009
+points = 8009
+dropped = 27
+sections = 1
+
+[[file]]
+path = "edge/2024-06-18-17-08-12.fit"
+sha256 = "91b2329f7b458061bd4f850e009d6cc6f12661f4414c6567a67787ae53cbe8bf"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-06-18T15:08:12+00:00"
+total_time_ms = 7339326
+distance_m = 42853.9
+distance_origin = "file"
+ascent_file_m = 734.0
+ascent_hysteresis_m = 646.8
+avg_hr = 133
+raw_points = 6081
+points = 6081
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-06-23-09-52-11.fit"
+sha256 = "f3c4cb95dcb1a308aae11a2043f7b9105c55e5b35b1df5171433b3cf464f4d34"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-06-23T07:52:11+00:00"
+total_time_ms = 19332341
+distance_m = 123792.1
+distance_origin = "file"
+ascent_file_m = 2341.0
+ascent_hysteresis_m = 2245.8
+avg_hr = 140
+raw_points = 7206
+points = 7206
+dropped = 13
+sections = 1
+
+[[file]]
+path = "edge/2024-06-29-15-17-37.fit"
+sha256 = "fc43bd7313b375f10a2bb54c8f8467eb574e6b8de1ef216b8378700393d6f25b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-06-29T13:17:37+00:00"
+total_time_ms = 1902342
+distance_m = 8638.3
+distance_origin = "file"
+ascent_file_m = 18.0
+ascent_hysteresis_m = 102.0
+avg_hr = 125
+raw_points = 1255
+points = 1255
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-06-29-16-12-41.fit"
+sha256 = "3802740f1325547904ec54978bc7cb980c8fbd881c1bef0a107ee421b00f1c19"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-06-29T14:12:41+00:00"
+total_time_ms = 2286246
+distance_m = 10314.8
+distance_origin = "file"
+ascent_file_m = 23.0
+ascent_hysteresis_m = 69.2
+avg_hr = 138
+raw_points = 1567
+points = 1567
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-06-30-09-34-42.fit"
+sha256 = "f30cdb4550b6d46d9ae3154ee31eb9fe2776f45fc296a85d2dbefc8a003bb334"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-06-30T07:34:42+00:00"
+total_time_ms = 7716339
+distance_m = 24097.2
+distance_origin = "file"
+ascent_file_m = 973.0
+ascent_hysteresis_m = 955.6
+avg_hr = 133
+raw_points = 4824
+points = 4824
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-06-30-11-59-07.fit"
+sha256 = "3113e826624993f9b2a65bbdc6d818f994ec852908bc8a390d5e5c779804b6a1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-06-30T09:59:07+00:00"
+total_time_ms = 16487974
+distance_m = 54657.9
+distance_origin = "file"
+ascent_file_m = 2914.0
+ascent_hysteresis_m = 2863.0
+avg_hr = 126
+raw_points = 9739
+points = 9739
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-01-10-09-55.fit"
+sha256 = "af5c4e0fa690dc2c2c778c01b3caf5fa20e2c333b0d23eb4626f4cd7821e9a99"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-07-01T08:09:55+00:00"
+total_time_ms = 6967970
+distance_m = 27023.6
+distance_origin = "file"
+ascent_file_m = 1841.0
+ascent_hysteresis_m = 1837.2
+avg_hr = 104
+raw_points = 4683
+points = 4683
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-02-10-11-32.fit"
+sha256 = "8ea5d56a876553abefc9d37b0198baad2cf6abc34303871c66f73e315e59eecb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-07-02T08:11:32+00:00"
+total_time_ms = 23279169
+distance_m = 79302.5
+distance_origin = "file"
+ascent_file_m = 3821.0
+ascent_hysteresis_m = 3787.2
+avg_hr = 114
+raw_points = 15333
+points = 15333
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-03-11-04-40.fit"
+sha256 = "caa5e6ef377a22b04b5669ef6c3c72e03683dc6fb94d10b68d85586fae6156b7"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-07-03T09:04:40+00:00"
+total_time_ms = 13566122
+distance_m = 91680.8
+distance_origin = "file"
+ascent_file_m = 733.0
+ascent_hysteresis_m = 639.4
+avg_hr = 117
+raw_points = 4492
+points = 4492
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-04-08-36-33.fit"
+sha256 = "0564b493dd240e07e1525b701bffc36520a7a5beab4a04686d152ae88c747a96"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-07-04T06:36:33+00:00"
+total_time_ms = 30110321
+distance_m = 155821.5
+distance_origin = "file"
+ascent_file_m = 2679.0
+ascent_hysteresis_m = 2496.4
+avg_hr = 129
+raw_points = 9944
+points = 9944
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-05-09-21-24.fit"
+sha256 = "b904b31277088ddda86efd4f36989a72460146d235530da22e3c383d991ee71f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-07-05T07:21:24+00:00"
+total_time_ms = 26501289
+distance_m = 85151.6
+distance_origin = "file"
+ascent_file_m = 5258.0
+ascent_hysteresis_m = 5175.8
+avg_hr = 117
+raw_points = 16221
+points = 16221
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-06-09-30-45.fit"
+sha256 = "cd13f645e52458de77eb42e5daad958658d0fc0653aac65115110729ffe33755"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-07-06T07:30:45+00:00"
+total_time_ms = 4023268
+distance_m = 18972.0
+distance_origin = "file"
+ascent_file_m = 925.0
+ascent_hysteresis_m = 944.2
+avg_hr = 117
+raw_points = 3097
+points = 3097
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-07-14-10-04-36.fit"
+sha256 = "5bf1102cde5b775ced22f0e8f6221c3666381e795343e9169c6f4b6ba796cca8"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-07-14T08:04:36+00:00"
+total_time_ms = 21443332
+distance_m = 132449.1
+distance_origin = "file"
+ascent_file_m = 2364.0
+ascent_hysteresis_m = 2271.4
+avg_hr = 134
+raw_points = 7441
+points = 7441
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2024-07-21-10-37-26.fit"
+sha256 = "55b208a82e775b3fceb44666062f76ed0095914d8d8a1337d4c82703b8e4487e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-07-21T08:37:26+00:00"
+total_time_ms = 16836047
+distance_m = 124537.8
+distance_origin = "file"
+ascent_file_m = 1315.0
+ascent_hysteresis_m = 1200.8
+avg_hr = 140
+raw_points = 5260
+points = 5260
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-07-28-10-51-43.fit"
+sha256 = "76d99daf2c7f361ca0d2a6f0290e0a8bfb14a1ca3d2ea717c005edbb7bed9c73"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-07-28T08:51:43+00:00"
+total_time_ms = 18537627
+distance_m = 80280.2
+distance_origin = "file"
+ascent_file_m = 1863.0
+ascent_hysteresis_m = 1750.0
+avg_hr = 138
+raw_points = 15060
+points = 15060
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-08-04-09-58-13.fit"
+sha256 = "fa56153986e74ced23626779f403c222aa2e10ab59deb1d7b72fb3b79dafdc0e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-08-04T07:58:13+00:00"
+total_time_ms = 23160371
+distance_m = 134361.7
+distance_origin = "file"
+ascent_file_m = 2892.0
+ascent_hysteresis_m = 2795.2
+avg_hr = 141
+raw_points = 8312
+points = 8312
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-08-09-17-30-49.fit"
+sha256 = "9996c2a338076c43bef07993b09b25546227d4c72e977c77c745ae66a23c878c"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-08-09T15:30:49+00:00"
+total_time_ms = 7785888
+distance_m = 42997.8
+distance_origin = "file"
+ascent_file_m = 738.0
+ascent_hysteresis_m = 662.8
+avg_hr = 126
+raw_points = 6345
+points = 6345
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-08-11-10-39-52.fit"
+sha256 = "28f0a735b8c3d72718d8a4212021f64ee15b8ff5db36c29a861c4de63535a2ad"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-08-11T08:39:52+00:00"
+total_time_ms = 20910965
+distance_m = 86031.9
+distance_origin = "file"
+ascent_file_m = 2173.0
+ascent_hysteresis_m = 2050.8
+avg_hr = 144
+raw_points = 17342
+points = 17342
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-08-16-10-06-22.fit"
+sha256 = "6bbf5f195dac83c76b9fe331b1db5b7bf44fe773015e61b07d63242b44ca3b62"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-08-16T08:06:22+00:00"
+total_time_ms = 25312399
+distance_m = 95423.4
+distance_origin = "file"
+ascent_file_m = 2412.0
+ascent_hysteresis_m = 2271.6
+raw_points = 20515
+points = 20515
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-08-22-09-42-55.fit"
+sha256 = "1ff20db7db4ce1dcb390d947a27da668ff7b29e471ba91f8b4059b6543f71782"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-08-22T07:42:55+00:00"
+total_time_ms = 27044707
+distance_m = 146484.9
+distance_origin = "file"
+ascent_file_m = 2805.0
+ascent_hysteresis_m = 2687.4
+avg_hr = 132
+raw_points = 8874
+points = 8874
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-08-25-10-20-24.fit"
+sha256 = "de791e3bad6a1caa606635db352c9cb20172a7c053693ce8e0ffeca2bc00d212"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-08-25T08:20:24+00:00"
+total_time_ms = 20465215
+distance_m = 132356.8
+distance_origin = "file"
+ascent_file_m = 2284.0
+ascent_hysteresis_m = 2177.4
+avg_hr = 127
+raw_points = 7137
+points = 7137
+dropped = 6
+sections = 1
+
+[[file]]
+path = "edge/2024-08-28-09-23-29.fit"
+sha256 = "d9eb6810a69406866e4c6ba1b4ba5c328c14730c181d04d089b4f4e9db88c66e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-08-28T07:23:29+00:00"
+total_time_ms = 16468550
+distance_m = 76961.3
+distance_origin = "file"
+ascent_file_m = 1818.0
+ascent_hysteresis_m = 1706.6
+avg_hr = 135
+raw_points = 14056
+points = 14056
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-09-01-09-55-38.fit"
+sha256 = "474a795dbdcd3d1b05f0662ca392fd2d2fd081680e8dad0cceab6e72200c3393"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-09-01T07:55:38+00:00"
+total_time_ms = 20793362
+distance_m = 88191.3
+distance_origin = "file"
+ascent_file_m = 2219.0
+ascent_hysteresis_m = 2109.4
+avg_hr = 139
+raw_points = 17593
+points = 17593
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-09-15-10-22-25.fit"
+sha256 = "454d330f4ab0736a444564cda32333772ba9b2c876edbf2eedcead841c2e245f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-09-15T08:22:25+00:00"
+total_time_ms = 16861918
+distance_m = 118889.4
+distance_origin = "file"
+ascent_file_m = 1436.0
+ascent_hysteresis_m = 1310.2
+avg_hr = 130
+raw_points = 5278
+points = 5278
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-09-28-17-38-21.fit"
+sha256 = "51aa92c21910637004ded5a727f589db4b5110eb2356f619d724372cdab9fe18"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-09-28T15:38:21+00:00"
+total_time_ms = 4000153
+distance_m = 8879.9
+distance_origin = "file"
+ascent_file_m = 262.0
+ascent_hysteresis_m = 361.6
+avg_hr = 140
+raw_points = 2505
+points = 2505
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-09-29-09-18-34.fit"
+sha256 = "bf39df5f29b7eabdaed0bcc19ab6740f1ea325825657b3f9d825d6706eb20de2"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-09-29T07:18:34+00:00"
+total_time_ms = 25348903
+distance_m = 58980.2
+distance_origin = "file"
+ascent_file_m = 1799.0
+ascent_hysteresis_m = 1724.8
+avg_hr = 136
+raw_points = 16738
+points = 16738
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-09-30-09-35-59.fit"
+sha256 = "fe20f32cfe871cf3de268b62e6639664cd3f24720909844bb2741d414a249f95"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-09-30T07:35:59+00:00"
+total_time_ms = 28008392
+distance_m = 49430.4
+distance_origin = "file"
+ascent_file_m = 1693.0
+ascent_hysteresis_m = 1615.4
+avg_hr = 130
+raw_points = 16830
+points = 16830
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-10-01-11-06-26.fit"
+sha256 = "0c322c9b502cbe332507ac63750c92fc97622507ea6f039e395e584a35f50fe7"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-10-01T09:06:26+00:00"
+total_time_ms = 22837069
+distance_m = 44260.9
+distance_origin = "file"
+ascent_file_m = 1099.0
+ascent_hysteresis_m = 1030.0
+avg_hr = 122
+raw_points = 12432
+points = 12432
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-10-02-09-30-57.fit"
+sha256 = "4ee07b44a2f90adf899ab69c4a8822162f1e7271bb0649d6a086c8ac585e1d11"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-10-02T07:30:57+00:00"
+total_time_ms = 21678334
+distance_m = 51379.8
+distance_origin = "file"
+ascent_file_m = 1459.0
+ascent_hysteresis_m = 1408.2
+raw_points = 13547
+points = 13547
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-10-03-13-27-24.fit"
+sha256 = "1431c93e3fe7878e9041e317756b93e6a9302e7ec4de373aeea603e37c66af47"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-10-03T11:27:24+00:00"
+total_time_ms = 9541780
+distance_m = 24922.2
+distance_origin = "file"
+ascent_file_m = 596.0
+ascent_hysteresis_m = 554.0
+avg_hr = 108
+raw_points = 5966
+points = 5966
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-10-04-09-24-49.fit"
+sha256 = "705eba3f3edad2977bc23d289f9e65ac8c2f5b7899b5994e7f42b78da46351d6"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-10-04T07:24:49+00:00"
+total_time_ms = 25263295
+distance_m = 54662.8
+distance_origin = "file"
+ascent_file_m = 1890.0
+ascent_hysteresis_m = 1832.4
+avg_hr = 123
+raw_points = 16879
+points = 16879
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-10-20-10-46-01.fit"
+sha256 = "35cda5a0d1943175c61d2a937f4ae7f41d5f1025d4bf5a6878f9db2886c702b6"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-10-20T08:46:01+00:00"
+total_time_ms = 21104079
+distance_m = 89544.8
+distance_origin = "file"
+ascent_file_m = 1622.0
+ascent_hysteresis_m = 1499.4
+avg_hr = 136
+raw_points = 13409
+points = 13409
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-10-27-11-06-50.fit"
+sha256 = "c644dd5bb3676ca490a3cab461c1e9205ab409f09b5039c46270a3efba3fb86c"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-10-27T10:06:50+00:00"
+total_time_ms = 19756806
+distance_m = 60392.6
+distance_origin = "file"
+ascent_file_m = 1406.0
+ascent_hysteresis_m = 1320.4
+avg_hr = 130
+raw_points = 11294
+points = 11294
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-11-01-10-33-16.fit"
+sha256 = "2a6670ddb3eb3518465c5315052a045577a45387f1b892c5877b0affc42738c0"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-11-01T09:33:16+00:00"
+total_time_ms = 17339150
+distance_m = 107544.1
+distance_origin = "file"
+ascent_file_m = 2074.0
+ascent_hysteresis_m = 1963.4
+avg_hr = 137
+raw_points = 6587
+points = 6587
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-11-24-12-14-51.fit"
+sha256 = "5521eba45d833802c8750f11813d30a1347faa4132267cbd484e051f2cfe8ba6"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-11-24T11:14:51+00:00"
+total_time_ms = 10927690
+distance_m = 88348.5
+distance_origin = "file"
+ascent_file_m = 538.0
+ascent_hysteresis_m = 394.8
+avg_hr = 145
+raw_points = 3075
+points = 3075
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-11-27-12-12-45.fit"
+sha256 = "a1d7ae0737ed134b0c521762ae8203ec16ad7e6f084cc91c14c361f4df918d74"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-11-27T11:12:45+00:00"
+total_time_ms = 11636928
+distance_m = 88318.5
+distance_origin = "file"
+ascent_file_m = 530.0
+ascent_hysteresis_m = 378.4
+avg_hr = 140
+raw_points = 3108
+points = 3108
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-12-15-12-22-40.fit"
+sha256 = "549e6584dcee48d5ef956dc015aa29300415cbc177add0307d30317dfba10ac4"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-12-15T11:22:40+00:00"
+total_time_ms = 6298276
+distance_m = 37365.6
+distance_origin = "file"
+ascent_file_m = 532.0
+ascent_hysteresis_m = 468.6
+avg_hr = 134
+raw_points = 4733
+points = 4733
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-12-17-12-50-27.fit"
+sha256 = "fdc10b3e008ba8b88711c92219cee6350cd090823aced41405872b8b6e04c5c8"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2024-12-17T11:50:27+00:00"
+total_time_ms = 11552922
+distance_m = 88282.8
+distance_origin = "file"
+ascent_file_m = 528.0
+ascent_hysteresis_m = 392.2
+avg_hr = 132
+raw_points = 3072
+points = 3072
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2024-12-27-14-14-40.fit"
+sha256 = "d61b46de54240408851cd933547eca30157a8636cf804c58f13edf42d12a4857"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-12-27T13:14:40+00:00"
+total_time_ms = 4160524
+distance_m = 25254.3
+distance_origin = "file"
+ascent_file_m = 375.0
+ascent_hysteresis_m = 321.6
+avg_hr = 142
+raw_points = 3212
+points = 3212
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2024-12-29-13-42-57.fit"
+sha256 = "ded6e09592187952bbf7e179e331a561986fbdb5d6f01ef57c27e7aef92af2c1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2024-12-29T12:42:57+00:00"
+total_time_ms = 6485175
+distance_m = 37419.9
+distance_origin = "file"
+ascent_file_m = 533.0
+ascent_hysteresis_m = 465.0
+avg_hr = 141
+raw_points = 4932
+points = 4932
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-01-06-12-11-30.fit"
+sha256 = "a80eff25858d2d4d467e2bf9e4646ca6ddb61bb9b21a9d86f707847aee21f096"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-01-06T11:11:30+00:00"
+total_time_ms = 11670525
+distance_m = 88668.3
+distance_origin = "file"
+ascent_file_m = 513.0
+ascent_hysteresis_m = 640.4
+avg_hr = 140
+raw_points = 3055
+points = 3055
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-01-19-11-51-43.fit"
+sha256 = "5a3d498299ff00e65bfde72e613aff8d9808f93e65a9b4cd2eba8257cedcdd6f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-01-19T10:51:43+00:00"
+total_time_ms = 11599877
+distance_m = 92027.5
+distance_origin = "file"
+ascent_file_m = 564.0
+ascent_hysteresis_m = 436.4
+avg_hr = 143
+raw_points = 3170
+points = 3170
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-01-29-15-39-57.fit"
+sha256 = "578f9d5546112389766d83666afd62cc562562c0c3f939a5fc8504d387636818"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-01-29T14:39:57+00:00"
+total_time_ms = 4851130
+distance_m = 25394.9
+distance_origin = "file"
+ascent_file_m = 373.0
+ascent_hysteresis_m = 338.0
+avg_hr = 135
+raw_points = 3396
+points = 3396
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-02-23-11-06-44.fit"
+sha256 = "bd1937b02dba8c5f21cd6705feb1d54057fece82021ebb987570fe4ebd38bd3a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-02-23T10:06:44+00:00"
+total_time_ms = 11761966
+distance_m = 88365.6
+distance_origin = "file"
+ascent_file_m = 528.0
+ascent_hysteresis_m = 372.6
+avg_hr = 135
+raw_points = 3066
+points = 3066
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-03-02-12-32-01.fit"
+sha256 = "dc48ecb729bf6ac437bfa3804d4f8f67b7a698e5107812ce67a955bf87ab20f7"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-03-02T11:32:01+00:00"
+total_time_ms = 7019560
+distance_m = 36047.1
+distance_origin = "file"
+ascent_file_m = 577.0
+ascent_hysteresis_m = 510.8
+avg_hr = 141
+raw_points = 5134
+points = 5134
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-03-09-10-58-49.fit"
+sha256 = "729cbeefea55349c527bba8017a7035ce8d0fd6c00fbefad0270463856979cd4"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-03-09T09:58:49+00:00"
+total_time_ms = 16864862
+distance_m = 118257.9
+distance_origin = "file"
+ascent_file_m = 1019.0
+ascent_hysteresis_m = 863.8
+avg_hr = 139
+raw_points = 4656
+points = 4656
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-03-30-10-32-42.fit"
+sha256 = "4ef2ca192e43e9ec54b4382d1057e846500a4839fdaffcc01819a394311fc2e4"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-03-30T08:32:42+00:00"
+total_time_ms = 14539970
+distance_m = 108952.8
+distance_origin = "file"
+ascent_file_m = 626.0
+ascent_hysteresis_m = 470.0
+avg_hr = 133
+raw_points = 3689
+points = 3689
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-04-06-10-59-40.fit"
+sha256 = "10b6d734d67f4cdb6eeb546f18754177ab94378610f2818252b3c26789f76884"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-04-06T08:59:40+00:00"
+total_time_ms = 12785764
+distance_m = 92794.1
+distance_origin = "file"
+ascent_file_m = 911.0
+ascent_hysteresis_m = 766.0
+avg_hr = 138
+raw_points = 3754
+points = 3754
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-04-20-09-45-50.fit"
+sha256 = "456e0f0cdb4a691f81403b1c0cf0ed28fd254b56b0a09bebf72ed173b5281995"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-04-20T07:45:50+00:00"
+total_time_ms = 14699655
+distance_m = 106893.8
+distance_origin = "file"
+ascent_file_m = 837.0
+ascent_hysteresis_m = 662.2
+avg_hr = 134
+raw_points = 4056
+points = 4056
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-04-27-09-36-05.fit"
+sha256 = "eb4badbe50406665eea590aac9a9be2d1ef57cb663f3a545d24d5ad0563bdf98"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-04-27T07:36:05+00:00"
+total_time_ms = 17245631
+distance_m = 99604.2
+distance_origin = "file"
+ascent_file_m = 2046.0
+ascent_hysteresis_m = 1941.8
+avg_hr = 136
+raw_points = 6381
+points = 6381
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-05-01-09-05-12.fit"
+sha256 = "07264155c74ad9aa8419f593a9c49d9363a7ac7bd873d1da677e034366fb0a49"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-05-01T07:05:12+00:00"
+total_time_ms = 21923197
+distance_m = 131378.2
+distance_origin = "file"
+ascent_file_m = 2264.0
+ascent_hysteresis_m = 2175.8
+avg_hr = 141
+raw_points = 7314
+points = 7314
+dropped = 10
+sections = 1
+
+[[file]]
+path = "edge/2025-05-14-16-33-31.fit"
+sha256 = "38135c0b78a71908233496aa00e1b8443d1c7a63f7a0f62fe3caec6f4dc52f36"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-05-14T14:33:31+00:00"
+total_time_ms = 6552956
+distance_m = 36045.3
+distance_origin = "file"
+ascent_file_m = 524.0
+ascent_hysteresis_m = 466.0
+avg_hr = 128
+raw_points = 4580
+points = 4580
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-05-18-08-51-18.fit"
+sha256 = "dd6a664e848cdc490881762610b14e64a164536ebdc380d520e57b91cdc1148a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-05-18T06:51:18+00:00"
+total_time_ms = 16963394
+distance_m = 111121.4
+distance_origin = "file"
+ascent_file_m = 1791.0
+ascent_hysteresis_m = 1729.6
+avg_hr = 139
+raw_points = 5933
+points = 5933
+dropped = 7
+sections = 1
+
+[[file]]
+path = "edge/2025-05-25-12-20-33.fit"
+sha256 = "ffe19447359c08fcd4fe9bf1b176e5841d9cc815e9014f5cf66828f18a704a2e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-05-25T10:20:33+00:00"
+total_time_ms = 14150981
+distance_m = 99173.3
+distance_origin = "file"
+ascent_file_m = 1173.0
+ascent_hysteresis_m = 1066.6
+avg_hr = 127
+raw_points = 4443
+points = 4443
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-05-29-09-44-33.fit"
+sha256 = "1a1d9ba9b57fdc1f036aa743e5281de523900cb7af46a1260a29ba6da50e378b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-05-29T07:44:33+00:00"
+total_time_ms = 22596929
+distance_m = 127467.0
+distance_origin = "file"
+ascent_file_m = 2766.0
+ascent_hysteresis_m = 2670.6
+avg_hr = 138
+raw_points = 8220
+points = 8220
+dropped = 18
+sections = 1
+
+[[file]]
+path = "edge/2025-06-01-09-38-52.fit"
+sha256 = "76b9b5beabe0bc68e4f6577ee87830bd4d079321bcd77b7990800c5406d7942b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-06-01T07:38:52+00:00"
+total_time_ms = 22993933
+distance_m = 130495.6
+distance_origin = "file"
+ascent_file_m = 1961.0
+ascent_hysteresis_m = 1811.2
+avg_hr = 133
+raw_points = 7024
+points = 7024
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-06-09-09-53-41.fit"
+sha256 = "b73df547412c40436bd0d0692a59e5d322191c4649249a521deee8b0ca692fd5"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-06-09T07:53:41+00:00"
+total_time_ms = 9722861
+distance_m = 57279.5
+distance_origin = "file"
+ascent_file_m = 842.0
+ascent_hysteresis_m = 741.4
+avg_hr = 132
+raw_points = 7234
+points = 7234
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-06-15-12-18-13.fit"
+sha256 = "3d1d48ae93ce58426c4fe8daec31ab8add388035c4302017919293c623649a87"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-06-15T10:18:13+00:00"
+total_time_ms = 11341943
+distance_m = 59144.7
+distance_origin = "file"
+ascent_file_m = 1292.0
+ascent_hysteresis_m = 1216.6
+avg_hr = 134
+raw_points = 9697
+points = 9697
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-06-19-08-47-25.fit"
+sha256 = "9c88c0fb7d6638e9711c8ffc7a62d98b46023efda1982d5032cc9155ba1029df"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-06-19T06:47:25+00:00"
+total_time_ms = 21816406
+distance_m = 132518.7
+distance_origin = "file"
+ascent_file_m = 2383.0
+ascent_hysteresis_m = 2287.8
+avg_hr = 140
+raw_points = 7667
+points = 7667
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-06-29-09-39-00.fit"
+sha256 = "1a2030d96d78b887ef17d094472c8ca5cd11a3f130b0de4d971cbd7780672622"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-06-29T07:39:00+00:00"
+total_time_ms = 24364717
+distance_m = 83666.4
+distance_origin = "file"
+ascent_file_m = 2138.0
+ascent_hysteresis_m = 2015.8
+raw_points = 17645
+points = 17645
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2025-07-04-16-58-31.fit"
+sha256 = "2d7553caa0bc59d2ca1990b3c4e55a30910439f366f91b2f3014df96a005c09a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-07-04T14:58:31+00:00"
+total_time_ms = 7640202
+distance_m = 42538.5
+distance_origin = "file"
+ascent_file_m = 762.0
+ascent_hysteresis_m = 663.6
+avg_hr = 130
+raw_points = 6283
+points = 6283
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-07-06-09-36-49.fit"
+sha256 = "4d7690fbb732ebbc3717cee03d74faaf0e28a4e486292025b885437464f4abc9"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-07-06T07:36:49+00:00"
+total_time_ms = 23599639
+distance_m = 133925.7
+distance_origin = "file"
+ascent_file_m = 2863.0
+ascent_hysteresis_m = 2749.4
+avg_hr = 134
+raw_points = 8233
+points = 8233
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2025-07-11-16-51-30.fit"
+sha256 = "9ced034221c91c1bce44e2baa8b403f7ddef7ce7fd1a7aee2709b028f81c30cb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-07-11T14:51:30+00:00"
+total_time_ms = 10970281
+distance_m = 47980.1
+distance_origin = "file"
+ascent_file_m = 1104.0
+ascent_hysteresis_m = 1011.6
+avg_hr = 132
+raw_points = 8557
+points = 8557
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-07-13-09-09-47.fit"
+sha256 = "3de4a8009a5c22d2726b6b74ef2b14a81885d1145ed47bd5d484dfa324536a99"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-07-13T07:09:47+00:00"
+total_time_ms = 26489482
+distance_m = 140596.2
+distance_origin = "file"
+ascent_file_m = 3153.0
+ascent_hysteresis_m = 2991.2
+avg_hr = 137
+raw_points = 9867
+points = 9867
+dropped = 5
+sections = 1
+
+[[file]]
+path = "edge/2025-07-20-09-56-00.fit"
+sha256 = "aefb1241b6504cc4161b4151abaf4d168bd74fb247c8102fe3ba95a18b4a5459"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-07-20T07:56:00+00:00"
+total_time_ms = 17674503
+distance_m = 80036.5
+distance_origin = "file"
+ascent_file_m = 1789.0
+ascent_hysteresis_m = 1670.4
+avg_hr = 144
+raw_points = 14115
+points = 14115
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-07-23-16-34-03.fit"
+sha256 = "9d8fd4becbfbe75a1f4ef27e65c5b5223d018dac174632c128f312901010ad96"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-07-23T14:34:03+00:00"
+total_time_ms = 7487513
+distance_m = 42889.9
+distance_origin = "file"
+ascent_file_m = 761.0
+ascent_hysteresis_m = 670.4
+avg_hr = 130
+raw_points = 6230
+points = 6230
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-07-27-09-09-28.fit"
+sha256 = "098fae354f13140132f9724b3f67c3b0ec16f543aa70782515cf1eaabb358428"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-07-27T07:09:28+00:00"
+total_time_ms = 16620507
+distance_m = 126307.2
+distance_origin = "file"
+ascent_file_m = 1502.0
+ascent_hysteresis_m = 1358.2
+avg_hr = 135
+raw_points = 5516
+points = 5516
+dropped = 5
+sections = 1
+
+[[file]]
+path = "edge/2025-08-03-15-08-30.fit"
+sha256 = "518f1e5d4d95fbc6dcc1ce0278b5d7143aabe5fc6379136b554a50e322a9cfb2"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-indoor_cycling"
+sport_class = "cycling"
+sub_sport = "indoor"
+start = "2025-08-03T13:08:30+00:00"
+total_time_ms = 5028178
+avg_hr = 119
+raw_points = 1226
+points = 1226
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-08-10-09-21-47.fit"
+sha256 = "66b1c74b3bb4cac652245115decf15273007007c8eb5a5db96d66511c2f34e2b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-08-10T07:21:47+00:00"
+total_time_ms = 19770662
+distance_m = 123913.1
+distance_origin = "file"
+ascent_file_m = 2342.0
+ascent_hysteresis_m = 2223.4
+avg_hr = 142
+raw_points = 7205
+points = 7205
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2025-08-13-17-51-55.fit"
+sha256 = "00c39e0bd4a4e1cdf51c54c01f8d61bfa5a125bbaad34716be9fe39a249f5071"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-08-13T15:51:55+00:00"
+total_time_ms = 7753276
+distance_m = 42968.6
+distance_origin = "file"
+ascent_file_m = 738.0
+ascent_hysteresis_m = 651.6
+avg_hr = 142
+raw_points = 6457
+points = 6457
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2025-08-17-10-07-17.fit"
+sha256 = "b6ef26fcf899a624112132809e23a45270aee27ea15db055e50e8b906ad5b47c"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-08-17T08:07:17+00:00"
+total_time_ms = 21874983
+distance_m = 143954.1
+distance_origin = "file"
+ascent_file_m = 2297.0
+ascent_hysteresis_m = 2218.6
+avg_hr = 133
+raw_points = 7583
+points = 7583
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-08-24-09-28-48.fit"
+sha256 = "967e4fc41a89e252caa4a2ce345db0571bd212c5a00ea3258df9d3b26bb34439"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-08-24T07:28:48+00:00"
+total_time_ms = 33363613
+distance_m = 110309.5
+distance_origin = "file"
+ascent_file_m = 3004.0
+ascent_hysteresis_m = 2812.6
+avg_hr = 133
+raw_points = 24699
+points = 24699
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-08-26-09-50-25.fit"
+sha256 = "fa2a57d15efcadccd970fa75a057d51f7bbc5144ff40cfac8267a319f4de8b0d"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-08-26T07:50:25+00:00"
+total_time_ms = 20040931
+distance_m = 31990.2
+distance_origin = "file"
+ascent_file_m = 1317.0
+ascent_hysteresis_m = 1265.2
+avg_hr = 128
+raw_points = 12552
+points = 12552
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-08-31-08-32-46.fit"
+sha256 = "607b55398a9b03c4a3abe842220fa1576a307102977c9b64c809dced21e2ca1f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-08-31T06:32:46+00:00"
+total_time_ms = 31382665
+distance_m = 82000.2
+distance_origin = "file"
+ascent_file_m = 5765.0
+ascent_hysteresis_m = 5662.2
+avg_hr = 121
+raw_points = 17821
+points = 17821
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-09-01-08-55-41.fit"
+sha256 = "b6d577e2dd04ee331888bf2a21270429db7ec90ad0354bf60a1c1b3cfe8620f5"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-09-01T06:55:41+00:00"
+total_time_ms = 29298581
+distance_m = 76171.4
+distance_origin = "file"
+ascent_file_m = 5490.0
+ascent_hysteresis_m = 5399.4
+avg_hr = 108
+raw_points = 17819
+points = 17819
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-09-02-10-18-14.fit"
+sha256 = "95789cf402cb2e855d17955307f8a4b7a2808ffe819f603f41c01ea7cf1aaa2a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-09-02T08:18:14+00:00"
+total_time_ms = 14192726
+distance_m = 19742.2
+distance_origin = "file"
+ascent_file_m = 754.0
+ascent_hysteresis_m = 1428.0
+avg_hr = 89
+raw_points = 7571
+points = 7571
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-09-07-09-59-31.fit"
+sha256 = "8e386d97fe2196363307e8faa36b32e62199b1038327ea58c2c2dfd085a907aa"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-09-07T07:59:31+00:00"
+total_time_ms = 23421333
+distance_m = 134561.3
+distance_origin = "file"
+ascent_file_m = 2725.0
+ascent_hysteresis_m = 2656.6
+avg_hr = 130
+raw_points = 8526
+points = 8526
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-09-14-11-50-30.fit"
+sha256 = "d0604fbadcf2437a6ea4b3e3d901714148013669456644b06fd763d2a20cc2fa"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-09-14T09:50:30+00:00"
+total_time_ms = 14323729
+distance_m = 105544.1
+distance_origin = "file"
+ascent_file_m = 1236.0
+ascent_hysteresis_m = 1131.6
+avg_hr = 131
+raw_points = 4426
+points = 4426
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-09-17-16-57-45.fit"
+sha256 = "daf0e3f0e88450343577c77487df732c041e53bcf8f866ed0422b253231282e7"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-09-17T14:57:45+00:00"
+total_time_ms = 9731984
+distance_m = 57708.3
+distance_origin = "file"
+ascent_file_m = 791.0
+ascent_hysteresis_m = 686.6
+avg_hr = 138
+raw_points = 6947
+points = 6947
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-09-28-16-42-52.fit"
+sha256 = "82d2a1379e314de3f9dabffe28b2bf0950024157cce83c996ab82649e6b6e177"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-09-28T14:42:52+00:00"
+total_time_ms = 7008647
+distance_m = 21958.0
+distance_origin = "file"
+ascent_file_m = 544.0
+ascent_hysteresis_m = 491.2
+avg_hr = 139
+raw_points = 5027
+points = 5027
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-09-29-09-19-46.fit"
+sha256 = "aa9c60f51c3c513bd60d8897dff60b9536611d24d1589cdce246bd8f99b3f93f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-09-29T07:19:46+00:00"
+total_time_ms = 26988042
+distance_m = 55270.6
+distance_origin = "file"
+ascent_file_m = 1868.0
+ascent_hysteresis_m = 1801.4
+avg_hr = 138
+raw_points = 17447
+points = 17447
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-09-30-09-32-35.fit"
+sha256 = "7789314861204f79da90a8263ee8a99a54838bd6cd6c0d13dde4df5150cfd845"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-09-30T07:32:35+00:00"
+total_time_ms = 24855802
+distance_m = 44179.7
+distance_origin = "file"
+ascent_file_m = 1382.0
+ascent_hysteresis_m = 1326.8
+avg_hr = 128
+raw_points = 14470
+points = 14470
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-01-10-00-12.fit"
+sha256 = "613933f832ea20fb4298683399f74a1e78443850e9d8af071984bbb48651c551"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-10-01T08:00:12+00:00"
+total_time_ms = 16900071
+distance_m = 36349.9
+distance_origin = "file"
+ascent_file_m = 1089.0
+ascent_hysteresis_m = 1038.4
+avg_hr = 122
+raw_points = 11029
+points = 11029
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2025-10-02-09-50-40.fit"
+sha256 = "520d49293061b3493b12e24b1a3224a3ea44b1f617e66e044688df83520cbbdb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-10-02T07:50:40+00:00"
+total_time_ms = 24703881
+distance_m = 50381.3
+distance_origin = "file"
+ascent_file_m = 1411.0
+ascent_hysteresis_m = 1308.4
+avg_hr = 110
+raw_points = 14549
+points = 14549
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-03-10-17-11.fit"
+sha256 = "0afb1cebca7adcde5dbbd582c48ed3504b2d832a5ed0cac4f3ea068d5290c491"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-10-03T08:17:11+00:00"
+total_time_ms = 15003739
+distance_m = 34680.4
+distance_origin = "file"
+ascent_file_m = 1032.0
+ascent_hysteresis_m = 997.8
+avg_hr = 127
+raw_points = 9548
+points = 9548
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-03-15-47-52.fit"
+sha256 = "d6949fb01dfd7c94027805a088db470e1fa3011b426ab90be2c5c240fda5ca58"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-10-03T13:47:52+00:00"
+total_time_ms = 3687838
+distance_m = 18019.6
+distance_origin = "file"
+ascent_file_m = 40.0
+ascent_hysteresis_m = 24.4
+avg_hr = 126
+raw_points = 2405
+points = 2405
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-04-09-32-39.fit"
+sha256 = "73d9919e11200f0f47d725d10d8ee7cf2eaf47a855dabfb5defab0c3d6d100cd"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-10-04T07:32:39+00:00"
+total_time_ms = 21923404
+distance_m = 121402.5
+distance_origin = "file"
+ascent_file_m = 2430.0
+ascent_hysteresis_m = 2333.0
+avg_hr = 121
+raw_points = 7706
+points = 7706
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-05-09-22-51.fit"
+sha256 = "e1277397dbaba477d7c06363cba18163178c553c40452c8cccde26fe31b1813f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2025-10-05T07:22:51+00:00"
+total_time_ms = 22586680
+distance_m = 115004.4
+distance_origin = "file"
+ascent_file_m = 1904.0
+ascent_hysteresis_m = 1788.4
+avg_hr = 114
+raw_points = 7528
+points = 7528
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-12-10-35-53.fit"
+sha256 = "3abaa2ad5950e5189d89b230e023c4823d3999e81976d5c7ce9d802fd8e69aaa"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-10-12T08:35:53+00:00"
+total_time_ms = 16851534
+distance_m = 79775.3
+distance_origin = "file"
+ascent_file_m = 1884.0
+ascent_hysteresis_m = 1771.8
+avg_hr = 138
+raw_points = 14074
+points = 14074
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-10-19-11-20-36.fit"
+sha256 = "fe517c7c5401a1c6dcbf64f7f03277c2d51d8f4516d037a6a4822a69cb0f56ec"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-10-19T09:20:36+00:00"
+total_time_ms = 12805483
+distance_m = 63625.5
+distance_origin = "file"
+ascent_file_m = 1271.0
+ascent_hysteresis_m = 1149.6
+avg_hr = 137
+raw_points = 10076
+points = 10076
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2025-12-15-13-17-14.fit"
+sha256 = "6cf49d388b8fbf7bdbad7778a81f792d5c35c18158272911e864bf62ba56d897"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-12-15T12:17:14+00:00"
+total_time_ms = 6928519
+distance_m = 37530.4
+distance_origin = "file"
+ascent_file_m = 530.0
+ascent_hysteresis_m = 456.0
+avg_hr = 140
+raw_points = 5026
+points = 5026
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2025-12-21-11-29-31.fit"
+sha256 = "1328d8374f8436aac888789b33dd62051972889e79b21717636709a7d50d9297"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2025-12-21T10:29:31+00:00"
+total_time_ms = 11574631
+distance_m = 59579.5
+distance_origin = "file"
+ascent_file_m = 933.0
+ascent_hysteresis_m = 819.6
+avg_hr = 141
+raw_points = 8565
+points = 8565
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-03-01-10-15-19.fit"
+sha256 = "5c3f065b43ed735509c0338cfb61a52e3ce5f059bd0eddadb04f11a9b1a362c2"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-03-01T09:15:19+00:00"
+total_time_ms = 11556361
+distance_m = 88307.7
+distance_origin = "file"
+ascent_file_m = 508.0
+ascent_hysteresis_m = 368.8
+avg_hr = 136
+raw_points = 3059
+points = 3059
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-03-06-15-44-26.fit"
+sha256 = "fb55033876089a764a4956e9104d13f2ce84944a2662dc353d089a1c53c74ffa"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-03-06T14:44:26+00:00"
+total_time_ms = 11036662
+distance_m = 58897.1
+distance_origin = "file"
+ascent_file_m = 774.0
+ascent_hysteresis_m = 674.6
+avg_hr = 135
+raw_points = 7623
+points = 7623
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-03-08-11-01-45.fit"
+sha256 = "c078aa1f8847c16bfd237b9b8a3ecd2effd67d9ae16cad7df09f903792ffb1e1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-03-08T10:01:45+00:00"
+total_time_ms = 14063762
+distance_m = 110128.6
+distance_origin = "file"
+ascent_file_m = 571.0
+ascent_hysteresis_m = 434.2
+avg_hr = 130
+raw_points = 3665
+points = 3665
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-03-22-12-07-27.fit"
+sha256 = "85185d0623ff577552803e85d69a0ce7039087cee8c7b1ca404221f89d431cda"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-03-22T11:07:27+00:00"
+total_time_ms = 11596666
+distance_m = 91483.5
+distance_origin = "file"
+ascent_file_m = 521.0
+ascent_hysteresis_m = 383.6
+avg_hr = 132
+raw_points = 3079
+points = 3079
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-03-29-11-50-25.fit"
+sha256 = "9f4354da24a87400ca35079cc6521cb6989a825786bbd7a4679e5129ae20fd51"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-03-29T09:50:25+00:00"
+total_time_ms = 11178370
+distance_m = 88319.7
+distance_origin = "file"
+ascent_file_m = 508.0
+ascent_hysteresis_m = 373.8
+avg_hr = 133
+raw_points = 3055
+points = 3055
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-04-03-11-01-46.fit"
+sha256 = "e8202516cd27810b41c39c5b2b669bb08836ccfae2ae3424097d66a58c2bb900"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-04-03T09:01:46+00:00"
+total_time_ms = 17987435
+distance_m = 116947.4
+distance_origin = "file"
+ascent_file_m = 1415.0
+ascent_hysteresis_m = 1282.0
+avg_hr = 138
+raw_points = 5277
+points = 5277
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-04-05-10-16-37.fit"
+sha256 = "191e3c090ac86563f8d964e7ab0ffca923b397cdddd9145f421bd271d07e5f26"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-04-05T08:16:37+00:00"
+total_time_ms = 16375163
+distance_m = 103912.1
+distance_origin = "file"
+ascent_file_m = 1823.0
+ascent_hysteresis_m = 1771.0
+avg_hr = 138
+raw_points = 5645
+points = 5645
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-04-06-10-33-18.fit"
+sha256 = "910f5586ec76da3de3fa6957d9daf2f1b51300cea38df7c26f912f69e1b26e73"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-04-06T08:33:18+00:00"
+total_time_ms = 15307741
+distance_m = 107933.1
+distance_origin = "file"
+ascent_file_m = 1403.0
+ascent_hysteresis_m = 1265.6
+avg_hr = 131
+raw_points = 5085
+points = 5085
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-04-19-10-30-46.fit"
+sha256 = "c8018fd1c725682cb74325feb1565f9a79830bd2378ecc1bd6c29a3dc0c7800e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-04-19T08:30:46+00:00"
+total_time_ms = 13873761
+distance_m = 113817.7
+distance_origin = "file"
+ascent_file_m = 571.0
+ascent_hysteresis_m = 425.6
+avg_hr = 135
+raw_points = 3701
+points = 3701
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-04-26-09-02-45.fit"
+sha256 = "5e6542f863c560ed5fb979210b165ad23363da0a6a4574482ddbd4ce3552b7a8"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-04-26T07:02:45+00:00"
+total_time_ms = 21858617
+distance_m = 132709.9
+distance_origin = "file"
+ascent_file_m = 2464.0
+ascent_hysteresis_m = 2371.2
+avg_hr = 134
+raw_points = 7636
+points = 7636
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-04-29-16-11-51.fit"
+sha256 = "e02df271fa5c03cf955a8fb1928dc29d5975577f61d653bef4693491864d006a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-04-29T14:11:51+00:00"
+total_time_ms = 7840229
+distance_m = 42917.5
+distance_origin = "file"
+ascent_file_m = 762.0
+ascent_hysteresis_m = 673.6
+avg_hr = 127
+raw_points = 6380
+points = 6380
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-05-01-09-07-33.fit"
+sha256 = "3110fe5d3f8fb0c3b4251c4514e9f44b89b311faaa6850ffe86694e2bb0a6fc1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-05-01T07:07:33+00:00"
+total_time_ms = 21300592
+distance_m = 119087.4
+distance_origin = "file"
+ascent_file_m = 2598.0
+ascent_hysteresis_m = 2484.2
+avg_hr = 139
+raw_points = 7586
+points = 7586
+dropped = 6
+sections = 1
+
+[[file]]
+path = "edge/2026-05-03-09-31-36.fit"
+sha256 = "a9bc674538e7489d35d229caa48d5f6747bb89ce395b70d6ee2cbe861c9d4fbf"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-05-03T07:31:36+00:00"
+total_time_ms = 19888432
+distance_m = 75763.6
+distance_origin = "file"
+ascent_file_m = 2123.0
+ascent_hysteresis_m = 1987.2
+avg_hr = 139
+raw_points = 16605
+points = 16605
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2026-05-10-08-31-30.fit"
+sha256 = "3e6a4e993aa3cbb8494201966feff60a6a9fd8c711639bcf461e652f8e630d8d"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-05-10T06:31:30+00:00"
+total_time_ms = 20259581
+distance_m = 124126.5
+distance_origin = "file"
+ascent_file_m = 2380.0
+ascent_hysteresis_m = 2274.4
+avg_hr = 135
+raw_points = 7224
+points = 7224
+dropped = 5
+sections = 1
+
+[[file]]
+path = "edge/2026-05-17-09-08-10.fit"
+sha256 = "c63bf73f207c7310a5a16091bea57ceb204e5ef4ce5839c147b7ff93a5e82db1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-05-17T07:08:10+00:00"
+total_time_ms = 17107504
+distance_m = 80374.1
+distance_origin = "file"
+ascent_file_m = 1949.0
+ascent_hysteresis_m = 1820.0
+avg_hr = 145
+raw_points = 14512
+points = 14512
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-05-24-09-52-03.fit"
+sha256 = "5e2acdff64e68c98fcb56acb53efc601cf03c9aa91f2db83d918a60170d861cc"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-05-24T07:52:03+00:00"
+total_time_ms = 16986752
+distance_m = 119013.1
+distance_origin = "file"
+ascent_file_m = 1544.0
+ascent_hysteresis_m = 1408.2
+avg_hr = 140
+raw_points = 5585
+points = 5585
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-05-25-10-01-22.fit"
+sha256 = "4dfe16bd1ebde7552c57cc4228d87040c907790edc8baebf17680720ead07249"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-05-25T08:01:22+00:00"
+total_time_ms = 21589422
+distance_m = 83369.5
+distance_origin = "file"
+ascent_file_m = 2156.0
+ascent_hysteresis_m = 2033.4
+avg_hr = 134
+raw_points = 17579
+points = 17579
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-05-31-09-28-52.fit"
+sha256 = "559b54c4d148350bc0a811343a2a8c0b395ea0c66b73fba9a3dd749b33b047b7"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-05-31T07:28:52+00:00"
+total_time_ms = 14755982
+distance_m = 96979.5
+distance_origin = "file"
+ascent_file_m = 1555.0
+ascent_hysteresis_m = 1436.4
+avg_hr = 128
+raw_points = 5584
+points = 5584
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-06-07-09-46-40.fit"
+sha256 = "2ecba816918bc754c35e9c834ca8d08fc1036e75555197846912f5ff56b0f909"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-06-07T07:46:40+00:00"
+total_time_ms = 16287434
+distance_m = 114226.0
+distance_origin = "file"
+ascent_file_m = 1605.0
+ascent_hysteresis_m = 1464.2
+avg_hr = 130
+raw_points = 5575
+points = 5575
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-06-14-11-25-49.fit"
+sha256 = "82430fbcfc1d623d214c728261053bde2272dd1efc2f1bae86e3cfc43d5a6ab0"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-06-14T09:25:49+00:00"
+total_time_ms = 12728790
+distance_m = 94550.9
+distance_origin = "file"
+ascent_file_m = 704.0
+ascent_hysteresis_m = 570.0
+avg_hr = 135
+raw_points = 3599
+points = 3599
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-07-05-12-07-14.fit"
+sha256 = "f1bcf30138e285ee8e66a9a1ba61f92d697a809f847e506b42c3bf0a790448ed"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-07-05T10:07:14+00:00"
+total_time_ms = 10845080
+distance_m = 88308.8
+distance_origin = "file"
+ascent_file_m = 481.0
+ascent_hysteresis_m = 361.4
+avg_hr = 143
+raw_points = 2964
+points = 2964
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-07-12-08-48-49.fit"
+sha256 = "713ce33aa879acb85580508aeb13ad801ba4916f15da31a808ab4c5f0340c987"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-07-12T06:48:49+00:00"
+total_time_ms = 16035454
+distance_m = 111693.9
+distance_origin = "file"
+ascent_file_m = 1544.0
+ascent_hysteresis_m = 1466.6
+avg_hr = 145
+raw_points = 5381
+points = 5381
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2026-07-19-09-36-39.fit"
+sha256 = "2dba02a120cd0b3b399f0004811670eb92a8961254c64d2480218b669e318949"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-07-19T07:36:39+00:00"
+total_time_ms = 17161155
+distance_m = 117538.5
+distance_origin = "file"
+ascent_file_m = 1624.0
+ascent_hysteresis_m = 1485.6
+avg_hr = 140
+raw_points = 5736
+points = 5736
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-07-26-09-47-04.fit"
+sha256 = "afcbafa580b5f4c4d54a910ff8df0b3b64d9ea287f8f69db0e607802e6935e6f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-07-26T07:47:04+00:00"
+total_time_ms = 22018556
+distance_m = 133362.1
+distance_origin = "file"
+ascent_file_m = 2334.0
+ascent_hysteresis_m = 2237.0
+avg_hr = 143
+raw_points = 7461
+points = 7461
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2026-08-02-08-53-55.fit"
+sha256 = "ef111f9bd000585a53e65692cb693b7c499e7d8b7a9527a25563a45f271c25b2"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-08-02T06:53:55+00:00"
+total_time_ms = 19611127
+distance_m = 117462.3
+distance_origin = "file"
+ascent_file_m = 2220.0
+ascent_hysteresis_m = 2104.4
+avg_hr = 144
+raw_points = 6788
+points = 6788
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2026-08-04-09-22-13.fit"
+sha256 = "f9cc933b90510630da03d0e71309c7aaa3f5dcdfc15fd5072724b1667d6980d1"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-04T07:22:13+00:00"
+total_time_ms = 10062623
+distance_m = 57312.2
+distance_origin = "file"
+ascent_file_m = 752.0
+ascent_hysteresis_m = 644.2
+avg_hr = 136
+raw_points = 7249
+points = 7249
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-08-06-09-30-51.fit"
+sha256 = "bc8c68d6b321bb3fb6b6bdce8d71166276b2b366f93db4d75f1feed0ca30d3b0"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-06T07:30:51+00:00"
+total_time_ms = 17876891
+distance_m = 80422.1
+distance_origin = "file"
+ascent_file_m = 1898.0
+ascent_hysteresis_m = 1768.2
+avg_hr = 138
+raw_points = 15157
+points = 15157
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-08-09-09-17-19.fit"
+sha256 = "01792da789566dae7343de1f3759112daf7d1f1c5e60097dbd391485c4a8928f"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-09T07:17:19+00:00"
+total_time_ms = 17027469
+distance_m = 66215.5
+distance_origin = "file"
+ascent_file_m = 1824.0
+ascent_hysteresis_m = 1706.2
+avg_hr = 141
+raw_points = 15022
+points = 15022
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-08-13-09-26-40.fit"
+sha256 = "ab67d4b60eca1416a8dfbb458e026828b07abfb65418e8282674871481103f1e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-13T07:26:40+00:00"
+total_time_ms = 12088890
+distance_m = 58116.8
+distance_origin = "file"
+ascent_file_m = 1301.0
+ascent_hysteresis_m = 1222.6
+avg_hr = 142
+raw_points = 10418
+points = 10418
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-08-16-09-19-51.fit"
+sha256 = "7b996fc311c52ad802fff7574acc60206aaef089d0a44ee7557c4e5f11306f1e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-16T07:19:51+00:00"
+total_time_ms = 20765734
+distance_m = 83995.5
+distance_origin = "file"
+ascent_file_m = 2120.0
+ascent_hysteresis_m = 2027.4
+avg_hr = 141
+raw_points = 17533
+points = 17533
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2026-08-18-10-04-48.fit"
+sha256 = "35cb9c1b661a77a2cb6666f6103e8574845f4db944e5726b597265860105a915"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-18T08:04:48+00:00"
+total_time_ms = 21003550
+distance_m = 133044.8
+distance_origin = "file"
+ascent_file_m = 2119.0
+ascent_hysteresis_m = 2046.0
+avg_hr = 128
+raw_points = 16027
+points = 16027
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-08-22-14-10-51.fit"
+sha256 = "8c4641b2696173a283cc2b04caaeec44c44ca775c377b268dcb95a2eca97f8c9"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-22T12:10:51+00:00"
+total_time_ms = 9773057
+distance_m = 44837.6
+distance_origin = "file"
+ascent_file_m = 857.0
+ascent_hysteresis_m = 777.4
+avg_hr = 129
+raw_points = 7245
+points = 7245
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-08-23-10-21-25.fit"
+sha256 = "645407e28b40bdadd88972acd97e4f0cbc355c528d1a23f03d867cab7290e257"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-08-23T08:21:25+00:00"
+total_time_ms = 22655701
+distance_m = 136588.3
+distance_origin = "file"
+ascent_file_m = 2662.0
+ascent_hysteresis_m = 2550.4
+avg_hr = 133
+raw_points = 8047
+points = 8047
+dropped = 4
+sections = 1
+
+[[file]]
+path = "edge/2026-08-26-09-58-42.fit"
+sha256 = "c9eff87b9b21b67df385bd566142f13a399ce8a1f98638df4f30525515547ae6"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-08-26T07:58:42+00:00"
+total_time_ms = 16926103
+distance_m = 79883.1
+distance_origin = "file"
+ascent_file_m = 1834.0
+ascent_hysteresis_m = 1719.8
+avg_hr = 135
+raw_points = 14238
+points = 14238
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-08-30-08-53-09.fit"
+sha256 = "0259332654377e8f746fc9fa851789acaae23416d477cb8524d1ed25fb0873b4"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-08-30T06:53:09+00:00"
+total_time_ms = 23427470
+distance_m = 133836.4
+distance_origin = "file"
+ascent_file_m = 2836.0
+ascent_hysteresis_m = 2744.8
+avg_hr = 133
+raw_points = 8250
+points = 8250
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-09-04-17-23-06.fit"
+sha256 = "05d97ee2b4877ed1e17fd10841f055942ae34858303026767e5ec1052f389c5a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-04T15:23:06+00:00"
+total_time_ms = 7731923
+distance_m = 42922.5
+distance_origin = "file"
+ascent_file_m = 738.0
+ascent_hysteresis_m = 658.4
+avg_hr = 136
+raw_points = 6364
+points = 6364
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-06-13-19-01.fit"
+sha256 = "53a30668c5de0ebac8776dc78f3448875d5831075e554d6eef3d771fb49670d5"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-09-06T11:19:01+00:00"
+total_time_ms = 10857448
+distance_m = 88728.2
+distance_origin = "file"
+ascent_file_m = 497.0
+ascent_hysteresis_m = 366.0
+avg_hr = 138
+raw_points = 2971
+points = 2971
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-08-16-23-28.fit"
+sha256 = "78e8d2ebdc4346bb342981176506323780a51ecb315f6831007d00f2867bddaa"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-08T14:23:28+00:00"
+total_time_ms = 6557951
+distance_m = 37380.5
+distance_origin = "file"
+ascent_file_m = 497.0
+ascent_hysteresis_m = 437.4
+avg_hr = 128
+raw_points = 4924
+points = 4924
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-11-15-39-02.fit"
+sha256 = "a3a413fcd38595bdd50905aa57105ce8405f06bed5c9025912adc68d73f4fd2e"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-11T13:39:02+00:00"
+total_time_ms = 12426306
+distance_m = 62112.8
+distance_origin = "file"
+ascent_file_m = 1153.0
+ascent_hysteresis_m = 1045.2
+avg_hr = 138
+raw_points = 9683
+points = 9683
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-13-09-19-22.fit"
+sha256 = "8b0ef03d2dc3303dd472bc9e419b7ed2a23cd5a962334810a0837eecef46978c"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-13T07:19:22+00:00"
+total_time_ms = 10108443
+distance_m = 24476.7
+distance_origin = "file"
+ascent_file_m = 682.0
+ascent_hysteresis_m = 637.6
+avg_hr = 111
+raw_points = 6278
+points = 6278
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-15-17-01-58.fit"
+sha256 = "a146bf795dc43b094aa0d72520e239c28a1c41a4ebd4644ddbfe8d3d0e2f4eac"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-15T15:01:58+00:00"
+total_time_ms = 9090315
+distance_m = 47970.4
+distance_origin = "file"
+ascent_file_m = 927.0
+ascent_hysteresis_m = 856.2
+avg_hr = 134
+raw_points = 7537
+points = 7537
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-09-17-17-07-51.fit"
+sha256 = "55f3421ee1b60f0949aa131732647afc5683a63ac7aa37f2ba324134abce923a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-17T15:07:51+00:00"
+total_time_ms = 10043293
+distance_m = 57098.6
+distance_origin = "file"
+ascent_file_m = 777.0
+ascent_hysteresis_m = 690.2
+avg_hr = 134
+raw_points = 6994
+points = 6994
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-20-09-27-52.fit"
+sha256 = "67f6957ffe43c1264c2e6995a3813f2b05355defebeb5a9bed17f8078fb992a4"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-09-20T07:27:52+00:00"
+total_time_ms = 20988700
+distance_m = 90254.5
+distance_origin = "file"
+ascent_file_m = 2296.0
+ascent_hysteresis_m = 2164.8
+avg_hr = 137
+raw_points = 17930
+points = 17930
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-09-27-09-18-35.fit"
+sha256 = "5161e18b19e6eb858a60d574b3f2dfd0322a560c255a5ea0052fa78d58317e7a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-09-27T07:18:35+00:00"
+total_time_ms = 19388890
+distance_m = 127443.3
+distance_origin = "file"
+ascent_file_m = 2118.0
+ascent_hysteresis_m = 2046.6
+avg_hr = 135
+raw_points = 6681
+points = 6681
+dropped = 19
+sections = 1
+
+[[file]]
+path = "edge/2026-10-03-09-07-59.fit"
+sha256 = "e88643d148546a633e9aa67789bd723727e1280ee88d86c39ed80a9c17cf89f2"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-03T07:07:59+00:00"
+total_time_ms = 5573738
+distance_m = 37847.1
+distance_origin = "file"
+ascent_file_m = 540.0
+ascent_hysteresis_m = 515.4
+avg_hr = 128
+raw_points = 2066
+points = 2066
+dropped = 2
+sections = 1
+
+[[file]]
+path = "edge/2026-10-03-10-44-34.fit"
+sha256 = "73bfaa8a25a4fa572f2a12d4a466cd5e0446ea83b6d51a89b685ac8bc26e2ffb"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-03T08:44:34+00:00"
+total_time_ms = 21445433
+distance_m = 129201.5
+distance_origin = "file"
+ascent_file_m = 2388.0
+ascent_hysteresis_m = 2253.6
+avg_hr = 144
+raw_points = 7454
+points = 7454
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-10-04-09-20-42.fit"
+sha256 = "e2831388eec209bbf237fdab8d018d6af38626a714cce565bfcbd60e23fb4a6a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-10-04T07:20:42+00:00"
+total_time_ms = 25509638
+distance_m = 93374.1
+distance_origin = "file"
+ascent_file_m = 2607.0
+ascent_hysteresis_m = 2433.6
+avg_hr = 132
+raw_points = 21347
+points = 21347
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-10-12-14-38-34.fit"
+sha256 = "480145b415d5169f659555e528219cd07d68ad5344538e6971d33d12ad86abd0"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-12T12:38:34+00:00"
+total_time_ms = 3898202
+distance_m = 25706.9
+distance_origin = "file"
+ascent_file_m = 452.0
+ascent_hysteresis_m = 426.0
+avg_hr = 136
+raw_points = 1413
+points = 1413
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-10-14-16-03-34.fit"
+sha256 = "bad724697dff912b422fa3807d07b9a7796b063633957a467f79e131a91fa000"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-14T14:03:34+00:00"
+total_time_ms = 5155321
+distance_m = 33284.3
+distance_origin = "file"
+ascent_file_m = 431.0
+ascent_hysteresis_m = 390.4
+avg_hr = 125
+raw_points = 1716
+points = 1716
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-10-15-09-15-48.fit"
+sha256 = "12ab426d22a598053e3ed4e16144f00a8ae083050519f2376661648353f30ebc"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-15T07:15:48+00:00"
+total_time_ms = 27398077
+distance_m = 136949.3
+distance_origin = "file"
+ascent_file_m = 2733.0
+ascent_hysteresis_m = 2552.8
+avg_hr = 133
+raw_points = 8875
+points = 8875
+dropped = 17
+sections = 1
+
+[[file]]
+path = "edge/2026-10-16-09-25-41.fit"
+sha256 = "ced1d1cffec97a98686d2660b0b8e38717a54901daebffcac453f8a97bcc389a"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-16T07:25:41+00:00"
+total_time_ms = 21358768
+distance_m = 113960.3
+distance_origin = "file"
+ascent_file_m = 2112.0
+ascent_hysteresis_m = 1998.4
+avg_hr = 119
+raw_points = 7331
+points = 7331
+dropped = 0
+sections = 1
+
+[[file]]
+path = "edge/2026-10-17-09-31-55.fit"
+sha256 = "ccb40264036ad8acb08daf180478b7ef43424e7718059d896afad430bd431da9"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-17T07:31:55+00:00"
+total_time_ms = 17453148
+distance_m = 86880.8
+distance_origin = "file"
+ascent_file_m = 1570.0
+ascent_hysteresis_m = 1464.0
+avg_hr = 114
+raw_points = 5868
+points = 5868
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2026-10-20-13-34-16.fit"
+sha256 = "e89ec932ab082e43321eee453b453b8d52f07ebb51d91c9b765c300d7d53875b"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-20T11:34:16+00:00"
+total_time_ms = 7860437
+distance_m = 27032.0
+distance_origin = "file"
+ascent_file_m = 578.0
+ascent_hysteresis_m = 554.6
+avg_hr = 102
+raw_points = 2201
+points = 2201
+dropped = 3
+sections = 1
+
+[[file]]
+path = "edge/2026-10-21-09-53-32.fit"
+sha256 = "0c8c4628a60dd33f8b010e3d0bf0f2aa1199b6c662bc66bc9855c160057dc365"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-21T07:53:32+00:00"
+total_time_ms = 23896497
+distance_m = 115453.6
+distance_origin = "file"
+ascent_file_m = 2663.0
+ascent_hysteresis_m = 2542.2
+avg_hr = 128
+raw_points = 8025
+points = 8025
+dropped = 1
+sections = 1
+
+[[file]]
+path = "edge/2026-10-22-09-20-37.fit"
+sha256 = "e9831ffdbb5d21f7c19e1bf2bfc6dccd36645e6b56a1c1e27caf84a2e367fd49"
+source = "edge"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-22T07:20:37+00:00"
+total_time_ms = 24122263
+distance_m = 136209.6
+distance_origin = "file"
+ascent_file_m = 2572.0
+ascent_hysteresis_m = 2452.6
+avg_hr = 124
+raw_points = 8376
+points = 8376
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/D25D3658.FIT"
+sha256 = "81d5adda7f3ddf0437fbba56f33537c069f093d29d909ac36f5f334112cd8100"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2023-02-05T12:36:58+00:00"
+total_time_ms = 6444458
+distance_m = 14864.8
+distance_origin = "file"
+ascent_file_m = 288.0
+ascent_hysteresis_m = 275.6
+avg_hr = 143
+raw_points = 1006
+points = 1006
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/D2FG2134.FIT"
+sha256 = "8795f8fff2188d46768f3febeed93839e7c441be840b3b7c61f7832b5ec32a6d"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2023-02-15T15:21:34+00:00"
+total_time_ms = 4101396
+distance_m = 10065.5
+distance_origin = "file"
+ascent_file_m = 148.0
+ascent_hysteresis_m = 140.6
+avg_hr = 144
+raw_points = 617
+points = 617
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/D2QE1458.FIT"
+sha256 = "d0eecee186c2fe418ca01073bfd4b8806d4f85595f6327939ca32853deab5c75"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2023-02-26T13:14:58+00:00"
+total_time_ms = 6206610
+distance_m = 15244.4
+distance_origin = "file"
+ascent_file_m = 295.0
+ascent_hysteresis_m = 276.6
+avg_hr = 144
+raw_points = 998
+points = 998
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/D35F2502.FIT"
+sha256 = "844f165c8f62027ff191123995bf0ce47055a945dc95285db0c64ae318fa8411"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2023-03-05T14:25:02+00:00"
+total_time_ms = 6298389
+distance_m = 15550.1
+distance_origin = "file"
+ascent_file_m = 294.0
+ascent_hysteresis_m = 281.4
+avg_hr = 150
+raw_points = 1007
+points = 1007
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/D42D3133.FIT"
+sha256 = "75afec848c1cbea4e68c3d7ec98022ced80202dcad80260fed46b33a47aecb80"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2023-04-02T11:31:33+00:00"
+total_time_ms = 5686839
+distance_m = 12907.8
+distance_origin = "file"
+ascent_file_m = 225.0
+ascent_hysteresis_m = 213.2
+avg_hr = 141
+raw_points = 833
+points = 833
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/D4GC3757.FIT"
+sha256 = "3e34c4eb33f03e9b843dced8658e896b432541e527a9c7ddd91ab7ca027766db"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2023-04-16T10:37:57+00:00"
+total_time_ms = 6672648
+distance_m = 15210.9
+distance_origin = "file"
+ascent_file_m = 285.0
+ascent_hysteresis_m = 266.4
+avg_hr = 137
+raw_points = 996
+points = 996
+dropped = 0
+sections = 1
+
+[[file]]
+path = "uhr/E17C2924.FIT"
+sha256 = "a2499fe3f54b7327137cfe44e07ef0b07fa97b1f67502767a1c5df2213fc2ec7"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2024-01-07T11:29:24+00:00"
+total_time_ms = 2599617
+distance_m = 8652.8
+distance_origin = "file"
+ascent_file_m = 185.0
+ascent_hysteresis_m = 180.4
+avg_hr = 141
+raw_points = 562
+points = 562
+dropped = 136
+sections = 1
+lock = "locked_vehicle"
+
+[[file]]
+path = "uhr/E1EC3320.FIT"
+sha256 = "4431f0f0a9bf5a1b3b8892af30ef0fb943cad73fee2fc270b1e00ffc3bcce9e9"
+source = "uhr"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "running"
+sport_class = "running"
+start = "2024-01-14T11:33:20+00:00"
+total_time_ms = 5256673
+distance_m = 12461.4
+distance_origin = "file"
+ascent_file_m = 225.0
+ascent_hysteresis_m = 221.4
+avg_hr = 139
+raw_points = 778
+points = 778
+dropped = 0
+sections = 1
+
+[[file]]
+path = "strava/Morning_Mountain_Bike_Ride.fit"
+sha256 = "7620095779a038d6e9034a62c9301a47de4a2ff2ae93bc5d5bd9045cbefe1ca3"
+source = "strava"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-10-04T07:20:42+00:00"
+total_time_ms = 25509638
+distance_m = 93374.1
+distance_origin = "file"
+ascent_file_m = 2607.0
+ascent_hysteresis_m = 2433.6
+avg_hr = 132
+raw_points = 21347
+points = 21347
+dropped = 0
+sections = 1
+
+[[file]]
+path = "strava/Morning_Mountain_Bike_Ride.gpx"
+sha256 = "b12c2b5544976f46fabf8d2ce5e3e05ea6deb0b7507414c0d58eed50f6225f94"
+source = "strava"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "mountain_biking"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-10-04T07:20:42+00:00"
+total_time_ms = 25511000
+distance_m = 94735.9
+distance_origin = "points"
+ascent_hysteresis_m = 2433.6
+avg_hr = 133
+raw_points = 21347
+points = 21347
+dropped = 0
+sections = 1
+
+[[file]]
+path = "strava/Morning_Ride.fit"
+sha256 = "1cc5fb1f916446e7c053e4357fb00be40550eb2d740aa1183d567d4b0f732786"
+source = "strava"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling-road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-22T07:20:37+00:00"
+total_time_ms = 24122263
+distance_m = 136209.6
+distance_origin = "file"
+ascent_file_m = 2572.0
+ascent_hysteresis_m = 2452.6
+avg_hr = 124
+raw_points = 8376
+points = 8376
+dropped = 0
+sections = 1
+
+[[file]]
+path = "strava/Morning_Ride.gpx"
+sha256 = "75d5002ce654992192bfa0d6a5d65c401db4f3cd709b5113605432852e8ec265"
+source = "strava"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "cycling"
+sport_class = "cycling"
+start = "2026-10-22T07:20:37+00:00"
+total_time_ms = 24125000
+distance_m = 136260.4
+distance_origin = "points"
+ascent_hysteresis_m = 2452.6
+avg_hr = 121
+raw_points = 8376
+points = 8376
+dropped = 0
+sections = 1
+
+[[file]]
+path = "sporttracks/2026-10-04_07_20_42.gpx"
+sha256 = "1efac06a920396d77ffdce1c2d6525c5ba0fe04967afd7d4116ddef9a38922ef"
+source = "sporttracks"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "mountain"
+sport_class = "cycling"
+sub_sport = "mtb"
+start = "2026-10-04T07:20:42+00:00"
+total_time_ms = 25506000
+distance_m = 94837.6
+distance_origin = "points"
+ascent_hysteresis_m = 2433.6
+raw_points = 21346
+points = 21346
+dropped = 0
+sections = 1
+
+[[file]]
+path = "sporttracks/2026-10-12_12_38_34.gpx"
+sha256 = "19ff0933735244493fcd8359a6d3ebd895fd499aac38aa8d972b10eb118414bb"
+source = "sporttracks"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-12T12:38:34+00:00"
+total_time_ms = 3899000
+distance_m = 25742.2
+distance_origin = "points"
+ascent_hysteresis_m = 426.0
+raw_points = 1413
+points = 1413
+dropped = 0
+sections = 1
+
+[[file]]
+path = "sporttracks/2026-10-22_07_20_37.gpx"
+sha256 = "6ce3d97c7d77574d92ba1284ad890ee37c431a19e550965647eb0fd97b365062"
+source = "sporttracks"
+result = "ok"
+
+[[file.session]]
+index = 0
+source_sport = "road"
+sport_class = "cycling"
+sub_sport = "road"
+start = "2026-10-22T07:20:37+00:00"
+total_time_ms = 24121000
+distance_m = 136266.7
+distance_origin = "points"
+ascent_hysteresis_m = 1239.8
+raw_points = 8363
+points = 8363
+dropped = 0
+sections = 1

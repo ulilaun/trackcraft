@@ -1,0 +1,115 @@
+# Prüfungen für Pull Requests (RFC-0004, RFC-0014). Der Release-Workflow ruft ihn ebenfalls auf.
+# GitHub-Minuten sparen: kein Lauf beim Merge auf main (der PR ist schon geprüft). Windows-Backend und
+# Docker-Images laufen nur im Release und von Hand (workflow_dispatch); Windows prüfen wir lokal vor dem Push.
+name: ci
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+# Ein neuer Push auf denselben PR bricht den alten Lauf ab.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  backend-windows:
+    name: Backend (Windows)
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+
+  backend-linux:
+    name: Backend (Linux) und Coverage
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Tests mit Coverage
+        run: cargo llvm-cov --locked --lcov --output-path lcov.info
+      - name: Coverage je Bereich (bis M5 nur Bericht)
+        run: python3 ../scripts/coverage_summary.py lcov.info >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-lcov
+          path: backend/lcov.info
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc -b
+      - name: Tests mit Coverage (Logikordner, bis M5 nur Bericht)
+        run: |
+          npm run coverage | tee coverage.txt
+          { echo '### Frontend-Coverage (src/utils, src/api, src/hooks, Ziel 70 %)'; echo '```'; grep -A6 'Coverage summary' coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - run: npm run build
+
+  docker:
+    name: Docker-Images bauen
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Backend-Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/backend.Dockerfile
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Frontend-Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/frontend.Dockerfile
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

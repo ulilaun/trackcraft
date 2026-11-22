@@ -1,0 +1,1201 @@
+# Golden-Segmente (RFC-0014). Keine Koordinaten: Die Geometrien liegen im privaten Korpus
+# unter golden/segments/<id>.gpx. Erwartet für jede Aktivität des Korpus derselben Sportklasse genau die hier
+# genannten Versuche, keine weiteren. Ergebnis exakt, Dauer mit duration_tolerance_ms, bis die Anwendung
+# die Werte einmal bestätigt hat (danach exakt, Änderungen nur bewusst).
+
+[golden]
+confirmed = "2026-11-06"
+duration_tolerance_ms = 1000
+parameters = "RFC-0021 Stand M3d: tolerance_m 20, matching_radius_meters 20, max_offset_m 15, max_inner_gap_m 30 bzw. 2 % der Länge, Zeitabstände 15 s (bis M3c: 13/15/30, R1 und M3 je ein Versuch weniger)"
+
+[[segment]]
+id = "R1"
+name = "Schlussanstieg"
+purpose = "viele Versuche, Ranking, Anstieg"
+sport_class = "cycling"
+source = "edge/2026-07-05-12-07-14.fit"
+source_from_m = 87100
+source_to_m = 88100
+length_m = 995
+expected_valid = 34
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-07-30-14-00-44.fit"
+result = "valid"
+duration_ms = 385764
+
+[[segment.attempt]]
+file = "edge/2023-10-03-10-29-26.fit"
+result = "valid"
+duration_ms = 443312
+
+[[segment.attempt]]
+file = "edge/2023-12-26-12-24-38.fit"
+result = "valid"
+duration_ms = 522906
+
+[[segment.attempt]]
+file = "edge/2024-01-01-10-39-48.fit"
+result = "valid"
+duration_ms = 533495
+
+[[segment.attempt]]
+file = "edge/2024-01-28-12-05-29.fit"
+result = "valid"
+duration_ms = 507399
+
+[[segment.attempt]]
+file = "edge/2024-01-29-12-30-11.fit"
+result = "valid"
+duration_ms = 508761
+
+[[segment.attempt]]
+file = "edge/2024-02-04-11-12-34.fit"
+result = "valid"
+duration_ms = 464209
+
+[[segment.attempt]]
+file = "edge/2024-02-11-11-20-13.fit"
+result = "valid"
+duration_ms = 499331
+
+[[segment.attempt]]
+file = "edge/2024-02-25-10-55-38.fit"
+result = "valid"
+duration_ms = 487296
+
+[[segment.attempt]]
+file = "edge/2024-03-31-11-49-32.fit"
+result = "valid"
+duration_ms = 413282
+
+[[segment.attempt]]
+file = "edge/2024-06-09-09-50-08.fit"
+result = "valid"
+duration_ms = 401419
+
+[[segment.attempt]]
+file = "edge/2024-07-21-10-37-26.fit"
+result = "valid"
+duration_ms = 394667
+
+[[segment.attempt]]
+file = "edge/2024-09-15-10-22-25.fit"
+result = "valid"
+duration_ms = 486540
+
+[[segment.attempt]]
+file = "edge/2024-11-24-12-14-51.fit"
+result = "valid"
+duration_ms = 446969
+
+[[segment.attempt]]
+file = "edge/2024-11-27-12-12-45.fit"
+result = "valid"
+duration_ms = 454006
+
+[[segment.attempt]]
+file = "edge/2024-12-17-12-50-27.fit"
+result = "valid"
+duration_ms = 491570
+
+[[segment.attempt]]
+file = "edge/2025-01-06-12-11-30.fit"
+result = "valid"
+duration_ms = 505753
+
+[[segment.attempt]]
+file = "edge/2025-02-23-11-06-44.fit"
+result = "valid"
+duration_ms = 524879
+
+[[segment.attempt]]
+file = "edge/2025-03-09-10-58-49.fit"
+result = "valid"
+duration_ms = 486442
+
+[[segment.attempt]]
+file = "edge/2025-03-30-10-32-42.fit"
+result = "valid"
+duration_ms = 480443
+
+[[segment.attempt]]
+file = "edge/2025-05-01-09-05-12.fit"
+result = "valid"
+duration_ms = 519690
+
+[[segment.attempt]]
+file = "edge/2025-06-01-09-38-52.fit"
+result = "valid"
+duration_ms = 397882
+
+[[segment.attempt]]
+file = "edge/2025-09-14-11-50-30.fit"
+result = "valid"
+duration_ms = 436288
+
+[[segment.attempt]]
+file = "edge/2025-09-17-16-57-45.fit"
+result = "valid"
+duration_ms = 415258
+
+[[segment.attempt]]
+file = "edge/2026-03-01-10-15-19.fit"
+result = "valid"
+duration_ms = 559118
+
+[[segment.attempt]]
+file = "edge/2026-03-08-11-01-45.fit"
+result = "valid"
+duration_ms = 501530
+
+[[segment.attempt]]
+file = "edge/2026-03-29-11-50-25.fit"
+result = "valid"
+duration_ms = 445163
+
+[[segment.attempt]]
+file = "edge/2026-04-03-11-01-46.fit"
+result = "valid"
+duration_ms = 497083
+
+[[segment.attempt]]
+file = "edge/2026-06-14-11-25-49.fit"
+result = "valid"
+duration_ms = 405617
+
+[[segment.attempt]]
+file = "edge/2026-07-05-12-07-14.fit"
+result = "valid"
+duration_ms = 474401
+
+[[segment.attempt]]
+file = "edge/2026-07-26-09-47-04.fit"
+result = "valid"
+duration_ms = 486008
+
+[[segment.attempt]]
+file = "edge/2026-08-13-09-26-40.fit"
+result = "valid"
+duration_ms = 441684
+# 20 m Toleranz (M3d, Uli 12.11.2026)
+
+[[segment.attempt]]
+file = "edge/2026-09-06-13-19-01.fit"
+result = "valid"
+duration_ms = 390462
+
+[[segment.attempt]]
+file = "edge/2026-09-17-17-07-51.fit"
+result = "valid"
+duration_ms = 430104
+
+[[segment]]
+id = "R2"
+name = "Flach Straße"
+purpose = "Grundfall, Referenz mit GPS-Versatz"
+sport_class = "cycling"
+source = "edge/2026-07-05-12-07-14.fit"
+source_from_m = 1550
+source_to_m = 2540
+length_m = 990
+expected_valid = 32
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-07-30-14-00-44.fit"
+result = "valid"
+duration_ms = 85469
+
+[[segment.attempt]]
+file = "edge/2023-12-26-12-24-38.fit"
+result = "valid"
+duration_ms = 89859
+
+[[segment.attempt]]
+file = "edge/2024-01-01-10-39-48.fit"
+result = "valid"
+duration_ms = 102455
+
+[[segment.attempt]]
+file = "edge/2024-01-28-12-05-29.fit"
+result = "valid"
+duration_ms = 98972
+
+[[segment.attempt]]
+file = "edge/2024-02-11-11-20-13.fit"
+result = "valid"
+duration_ms = 100109
+
+[[segment.attempt]]
+file = "edge/2024-03-03-11-02-32.fit"
+result = "valid"
+duration_ms = 103570
+
+[[segment.attempt]]
+file = "edge/2024-03-29-12-09-21.fit"
+result = "valid"
+duration_ms = 96468
+
+[[segment.attempt]]
+file = "edge/2024-03-31-11-49-32.fit"
+result = "valid"
+duration_ms = 103931
+
+[[segment.attempt]]
+file = "edge/2024-04-07-09-57-34.fit"
+result = "valid"
+duration_ms = 98330
+
+[[segment.attempt]]
+file = "edge/2024-06-09-09-50-08.fit"
+result = "valid"
+duration_ms = 104061
+
+[[segment.attempt]]
+file = "edge/2024-08-25-10-20-24.fit"
+result = "valid"
+duration_ms = 101523
+
+[[segment.attempt]]
+file = "edge/2024-09-15-10-22-25.fit"
+result = "valid"
+duration_ms = 106476
+
+[[segment.attempt]]
+file = "edge/2024-11-24-12-14-51.fit"
+result = "valid"
+duration_ms = 89236
+
+[[segment.attempt]]
+file = "edge/2024-12-17-12-50-27.fit"
+result = "valid"
+duration_ms = 95070
+
+[[segment.attempt]]
+file = "edge/2025-01-06-12-11-30.fit"
+result = "valid"
+duration_ms = 90924
+
+[[segment.attempt]]
+file = "edge/2025-01-19-11-51-43.fit"
+result = "valid"
+duration_ms = 93611
+
+[[segment.attempt]]
+file = "edge/2025-02-23-11-06-44.fit"
+result = "valid"
+duration_ms = 103652
+
+[[segment.attempt]]
+file = "edge/2025-03-09-10-58-49.fit"
+result = "valid"
+duration_ms = 96128
+
+[[segment.attempt]]
+file = "edge/2025-03-30-10-32-42.fit"
+result = "valid"
+duration_ms = 100160
+
+[[segment.attempt]]
+file = "edge/2025-04-06-10-59-40.fit"
+result = "valid"
+duration_ms = 104187
+
+[[segment.attempt]]
+file = "edge/2025-04-20-09-45-50.fit"
+result = "valid"
+duration_ms = 98699
+
+[[segment.attempt]]
+file = "edge/2025-05-25-12-20-33.fit"
+result = "valid"
+duration_ms = 98362
+
+[[segment.attempt]]
+file = "edge/2025-06-19-08-47-25.fit"
+result = "valid"
+duration_ms = 102761
+
+[[segment.attempt]]
+file = "edge/2025-09-14-11-50-30.fit"
+result = "valid"
+duration_ms = 96998
+
+[[segment.attempt]]
+file = "edge/2026-03-01-10-15-19.fit"
+result = "valid"
+duration_ms = 102133
+
+[[segment.attempt]]
+file = "edge/2026-03-22-12-07-27.fit"
+result = "valid"
+duration_ms = 101449
+
+[[segment.attempt]]
+file = "edge/2026-03-29-11-50-25.fit"
+result = "valid"
+duration_ms = 95241
+
+[[segment.attempt]]
+file = "edge/2026-04-06-10-33-18.fit"
+result = "valid"
+duration_ms = 106891
+
+[[segment.attempt]]
+file = "edge/2026-05-24-09-52-03.fit"
+result = "valid"
+duration_ms = 104131
+
+[[segment.attempt]]
+file = "edge/2026-07-05-12-07-14.fit"
+result = "valid"
+duration_ms = 96961
+
+[[segment.attempt]]
+file = "edge/2026-07-12-08-48-49.fit"
+result = "valid"
+duration_ms = 101043
+
+[[segment.attempt]]
+file = "edge/2026-07-19-09-36-39.fit"
+result = "valid"
+duration_ms = 102748
+
+[[segment]]
+id = "R3"
+name = "Wendepunkt"
+purpose = "Hin- und Rückweg, Gegenrichtung zählt nie"
+sport_class = "cycling"
+source = "edge/2026-07-05-12-07-14.fit"
+source_from_m = 44100
+source_to_m = 44600
+length_m = 495
+expected_valid = 27
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-07-30-14-00-44.fit"
+result = "valid"
+duration_ms = 65908
+
+[[segment.attempt]]
+file = "edge/2023-12-26-12-24-38.fit"
+result = "valid"
+duration_ms = 72108
+
+[[segment.attempt]]
+file = "edge/2024-01-01-10-39-48.fit"
+result = "valid"
+duration_ms = 67594
+
+[[segment.attempt]]
+file = "edge/2024-01-28-12-05-29.fit"
+result = "valid"
+duration_ms = 72042
+
+[[segment.attempt]]
+file = "edge/2024-01-29-12-30-11.fit"
+result = "valid"
+duration_ms = 63074
+
+[[segment.attempt]]
+file = "edge/2024-02-04-11-12-34.fit"
+result = "valid"
+duration_ms = 69246
+
+[[segment.attempt]]
+file = "edge/2024-02-18-10-34-54.fit"
+result = "valid"
+duration_ms = 63144
+
+[[segment.attempt]]
+file = "edge/2024-03-03-11-02-32.fit"
+result = "valid"
+duration_ms = 62313
+
+[[segment.attempt]]
+file = "edge/2024-03-29-12-09-21.fit"
+result = "valid"
+duration_ms = 64460
+
+[[segment.attempt]]
+file = "edge/2024-11-24-12-14-51.fit"
+result = "valid"
+duration_ms = 65112
+
+[[segment.attempt]]
+file = "edge/2024-11-27-12-12-45.fit"
+result = "valid"
+duration_ms = 70361
+
+[[segment.attempt]]
+file = "edge/2024-12-17-12-50-27.fit"
+result = "valid"
+duration_ms = 66379
+
+[[segment.attempt]]
+file = "edge/2025-01-06-12-11-30.fit"
+result = "valid"
+duration_ms = 66767
+
+[[segment.attempt]]
+file = "edge/2025-01-19-11-51-43.fit"
+result = "valid"
+duration_ms = 64974
+
+[[segment.attempt]]
+file = "edge/2025-02-23-11-06-44.fit"
+result = "valid"
+duration_ms = 66316
+
+[[segment.attempt]]
+file = "edge/2025-03-09-10-58-49.fit"
+result = "valid"
+duration_ms = 66215
+
+[[segment.attempt]]
+file = "edge/2025-03-30-10-32-42.fit"
+result = "valid"
+duration_ms = 67585
+
+[[segment.attempt]]
+file = "edge/2025-04-06-10-59-40.fit"
+result = "valid"
+duration_ms = 62424
+
+[[segment.attempt]]
+file = "edge/2025-04-20-09-45-50.fit"
+result = "valid"
+duration_ms = 64952
+
+[[segment.attempt]]
+file = "edge/2026-03-01-10-15-19.fit"
+result = "valid"
+duration_ms = 66814
+
+[[segment.attempt]]
+file = "edge/2026-03-08-11-01-45.fit"
+result = "valid"
+duration_ms = 69062
+
+[[segment.attempt]]
+file = "edge/2026-03-22-12-07-27.fit"
+result = "valid"
+duration_ms = 65623
+
+[[segment.attempt]]
+file = "edge/2026-03-29-11-50-25.fit"
+result = "valid"
+duration_ms = 63416
+
+[[segment.attempt]]
+file = "edge/2026-04-19-10-30-46.fit"
+result = "valid"
+duration_ms = 68025
+
+[[segment.attempt]]
+file = "edge/2026-06-14-11-25-49.fit"
+result = "valid"
+duration_ms = 66746
+
+[[segment.attempt]]
+file = "edge/2026-07-05-12-07-14.fit"
+result = "valid"
+duration_ms = 69030
+
+[[segment.attempt]]
+file = "edge/2026-09-06-13-19-01.fit"
+result = "valid"
+duration_ms = 62137
+
+[[segment]]
+id = "R4"
+name = "Einmündung"
+purpose = "Track mündet mitten im Segment ein: kein Versuch"
+sport_class = "cycling"
+source = "edge/2026-07-05-12-07-14.fit"
+source_from_m = 27200
+source_to_m = 28300
+length_m = 1099
+expected_valid = 27
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-07-30-14-00-44.fit"
+result = "valid"
+duration_ms = 103500
+
+[[segment.attempt]]
+file = "edge/2023-12-26-12-24-38.fit"
+result = "valid"
+duration_ms = 105866
+
+[[segment.attempt]]
+file = "edge/2024-01-01-10-39-48.fit"
+result = "valid"
+duration_ms = 118146
+
+[[segment.attempt]]
+file = "edge/2024-01-28-12-05-29.fit"
+result = "valid"
+duration_ms = 124093
+
+[[segment.attempt]]
+file = "edge/2024-02-04-11-12-34.fit"
+result = "valid"
+duration_ms = 118751
+
+[[segment.attempt]]
+file = "edge/2024-02-11-11-20-13.fit"
+result = "valid"
+duration_ms = 112221
+
+[[segment.attempt]]
+file = "edge/2024-02-18-10-34-54.fit"
+result = "valid"
+duration_ms = 114438
+
+[[segment.attempt]]
+file = "edge/2024-03-03-11-02-32.fit"
+result = "valid"
+duration_ms = 112814
+
+[[segment.attempt]]
+file = "edge/2024-03-29-12-09-21.fit"
+result = "valid"
+duration_ms = 111289
+
+[[segment.attempt]]
+file = "edge/2024-11-24-12-14-51.fit"
+result = "valid"
+duration_ms = 110885
+
+[[segment.attempt]]
+file = "edge/2024-11-27-12-12-45.fit"
+result = "valid"
+duration_ms = 118155
+
+[[segment.attempt]]
+file = "edge/2024-12-17-12-50-27.fit"
+result = "valid"
+duration_ms = 116154
+
+[[segment.attempt]]
+file = "edge/2025-01-06-12-11-30.fit"
+result = "valid"
+duration_ms = 116746
+
+[[segment.attempt]]
+file = "edge/2025-01-19-11-51-43.fit"
+result = "valid"
+duration_ms = 116216
+
+[[segment.attempt]]
+file = "edge/2025-02-23-11-06-44.fit"
+result = "valid"
+duration_ms = 120214
+
+[[segment.attempt]]
+file = "edge/2025-03-30-10-32-42.fit"
+result = "valid"
+duration_ms = 112005
+
+[[segment.attempt]]
+file = "edge/2025-04-06-10-59-40.fit"
+result = "valid"
+duration_ms = 124019
+
+[[segment.attempt]]
+file = "edge/2025-04-20-09-45-50.fit"
+result = "valid"
+duration_ms = 109933
+
+[[segment.attempt]]
+file = "edge/2026-03-01-10-15-19.fit"
+result = "valid"
+duration_ms = 126723
+
+[[segment.attempt]]
+file = "edge/2026-03-08-11-01-45.fit"
+result = "valid"
+duration_ms = 120151
+
+[[segment.attempt]]
+file = "edge/2026-03-22-12-07-27.fit"
+result = "valid"
+duration_ms = 117357
+
+[[segment.attempt]]
+file = "edge/2026-03-29-11-50-25.fit"
+result = "valid"
+duration_ms = 124763
+
+[[segment.attempt]]
+file = "edge/2026-04-06-10-33-18.fit"
+result = "valid"
+duration_ms = 118829
+
+[[segment.attempt]]
+file = "edge/2026-04-19-10-30-46.fit"
+result = "valid"
+duration_ms = 117163
+
+[[segment.attempt]]
+file = "edge/2026-06-14-11-25-49.fit"
+result = "valid"
+duration_ms = 104725
+
+[[segment.attempt]]
+file = "edge/2026-07-05-12-07-14.fit"
+result = "valid"
+duration_ms = 110324
+
+[[segment.attempt]]
+file = "edge/2026-09-06-13-19-01.fit"
+result = "valid"
+duration_ms = 118306
+
+[[segment]]
+id = "R5"
+name = "Zufahrt von der Seite"
+purpose = "andere Route, ganzes Segment gefahren: Versuch"
+sport_class = "cycling"
+source = "edge/2026-07-05-12-07-14.fit"
+source_from_m = 45000
+source_to_m = 46000
+length_m = 999
+expected_valid = 35
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-07-30-14-00-44.fit"
+result = "valid"
+duration_ms = 138925
+
+[[segment.attempt]]
+file = "edge/2023-12-26-12-24-38.fit"
+result = "valid"
+duration_ms = 169498
+
+[[segment.attempt]]
+file = "edge/2024-01-01-10-39-48.fit"
+result = "valid"
+duration_ms = 164400
+
+[[segment.attempt]]
+file = "edge/2024-01-28-12-05-29.fit"
+result = "valid"
+duration_ms = 141412
+
+[[segment.attempt]]
+file = "edge/2024-01-29-12-30-11.fit"
+result = "valid"
+duration_ms = 145558
+
+[[segment.attempt]]
+file = "edge/2024-02-04-11-12-34.fit"
+result = "valid"
+duration_ms = 157698
+
+[[segment.attempt]]
+file = "edge/2024-02-11-11-20-13.fit"
+result = "valid"
+duration_ms = 148201
+
+[[segment.attempt]]
+file = "edge/2024-02-18-10-34-54.fit"
+result = "valid"
+duration_ms = 144876
+
+[[segment.attempt]]
+file = "edge/2024-02-25-10-55-38.fit"
+result = "valid"
+duration_ms = 156510
+
+[[segment.attempt]]
+file = "edge/2024-03-03-11-02-32.fit"
+result = "valid"
+duration_ms = 140979
+
+[[segment.attempt]]
+file = "edge/2024-03-29-12-09-21.fit"
+result = "valid"
+duration_ms = 123366
+
+[[segment.attempt]]
+file = "edge/2024-03-31-11-49-32.fit"
+result = "valid"
+duration_ms = 122626
+
+[[segment.attempt]]
+file = "edge/2024-05-19-10-29-59.fit"
+result = "valid"
+duration_ms = 128635
+
+[[segment.attempt]]
+file = "edge/2024-11-24-12-14-51.fit"
+result = "valid"
+duration_ms = 142209
+
+[[segment.attempt]]
+file = "edge/2024-11-27-12-12-45.fit"
+result = "valid"
+duration_ms = 138213
+
+[[segment.attempt]]
+file = "edge/2024-12-17-12-50-27.fit"
+result = "valid"
+duration_ms = 132163
+
+[[segment.attempt]]
+file = "edge/2025-01-06-12-11-30.fit"
+result = "valid"
+duration_ms = 149461
+
+[[segment.attempt]]
+file = "edge/2025-01-19-11-51-43.fit"
+result = "valid"
+duration_ms = 137580
+
+[[segment.attempt]]
+file = "edge/2025-02-23-11-06-44.fit"
+result = "valid"
+duration_ms = 148001
+
+[[segment.attempt]]
+file = "edge/2025-03-09-10-58-49.fit"
+result = "valid"
+duration_ms = 133998
+
+[[segment.attempt]]
+file = "edge/2025-03-30-10-32-42.fit"
+result = "valid"
+duration_ms = 158332
+
+[[segment.attempt]]
+file = "edge/2025-04-06-10-59-40.fit"
+result = "valid"
+duration_ms = 126147
+
+[[segment.attempt]]
+file = "edge/2025-04-20-09-45-50.fit"
+result = "valid"
+duration_ms = 145470
+
+[[segment.attempt]]
+file = "edge/2025-07-27-09-09-28.fit"
+result = "valid"
+duration_ms = 140828
+
+[[segment.attempt]]
+file = "edge/2026-03-01-10-15-19.fit"
+result = "valid"
+duration_ms = 134137
+
+[[segment.attempt]]
+file = "edge/2026-03-08-11-01-45.fit"
+result = "valid"
+duration_ms = 139444
+
+[[segment.attempt]]
+file = "edge/2026-03-22-12-07-27.fit"
+result = "valid"
+duration_ms = 143489
+
+[[segment.attempt]]
+file = "edge/2026-03-29-11-50-25.fit"
+result = "valid"
+duration_ms = 133995
+
+[[segment.attempt]]
+file = "edge/2026-04-06-10-33-18.fit"
+result = "valid"
+duration_ms = 125122
+
+[[segment.attempt]]
+file = "edge/2026-04-19-10-30-46.fit"
+result = "valid"
+duration_ms = 133513
+
+[[segment.attempt]]
+file = "edge/2026-06-07-09-46-40.fit"
+result = "valid"
+duration_ms = 138553
+
+[[segment.attempt]]
+file = "edge/2026-06-14-11-25-49.fit"
+result = "valid"
+duration_ms = 130389
+
+[[segment.attempt]]
+file = "edge/2026-07-05-12-07-14.fit"
+result = "valid"
+duration_ms = 136208
+
+[[segment.attempt]]
+file = "edge/2026-07-19-09-36-39.fit"
+result = "valid"
+duration_ms = 127444
+
+[[segment.attempt]]
+file = "edge/2026-09-06-13-19-01.fit"
+result = "valid"
+duration_ms = 122230
+
+[[segment]]
+id = "M1"
+name = "Kehren"
+purpose = "zwei Kehren"
+sport_class = "cycling"
+source = "edge/2026-09-04-17-23-06.fit"
+source_from_m = 3550
+source_to_m = 4050
+length_m = 490
+expected_valid = 11
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-08-11-16-57-18.fit"
+result = "valid"
+duration_ms = 141192
+
+[[segment.attempt]]
+file = "edge/2024-04-05-15-59-01.fit"
+result = "valid"
+duration_ms = 149478
+
+[[segment.attempt]]
+file = "edge/2024-05-28-15-58-10.fit"
+result = "valid"
+duration_ms = 142696
+
+[[segment.attempt]]
+file = "edge/2024-06-18-17-08-12.fit"
+result = "valid"
+duration_ms = 150285
+
+[[segment.attempt]]
+file = "edge/2024-08-09-17-30-49.fit"
+result = "valid"
+duration_ms = 157184
+
+[[segment.attempt]]
+file = "edge/2025-07-04-16-58-31.fit"
+result = "valid"
+duration_ms = 165888
+
+[[segment.attempt]]
+file = "edge/2025-07-23-16-34-03.fit"
+result = "valid"
+duration_ms = 154477
+
+[[segment.attempt]]
+file = "edge/2025-08-13-17-51-55.fit"
+result = "valid"
+duration_ms = 163647
+
+[[segment.attempt]]
+file = "edge/2026-04-29-16-11-51.fit"
+result = "valid"
+duration_ms = 151181
+
+[[segment.attempt]]
+file = "edge/2026-08-22-14-10-51.fit"
+result = "valid"
+duration_ms = 164465
+
+[[segment.attempt]]
+file = "edge/2026-09-04-17-23-06.fit"
+result = "valid"
+duration_ms = 153745
+
+[[segment]]
+id = "M2"
+name = "Anstieg Wald"
+purpose = "Wald-GPS, Versatz bis 13 m, längeres Segment"
+sport_class = "cycling"
+source = "edge/2026-09-04-17-23-06.fit"
+source_from_m = 25100
+source_to_m = 27100
+length_m = 1951
+expected_valid = 11
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-08-11-16-57-18.fit"
+result = "valid"
+duration_ms = 820208
+
+[[segment.attempt]]
+file = "edge/2024-04-05-15-59-01.fit"
+result = "valid"
+duration_ms = 886708
+
+[[segment.attempt]]
+file = "edge/2024-05-28-15-58-10.fit"
+result = "valid"
+duration_ms = 827163
+
+[[segment.attempt]]
+file = "edge/2024-06-18-17-08-12.fit"
+result = "valid"
+duration_ms = 861719
+
+[[segment.attempt]]
+file = "edge/2024-08-09-17-30-49.fit"
+result = "valid"
+duration_ms = 940518
+
+[[segment.attempt]]
+file = "edge/2025-07-04-16-58-31.fit"
+result = "valid"
+duration_ms = 886307
+
+[[segment.attempt]]
+file = "edge/2025-07-23-16-34-03.fit"
+result = "valid"
+duration_ms = 906542
+
+[[segment.attempt]]
+file = "edge/2025-08-13-17-51-55.fit"
+result = "valid"
+duration_ms = 997361
+
+[[segment.attempt]]
+file = "edge/2026-04-29-16-11-51.fit"
+result = "valid"
+duration_ms = 931338
+
+[[segment.attempt]]
+file = "edge/2026-08-22-14-10-51.fit"
+result = "valid"
+duration_ms = 928681
+
+[[segment.attempt]]
+file = "edge/2026-09-04-17-23-06.fit"
+result = "valid"
+duration_ms = 947198
+
+[[segment]]
+id = "M3"
+name = "Flach MTB"
+purpose = "MTB-Grundfall"
+sport_class = "cycling"
+source = "edge/2026-09-04-17-23-06.fit"
+source_from_m = 900
+source_to_m = 1900
+length_m = 999
+expected_valid = 25
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "edge/2023-08-13-11-23-11.fit"
+result = "valid"
+duration_ms = 140237
+
+[[segment.attempt]]
+file = "edge/2023-08-20-09-56-42.fit"
+result = "valid"
+duration_ms = 135133
+
+[[segment.attempt]]
+file = "edge/2023-10-08-10-32-34.fit"
+result = "valid"
+duration_ms = 131851
+
+[[segment.attempt]]
+file = "edge/2023-11-01-11-31-41.fit"
+result = "valid"
+duration_ms = 135403
+
+[[segment.attempt]]
+file = "edge/2024-04-05-15-59-01.fit"
+result = "valid"
+duration_ms = 136056
+
+[[segment.attempt]]
+file = "edge/2024-05-12-09-17-41.fit"
+result = "valid"
+duration_ms = 140356
+
+[[segment.attempt]]
+file = "edge/2024-05-28-15-58-10.fit"
+result = "valid"
+duration_ms = 135132
+
+[[segment.attempt]]
+file = "edge/2024-06-18-17-08-12.fit"
+result = "valid"
+duration_ms = 135890
+
+[[segment.attempt]]
+file = "edge/2024-08-09-17-30-49.fit"
+result = "valid"
+duration_ms = 150235
+
+[[segment.attempt]]
+file = "edge/2024-08-11-10-39-52.fit"
+result = "valid"
+duration_ms = 130612
+# 20 m Toleranz (M3d, Uli 12.11.2026)
+
+[[segment.attempt]]
+file = "edge/2024-09-01-09-55-38.fit"
+result = "valid"
+duration_ms = 136864
+
+[[segment.attempt]]
+file = "edge/2025-06-29-09-39-00.fit"
+result = "valid"
+duration_ms = 146025
+
+[[segment.attempt]]
+file = "edge/2025-07-04-16-58-31.fit"
+result = "valid"
+duration_ms = 138003
+
+[[segment.attempt]]
+file = "edge/2025-07-23-16-34-03.fit"
+result = "valid"
+duration_ms = 145380
+
+[[segment.attempt]]
+file = "edge/2025-08-13-17-51-55.fit"
+result = "valid"
+duration_ms = 136212
+
+[[segment.attempt]]
+file = "edge/2026-04-29-16-11-51.fit"
+result = "valid"
+duration_ms = 149650
+
+[[segment.attempt]]
+file = "edge/2026-05-03-09-31-36.fit"
+result = "valid"
+duration_ms = 144828
+
+[[segment.attempt]]
+file = "edge/2026-05-25-10-01-22.fit"
+result = "valid"
+duration_ms = 140250
+
+[[segment.attempt]]
+file = "edge/2026-08-09-09-17-19.fit"
+result = "valid"
+duration_ms = 145315
+
+[[segment.attempt]]
+file = "edge/2026-08-16-09-19-51.fit"
+result = "valid"
+duration_ms = 140984
+
+[[segment.attempt]]
+file = "edge/2026-08-22-14-10-51.fit"
+result = "valid"
+duration_ms = 139226
+
+[[segment.attempt]]
+file = "edge/2026-09-04-17-23-06.fit"
+result = "valid"
+duration_ms = 145060
+
+[[segment.attempt]]
+file = "edge/2026-09-13-09-19-22.fit"
+result = "valid"
+duration_ms = 147284
+
+[[segment.attempt]]
+file = "edge/2026-09-15-17-01-58.fit"
+result = "valid"
+duration_ms = 144289
+
+[[segment.attempt]]
+file = "edge/2026-09-20-09-27-52.fit"
+result = "valid"
+duration_ms = 144103
+
+[[segment]]
+id = "L1"
+name = "Anstieg Lauf"
+purpose = "Uhr mit Smart-Recording, Kehren"
+sport_class = "running"
+source = "uhr/E1EC3320.FIT"
+source_from_m = 3700
+source_to_m = 4700
+length_m = 996
+expected_valid = 6
+expected_not_ranked = 0
+
+[[segment.attempt]]
+file = "uhr/D25D3658.FIT"
+result = "valid"
+duration_ms = 562433
+
+[[segment.attempt]]
+file = "uhr/D2QE1458.FIT"
+result = "valid"
+duration_ms = 567008
+
+[[segment.attempt]]
+file = "uhr/D35F2502.FIT"
+result = "valid"
+duration_ms = 553982
+
+[[segment.attempt]]
+file = "uhr/D42D3133.FIT"
+result = "valid"
+duration_ms = 580372
+
+[[segment.attempt]]
+file = "uhr/D4GC3757.FIT"
+result = "valid"
+duration_ms = 573639
+
+[[segment.attempt]]
+file = "uhr/E1EC3320.FIT"
+result = "valid"
+duration_ms = 589492
+
+[[segment]]
+id = "L2"
+name = "Flach Lauf"
+purpose = "Aufzeichnungslücke über 15 s: kein Treffer"
+sport_class = "running"
+source = "uhr/E1EC3320.FIT"
+source_from_m = 5950
+source_to_m = 6950
+length_m = 999
+expected_valid = 5
+expected_not_ranked = 1
+
+[[segment.attempt]]
+file = "uhr/D25D3658.FIT"
+result = "not_matched"
+reason = "Aufzeichnungslücke 25 s über coverage_connection_s"
+
+[[segment.attempt]]
+file = "uhr/D2QE1458.FIT"
+result = "valid"
+duration_ms = 394899
+
+[[segment.attempt]]
+file = "uhr/D35F2502.FIT"
+result = "valid"
+duration_ms = 393141
+
+[[segment.attempt]]
+file = "uhr/D42D3133.FIT"
+result = "valid"
+duration_ms = 432133
+
+[[segment.attempt]]
+file = "uhr/D4GC3757.FIT"
+result = "valid"
+duration_ms = 388465
+
+[[segment.attempt]]
+file = "uhr/E1EC3320.FIT"
+result = "valid"
+duration_ms = 414456

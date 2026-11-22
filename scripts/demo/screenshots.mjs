@@ -1,0 +1,58 @@
+// Screenshots der Oberfläche aus einer mit seed_demo.py befüllten Test-Instanz, hell und dunkel.
+// Aufruf (im Ordner scripts/demo):  npm ci && npx playwright install chromium && npm run screenshots -- [https://localhost:8443]
+import { chromium } from "playwright";
+import { mkdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const BASE = process.argv[2] ?? "https://localhost:8443";
+const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/screenshots");
+
+async function api(p) {
+  const r = await fetch(BASE + "/api/v1" + p);
+  if (!r.ok) throw new Error(`${p}: ${r.status}`);
+  return (await r.json()).data;
+}
+
+// Selbst signiertes Zertifikat der Test-Instanz
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+const activities = await api("/activities?limit=100");
+const segments = await api("/segments");
+const calobra = segments.find((s) => s.name === "Sa Calobra");
+const ride = activities.find((a) => a.id === calobra.summary.best.activity_id);
+
+const desktop = { width: 1440, height: 960 };
+const tablet = { width: 1024, height: 1366 };
+const shots = [
+  { name: "dashboard", url: "/", viewport: desktop },
+  { name: "aktivitaeten", url: "/aktivitaeten", viewport: desktop },
+  { name: "aktivitaet", url: `/aktivitaeten/${ride.id}`, viewport: desktop },
+  { name: "segment", url: `/segmente/${calobra.id}`, viewport: desktop },
+  { name: "statistik", url: "/statistik", viewport: desktop },
+  { name: "tablet-aktivitaet", url: `/aktivitaeten/${ride.id}`, viewport: tablet, scale: 1 },
+];
+
+await mkdir(OUT, { recursive: true });
+// PW_CHANNEL=chrome (oder msedge) nutzt einen installierten Browser statt des Playwright-Chromiums
+const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+for (const scheme of ["light", "dark"]) {
+  for (const s of shots) {
+    const ctx = await browser.newContext({
+      viewport: s.viewport,
+      deviceScaleFactor: s.scale ?? 1,
+      colorScheme: scheme,
+      locale: "de-DE",
+      timezoneId: "Europe/Berlin",
+      ignoreHTTPSErrors: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto(BASE + s.url, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1500); // Kacheln, Diagramm-Animationen
+    const file = path.join(OUT, `${s.name}-${scheme === "light" ? "hell" : "dunkel"}.png`);
+    await page.screenshot({ path: file });
+    console.log(file);
+    await ctx.close();
+  }
+}
+await browser.close();

@@ -1,0 +1,2160 @@
+openapi: 3.1.0
+info:
+  title: TrackCraft API
+  version: 1.0.0-draft
+  summary: Lokale REST-Schnittstelle der TrackCraft-Plattform (V1)
+  description: |
+    Vertrag der Schnittstelle zwischen Frontend und Backend. Fachregeln stehen in den RFCs,
+    Konventionen und Fehlercodes in RFC-0003. Dieser Vertrag ist die verbindliche Quelle für Pfade, Parameter und DTOs.
+
+    Konventionen:
+    - Erfolg: `{"data": ..., "meta": ...}`. `meta` steht nur bei Listen und wo ausdrücklich angegeben. Löschen liefert 204 ohne Body.
+    - Fehler: `{"error": {"code": "...", "message": "...", "details": ...}}`. `code` ist stabil (snake_case), `message` ist eine kurze englische Beschreibung, die Oberfläche übersetzt anhand des Codes.
+    - IDs sind UUIDs. Zeitpunkte sind RFC-3339-Zeichenketten in UTC mit Millisekunden und `Z`. Dauern sind ganze Millisekunden (`*_ms`), Strecken und Höhen Meter.
+    - Unbekannte Werte sind `null`, nie 0.
+    - Teiländerungen nur mit PATCH (JSON, nur gesendete Felder ändern sich, `null` löscht nur nullbare Felder). PUT wird in V1 nicht verwendet.
+    - Es gibt keinen App-Login, daher kein 401.
+    - Jede Operation kann mit 403 (`host_not_allowed`, `origin_not_allowed`) und jede Operation mit Body mit 415 (`unsupported_media_type`) antworten (Browserschutz, RFC-0011). Diese Antworten (`Forbidden`, `UnsupportedMediaType`) stehen nicht einzeln an den Operationen.
+servers:
+  - url: /api/v1
+tags:
+  - name: System
+  - name: Activities
+  - name: Import
+  - name: Segments
+  - name: Statistics
+  - name: Seasons
+  - name: Profile
+    description: Profil des einzigen Benutzers; die Datenbank ist führend
+  - name: Sports
+    description: Sportart-Zuordnung und Untertyp-Katalog in der Datenbank (RFC-0008 Abschnitt 4)
+  - name: Garmin
+    description: Abruf aus Garmin Connect über die persönliche Garmin-API (RFC-0008 Abschnitt 10)
+  - name: Backup
+  - name: Jobs
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getHealth
+      summary: Gesundheitszustand von Backend, Datenbank und Speicher
+      responses:
+        '200': {description: 'Gesund oder eingeschränkt', content: {application/json: {schema: {$ref: '#/components/schemas/HealthResponse'}}}}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /ready:
+    get:
+      tags: [System]
+      operationId: getReady
+      summary: Bereitschaft (Migration abgeschlossen, Schreiben freigegeben)
+      responses:
+        '200': {description: 'Bereit', content: {application/json: {schema: {$ref: '#/components/schemas/ReadyResponse'}}}}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /version:
+    get:
+      tags: [System]
+      operationId: getVersion
+      summary: Versionen von Anwendung, API und Schema
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/VersionResponse'}}}}
+  /system:
+    get:
+      tags: [System]
+      operationId: getSystem
+      summary: Systemstatus mit Zählern, Berechnungsstand, laufenden Aufträgen und Warnungen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SystemResponse'}}}}
+  /config:
+    get:
+      tags: [System]
+      operationId: getConfig
+      summary: Öffentliche Konfiguration und Profil für das Frontend
+      description: Enthält nur die Teilmenge aus RFC-0021 Abschnitt 4. Pfade und Betriebswerte werden nicht ausgeliefert.
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ConfigResponse'}}}}
+  /activities:
+    get:
+      tags: [Activities]
+      operationId: listActivities
+      summary: Aktivitäten auflisten
+      parameters:
+        - {name: sport_class, in: query, schema: {$ref: '#/components/schemas/SportClass'}}
+        - {name: sub_sport, in: query, description: 'Untertyp-Schlüssel', schema: {type: string}}
+        - {name: from, in: query, description: 'Lokales Startdatum ab (inklusive, Zeitzone der Konfiguration)', schema: {type: string, format: date}}
+        - {name: to, in: query, description: 'Lokales Startdatum bis (inklusive)', schema: {type: string, format: date}}
+        - {name: q, in: query, description: 'Teilzeichenkette in Titel, Beschreibung oder Ort (ohne Beachtung der Groß-/Kleinschreibung)', schema: {type: string, minLength: 1}}
+        - {name: route_id, in: query, description: 'Nur Aktivitäten mit mindestens einem gültigen Versuch auf dieser Strecke (Segment mit kind route, RFC-0016)', schema: {$ref: '#/components/schemas/Uuid'}}
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -start_time
+            enum: [-start_time, start_time, -distance_m, distance_m, -total_time_ms, total_time_ms, -elevation_gain_m, elevation_gain_m]
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /activities/import:
+    post:
+      tags: [Import]
+      operationId: uploadActivityFile
+      summary: Datei hochladen und Importvorgang anlegen
+      description: |
+        Legt den Importvorgang an, parst die Datei und liefert Sessions samt Duplikatkandidaten. Gespeichert wird noch nichts,
+        erst `confirm` speichert. Abgewiesene Dateien werden nicht aufbewahrt, es entsteht kein Importvorgang.
+        Das Backend darf das Parsen asynchron abschließen, der Status ist dann `staged` und der Client fragt den Vorgang ab.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary, description: 'FIT- oder GPX-Datei, höchstens `import_limits.max_file_size_mb`'}
+      responses:
+        '201': {description: 'Importvorgang angelegt', content: {application/json: {schema: {$ref: '#/components/schemas/ImportJobResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '408': {description: 'Upload nach `import_limits.upload_timeout_minutes` abgebrochen (`upload_timeout`)', content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}}}}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+        '415': {$ref: '#/components/responses/UnsupportedMediaType'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /activities/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Activities]
+      operationId: getActivity
+      summary: Aktivität abrufen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Activities]
+      operationId: updateActivity
+      summary: Metadaten, Sportklasse sowie Start und Gesamtzeit ändern
+      description: |
+        Keine Änderung von Track oder Distanz. Start und Gesamtzeit sind jederzeit korrigierbar, Messpunkte und Segmentversuche
+        behalten die Gerätezeit, die Originalwerte bleiben erhalten. Eine geänderte Sportklasse invalidiert betroffene Wertungen und löst Neuberechnung aus.
+        Lokale Zeiten gelten in der Zeitzone der Konfiguration. Eine nicht existierende Frühjahrszeit wird eine Stunde später gesetzt
+        (Hinweis `local_time_shifted` in `meta.notices`), eine doppelte Herbstzeit verlangt `occurrence`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ActivityUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+    delete:
+      tags: [Activities]
+      operationId: deleteActivity
+      summary: Aktivität löschen
+      description: Die Folgen zeigt vorher `getActivityDeletionPreview`. Die Originaldatei wird nur entfernt, wenn keine Aktivität mehr darauf verweist. Auswertungen werden anschließend als Aufträge aktualisiert.
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /activities/{id}/deletion-preview:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Activities]
+      operationId: getActivityDeletionPreview
+      summary: Folgen des Löschens anzeigen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/DeletionPreviewResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /activities/{id}/track:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Activities]
+      operationId: getActivityTrack
+      summary: Messpunkte der Aktivität spaltenweise
+      description: |
+        Je Abschnitt Arrays je Feld. Fehlende Werte sind `null`. `index` enthält die Positionen der gelieferten Punkte im Abschnitt
+        (0 bis point_count-1) und ist die Grundlage für `start_index` und `end_index` beim Erstellen eines Segments.
+        Mit `max_points` wird gleichmäßig nach Index ausgedünnt, erster und letzter Punkt bleiben erhalten.
+      parameters:
+        - {name: section, in: query, description: 'Nur dieser Abschnitt (`section_index`), sonst alle', schema: {type: integer, minimum: 0}}
+        - {name: max_points, in: query, description: 'Höchstzahl gelieferter Punkte je Abschnitt, sonst alle', schema: {type: integer, minimum: 2, maximum: 100000}}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityTrackResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /activities/{id}/efforts:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Activities]
+      operationId: listActivityEfforts
+      summary: Segmentversuche der Aktivität
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/EffortListResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /import/jobs:
+    get:
+      tags: [Import]
+      operationId: listImportJobs
+      summary: Importvorgänge auflisten
+      parameters:
+        - {name: status, in: query, schema: {$ref: '#/components/schemas/ImportStatus'}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ImportJobListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /import/jobs/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Import]
+      operationId: getImportJob
+      summary: Importvorgang abrufen
+      description: Liefert auch den aktuellen `state_token`. Ändert sich der relevante Stand (Duplikatkandidaten, Ersetzungsziele), ändert sich der Token.
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ImportJobResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Import]
+      operationId: cancelImportJob
+      summary: Unbestätigten Importvorgang abbrechen und Upload bereinigen
+      responses:
+        '204': {description: 'Abgebrochen'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /import/jobs/{id}/confirm:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    post:
+      tags: [Import]
+      operationId: confirmImportJob
+      summary: Entscheidungen bestätigen und Speichern starten
+      description: |
+        Gewählte Sessions werden gemeinsam gespeichert, ersetzt oder zurückgenommen. Vor der Ausführung werden Kandidaten und Metadaten
+        erneut geprüft. Hat sich etwas Entscheidungsrelevantes geändert, antwortet das Backend mit 409 `import_state_changed`,
+        der Client lädt den Vorgang neu und bestätigt erneut. Der Importerfolg gilt mit Abschluss der Speicherung (`done`),
+        die Auswertung läuft danach als eigene Aufträge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ImportDecision'}
+      responses:
+        '202': {description: 'Speichern gestartet', content: {application/json: {schema: {$ref: '#/components/schemas/ImportJobResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /segments:
+    get:
+      tags: [Segments]
+      operationId: listSegments
+      summary: Segmente auflisten
+      parameters:
+        - {name: q, in: query, description: 'Teilzeichenkette in Name, Beschreibung oder Ort', schema: {type: string, minLength: 1}}
+        - {name: sport_class, in: query, schema: {$ref: '#/components/schemas/RankedSportClass'}}
+        - {name: kind, in: query, description: 'Segmente oder Strecken (RFC-0016), ohne Angabe beide', schema: {$ref: '#/components/schemas/SegmentKind'}}
+        - {name: category, in: query, description: 'Wirksame Kategorie (von Hand gewählt, sonst automatisch)', schema: {$ref: '#/components/schemas/SegmentCategory'}}
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: name
+            enum: [name, -name, created_at, -created_at, length_m, -length_m, location, -location]
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SegmentListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /segments/from-activity:
+    post:
+      tags: [Segments]
+      operationId: createSegmentFromActivity
+      summary: Segment aus einem Abschnitt einer fertig importierten Aktivität erstellen
+      description: |
+        Die Referenz wird kopiert, das Segment hat danach keinen Bezug mehr zur Aktivität. `start_index` und `end_index` sind Positionen im
+        Abschnitt (siehe `getActivityTrack`), beide müssen Punkte mit gültiger Position sein, `start_index` liegt vor `end_index`.
+        Bei `kind: route` liegen Start und Ziel höchstens `[segments] route_edge_m` entlang der Aufzeichnung vom ersten bzw. letzten
+        GPS-Punkt des Abschnitts (`route_edge_exceeded`). Hat die Aktivität im veröffentlichten Stand schon einen Versuch auf einer
+        Strecke, auch einen ungewerteten, antwortet der Dienst mit 409 `route_already_matched` (RFC-0016).
+        Die Auswertung gegen die Historie startet als Auftrag, `history` im Ergebnis zeigt den Fortschritt.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SegmentCreate'}
+      responses:
+        '201': {description: 'Segment angelegt', content: {application/json: {schema: {$ref: '#/components/schemas/SegmentResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /segments/similar:
+    post:
+      tags: [Segments]
+      operationId: findSimilarRoutes
+      summary: Strecken mit fast gleichem Verlauf wie eine Auswahl finden
+      description: |
+        Für den Hinweis im Dialog „Strecke erstellen“ (RFC-0016 „Ähnliche Segmente“). Vergleicht den Verlauf der Auswahl mit allen Strecken
+        derselben Sportklasse: ähnlich, wenn mindestens 90 % der Auswahl höchstens `[segments.route_matching] tolerance_m` neben der Strecke
+        liegen und umgekehrt. `overlap` ist der kleinere der beiden Anteile; sortiert absteigend. Ändert nichts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SimilarRoutesQuery'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SimilarRoutesResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /segments/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Segments]
+      operationId: getSegment
+      summary: Segment mit Zusammenfassung der Versuche abrufen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SegmentResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Segments]
+      operationId: updateSegment
+      summary: Name und Beschreibung ändern
+      description: Referenz, Richtung und Sportklasse sind fest. Änderungen daran erfordern ein neues Segment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SegmentUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/SegmentResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Segments]
+      operationId: deleteSegment
+      summary: Segment löschen
+      description: Entfernt Segmentpunkte, Versuche und Bestzeiten, nie Aktivitäten oder Originale. Die Folgen zeigt vorher `getSegmentDeletionPreview`.
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /segments/{id}/deletion-preview:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Segments]
+      operationId: getSegmentDeletionPreview
+      summary: Folgen des Löschens anzeigen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/DeletionPreviewResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /segments/{id}/track:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Segments]
+      operationId: getSegmentTrack
+      summary: Referenzgeometrie des Segments spaltenweise
+      parameters:
+        - {name: max_points, in: query, schema: {type: integer, minimum: 2, maximum: 100000}}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SegmentTrackResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /segments/{id}/leaderboard:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Segments]
+      operationId: getSegmentLeaderboard
+      summary: Rangliste der gültigen eigenen Versuche
+      description: |
+        Aufsteigend nach Dauer, Gleichstand nach Startzeitpunkt, Aktivitäts-ID und Versuchsposition (RFC-0009).
+        Monats-, Jahres- und Saisonbestzeiten richten sich nach dem lokalen interpolierten Segmentstart aus der Gerätezeit.
+      parameters:
+        - {name: period, in: query, schema: {type: string, enum: [all, year, month, season], default: all}}
+        - {name: season_id, in: query, description: 'Erforderlich bei `season`; unbekannt ergibt `season_not_found`', schema: {type: string, format: uuid}}
+        - {name: year, in: query, description: 'Erforderlich bei `year` und `month`', schema: {type: integer, minimum: 1970, maximum: 9999}}
+        - {name: month, in: query, description: 'Erforderlich bei `month`', schema: {type: integer, minimum: 1, maximum: 12}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/EffortListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /segments/{id}/attempts:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Segments]
+      operationId: listSegmentAttempts
+      summary: Alle Versuche inklusive nicht gewerteter mit Grund
+      parameters:
+        - {name: status, in: query, schema: {$ref: '#/components/schemas/EffortStatus'}}
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -start_time
+            enum: [-start_time, start_time, duration_ms, -duration_ms]
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/EffortListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /profile:
+    get:
+      tags: [Profile]
+      operationId: getProfile
+      summary: Profil des Benutzers
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
+    patch:
+      tags: [Profile]
+      operationId: updateProfile
+      summary: Profil ändern
+      description: Fehlende Felder bleiben, `null` oder leerer Text leert ein freiwilliges Feld. Eine tatsächliche Änderung ist sicherungsrelevant (RFC-0012).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProfileUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /seasons:
+    get:
+      tags: [Seasons]
+      operationId: listSeasons
+      summary: Alle Saisons, neueste zuerst
+      description: '`meta.default_season_id` ist die laufende, sonst die zuletzt beendete Saison (RFC-0009 „Saisons“), `null` ohne solche.'
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SeasonListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    post:
+      tags: [Seasons]
+      operationId: createSeason
+      summary: Saison anlegen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SeasonCreate'}
+      responses:
+        '201': {description: 'Angelegt', content: {application/json: {schema: {$ref: '#/components/schemas/SeasonResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /seasons/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Seasons]
+      operationId: getSeason
+      summary: Eine Saison
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SeasonResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Seasons]
+      operationId: updateSeason
+      summary: Name oder Zeitraum ändern
+      description: Prüft Überschneidung und Namen gegen die übrigen Saisons.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SeasonUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/SeasonResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Seasons]
+      operationId: deleteSeason
+      summary: Saison löschen
+      description: Saisons haben keine abhängigen Daten.
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /garmin:
+    get:
+      tags: [Garmin]
+      operationId: getGarminStatus
+      summary: Einstellungen, Laufstatus und Zähler des Garmin-Abrufs
+      description: Der Schlüssel wird nie zurückgegeben; `configured` sagt nur, ob einer gesetzt ist.
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/GarminStatusResponse'}}}}
+    patch:
+      tags: [Garmin]
+      operationId: updateGarminSettings
+      summary: Schlüssel, regelmäßigen Abruf, Anfangsdatum oder Intervall ändern
+      description: |
+        Nur die gesendeten Felder ändern sich. Ein neuer Schlüssel wird sofort bei Garmin geprüft
+        (`garmin_key_invalid` 400, `garmin_unreachable` 502) und löscht einen gespeicherten Fehler. `api_key: null`
+        entfernt den Schlüssel. Ein früheres oder fehlendes Anfangsdatum setzt `backfill_done` zurück.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/GarminSettingsUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/GarminStatusResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '502': {description: 'Garmin nicht erreichbar (`garmin_unreachable`)', content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}}}}
+  /garmin/sync:
+    post:
+      tags: [Garmin]
+      operationId: startGarminSync
+      summary: Abruf sofort starten
+      description: Auch bei ausgeschaltetem regelmäßigem Abruf. Der Lauf beginnt innerhalb einer Sekunde im Hintergrund.
+      responses:
+        '202': {description: 'Angefordert', content: {application/json: {schema: {$ref: '#/components/schemas/GarminStatusResponse'}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /garmin/activities:
+    get:
+      tags: [Garmin]
+      operationId: listGarminActivities
+      summary: Herkunft der Garmin-Aktivitäten, neueste zuerst
+      parameters:
+        - {name: status, in: query, description: 'Ein Status oder mehrere mit Komma, z. B. `locked,rejected,failed`', schema: {type: string}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/GarminActivityListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /garmin/activities/retry:
+    post:
+      tags: [Garmin]
+      operationId: retryGarminActivities
+      summary: Gesperrte, abgewiesene und gescheiterte Einträge erneut holen lassen
+      description: Entfernt diese Einträge; der nächste Lauf liest die Liste wieder ganz und holt sie erneut.
+      responses:
+        '200':
+          description: 'Zurückgesetzt'
+          content:
+            application/json:
+              schema: {type: object, required: [data], properties: {data: {type: object, required: [reset], properties: {reset: {type: integer, minimum: 0}}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /sport-mappings:
+    get:
+      tags: [Sports]
+      operationId: listSportMappings
+      summary: Alle source_sport mit eigenem Eintrag oder aus vorhandenen Aktivitäten
+      description: |
+        Alphabetisch. `sport_class`/`sub_sport` sind der eigene Eintrag (beide null ohne Eintrag), `effective_*` das,
+        was ein neuer Import ergibt (Rückfall auf den Teil vor dem ersten `-` nur für die Klasse). `activity_count`
+        zählt vorhandene Aktivitäten mit diesem `source_sport`; deren Zuordnung ändert sich nicht.
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SportMappingListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /sport-mappings/{source_sport}:
+    parameters:
+      - {name: source_sport, in: path, required: true, schema: {type: string, minLength: 1, maxLength: 64}}
+    put:
+      tags: [Sports]
+      operationId: putSportMapping
+      summary: Zuordnung anlegen oder ersetzen
+      description: Gilt nur für künftige Importe. `sub_sport` muss im Katalog der Sportklasse stehen (`not_in_catalog`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SportMappingInput'}
+      responses:
+        '200': {description: 'Gespeichert', content: {application/json: {schema: {$ref: '#/components/schemas/SportMappingResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    delete:
+      tags: [Sports]
+      operationId: deleteSportMapping
+      summary: Eigenen Eintrag löschen
+      description: Danach gilt der Rückfall auf den Sport oder `unknown`. Eine gelöschte Vorgabe bringt ein Update nicht zurück.
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /sub-sports:
+    get:
+      tags: [Sports]
+      operationId: listSubSports
+      summary: Untertyp-Katalog mit Verwendung, je Sportklasse in Anzeigereihenfolge
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SubSportListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    post:
+      tags: [Sports]
+      operationId: createSubSport
+      summary: Eigenen Untertyp hinten an den Katalog einer Sportklasse anhängen (Schlüssel custom_… wird erzeugt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubSportCreate'}
+      responses:
+        '201': {description: 'Angelegt', content: {application/json: {schema: {$ref: '#/components/schemas/SubSportResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /sub-sports/{sport_class}/{key}:
+    parameters:
+      - {name: sport_class, in: path, required: true, schema: {type: string}}
+      - {name: key, in: path, required: true, schema: {type: string}}
+    patch:
+      tags: [Sports]
+      operationId: renameSubSport
+      summary: Eigenen Namen oder Symbol setzen oder zurücksetzen
+      description: Ändert Name und/oder Symbol; Aktivitäten und Zuordnungen verweisen auf den Schlüssel. `name: null` setzt einen eingebauten Untertyp auf die übersetzte Bezeichnung zurück (bei eigenen `400`), `icon: null` auf das Vorgabesymbol. Mindestens eines der beiden Felder ist Pflicht.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubSportRename'}
+      responses:
+        '200': {description: 'Umbenannt', content: {application/json: {schema: {$ref: '#/components/schemas/SubSportResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Sports]
+      operationId: deleteSubSport
+      summary: Unbenutzten Untertyp löschen
+      description: Gesperrt (`sub_sport_in_use`, `details.activity_count`, `details.mapping_count`), solange eine Aktivität oder Zuordnung ihn verwendet.
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /stats/dashboard:
+    get:
+      tags: [Statistics]
+      operationId: getDashboardStats
+      summary: Laufende ISO-Woche, laufender Monat und laufende oder zuletzt beendete Saison nach Kalendertagen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/DashboardStatsResponse'}}}}
+  /stats:
+    get:
+      tags: [Statistics]
+      operationId: getStatistics
+      summary: Kennzahlen, Balken je Monat und ISO-Woche, Bestzeiten und Rekorde für eine Auswahl
+      description: |
+        Bei Abfrage berechnet (C4). Aktivitäten nach lokalem Startdatum (korrigierter Start), `from` und `to` sind
+        lokale Kalendertage einschließlich, beide optional. Zusammenfassungen je Sportklasse und `all`; `unknown`
+        zählt nur in `all`, die Balken stapeln es mit. Rekorde gelten für die Auswahl (RFC-0009).
+      parameters:
+        - {name: from, in: query, schema: {type: string, format: date}}
+        - {name: to, in: query, schema: {type: string, format: date}}
+        - {name: sport_class, in: query, schema: {$ref: '#/components/schemas/SportClass'}}
+        - {name: sub_sport, in: query, schema: {type: string, minLength: 1}}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/StatisticsResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /stats/periods:
+    get:
+      tags: [Statistics]
+      operationId: getStatisticsPeriods
+      summary: Kurzsummen je Saison und je Kalenderjahr für die Kacheln der Statistikseite
+      description: Jahre mit Aktivitäten und das laufende Jahr, neueste zuerst. Saisons in der Reihenfolge von `listSeasons`.
+      parameters:
+        - {name: sport_class, in: query, schema: {$ref: '#/components/schemas/SportClass'}}
+        - {name: sub_sport, in: query, schema: {type: string, minLength: 1}}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/StatisticsPeriodsResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /backups/status:
+    get:
+      tags: [Backup]
+      operationId: getBackupStatus
+      summary: Sicherungsstatus
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/BackupStatusResponse'}}}}
+  /backups:
+    get:
+      tags: [Backup]
+      operationId: listBackups
+      summary: Sicherungsstände im konfigurierten Sicherungsziel
+      description: Unzugänglich, leer und nicht lesbar werden unterschieden (`meta.target`).
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/BackupListResponse'}}}}
+    post:
+      tags: [Backup]
+      operationId: startBackup
+      summary: Jetzt sichern
+      description: Gleiche Änderungs- und Zielprüfungen wie der Tageslauf. Ohne Änderung oder ohne Ziel endet der Vorgang als übersprungen, nicht als Erfolg.
+      responses:
+        '202': {description: 'Vorgang angenommen', content: {application/json: {schema: {$ref: '#/components/schemas/OperationResponse'}}}}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /operations/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Backup]
+      operationId: getOperation
+      summary: Sicherungs- oder Restore-Vorgang abrufen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/OperationResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /restores/preview:
+    post:
+      tags: [Backup]
+      operationId: previewRestore
+      summary: Wirkung eines Restores prüfen
+      description: |
+        Prüft Integrität, Formatkompatibilität und sichere Pfade des gewählten Stands und vergleicht ihn mit dem aktuellen Datenstand.
+        Der `preview_token` bindet die Bestätigung an Sicherung und geprüften aktuellen Stand.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RestorePreviewRequest'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/RestorePreviewResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /restores:
+    post:
+      tags: [Backup]
+      operationId: startRestore
+      summary: Restore ausführen (vollständiger fachlicher Ersatz, kein Merge)
+      description: |
+        Hat sich der aktuelle Stand seit der Vorschau geändert, antwortet das Backend mit 409 `restore_preview_stale`
+        und der Client prüft erneut. Während des Umschaltens sind Schreibzugriffe gesperrt (503 `write_locked`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RestoreRequest'}
+      responses:
+        '202': {description: 'Vorgang angenommen', content: {application/json: {schema: {$ref: '#/components/schemas/OperationResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /jobs:
+    get:
+      tags: [Jobs]
+      operationId: listJobs
+      summary: Auswertungsaufträge auflisten
+      parameters:
+        - {name: kind, in: query, schema: {$ref: '#/components/schemas/JobKind'}}
+        - {name: status, in: query, schema: {$ref: '#/components/schemas/JobStatus'}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/JobListResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /jobs/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      summary: Auswertungsauftrag abrufen
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/JobResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /jobs/{id}/retry:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    post:
+      tags: [Jobs]
+      operationId: retryJob
+      summary: Fehlgeschlagene Auswertung wiederholen (ohne Neuimport der Datei)
+      responses:
+        '202': {description: 'Wiederholung gestartet', content: {application/json: {schema: {$ref: '#/components/schemas/JobResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Uuid'}
+    Limit:
+      name: limit
+      in: query
+      description: Zeilen je Seite
+      schema: {type: integer, minimum: 1, maximum: 200, default: 50}
+    Offset:
+      name: offset
+      in: query
+      description: Zahl übersprungener Zeilen
+      schema: {type: integer, minimum: 0, default: 0}
+  responses:
+    BadRequest:
+      description: Ungültige Anfrage. Der Code nennt den Grund, `details.fields` die betroffenen Felder.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    Forbidden:
+      description: Host oder Herkunft nicht erlaubt (`host_not_allowed`, `origin_not_allowed`, RFC-0011). Bei jeder Operation möglich.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    NotFound:
+      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `backup_not_found`, `operation_not_found`).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    Conflict:
+      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    PayloadTooLarge:
+      description: Datei größer als das konfigurierte Limit (`file_too_large`).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    UnsupportedMediaType:
+      description: Weder FIT noch GPX erkannt (`unsupported_format`), oder unzulässiger `Content-Type` (`unsupported_media_type`, bei jeder Operation mit Body möglich).
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    ServiceUnavailable:
+      description: Backend nicht bereit oder Schreibzugriffe kurz gesperrt (`not_ready`, `write_locked`). Wiederholen nach `Retry-After`.
+      headers:
+        Retry-After:
+          description: Sekunden bis zum nächsten Versuch
+          schema: {type: integer, minimum: 0}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+  schemas:
+    Uuid: {type: string, format: uuid}
+    Timestamp:
+      type: string
+      format: date-time
+      description: UTC, RFC 3339, mit Millisekunden und `Z`
+      examples: ['2026-10-22T08:15:03.250Z']
+    SportClass: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio, unknown]}
+    RankedSportClass: {type: string, enum: [cycling, ebike, running, skiing], description: 'Sportklassen mit Segmenten, Strecken, Bestenlisten und Rekorden'}
+    ErrorResponse:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          additionalProperties: false
+          properties:
+            code: {type: string, pattern: '^[a-z][a-z0-9_]*$', description: 'Stabiler Fehlercode, Katalog in RFC-0003 Abschnitt 7'}
+            message: {type: string, description: 'Kurze englische Beschreibung ohne interne Details'}
+            details:
+              type: object
+              description: Zusatzangaben, zum Beispiel `fields` bei Validierungsfehlern
+              properties:
+                fields:
+                  type: array
+                  items:
+                    type: object
+                    required: [field, code]
+                    properties:
+                      field: {type: string}
+                      code: {type: string}
+                      message: {type: string}
+              additionalProperties: true
+      examples:
+        - error:
+            code: validation_failed
+            message: Request validation failed
+            details:
+              fields:
+                - {field: end_index, code: must_be_after_start_index, message: end_index must be greater than start_index}
+    ListMeta:
+      type: object
+      required: [total, limit, offset]
+      properties:
+        total: {type: integer, minimum: 0}
+        limit: {type: integer, minimum: 1}
+        offset: {type: integer, minimum: 0}
+    Notice:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: >-
+            `local_time_shifted` (nicht existierende Frühjahrszeit eine Stunde später gesetzt),
+            `file_checksum_ignored` (Import: FIT mit falscher Datei-Prüfsumme, Inhalt vollständig gelesen).
+        message: {type: string}
+    LocalTimeInput:
+      type: object
+      description: Lokale Zeit in der Zeitzone der Konfiguration (nicht UTC), der Server rechnet nach UTC um.
+      required: [local]
+      additionalProperties: false
+      properties:
+        local: {type: string, pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?$', examples: ['2026-10-25T02:30:00']}
+        occurrence:
+          type: [string, 'null']
+          enum: [first, second, null]
+          description: Nur bei doppelter Herbstzeit nötig (erstes oder zweites Auftreten), sonst 400 `local_time_ambiguous`.
+    Calculation:
+      type: object
+      required: [status, version_id, published_at]
+      properties:
+        status: {type: string, enum: [none, current, running, stale, failed]}
+        version_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}
+        published_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+    Activity:
+      type: object
+      required: [id, title, description, location, sport_class, source_sport, sub_sport, start_time, start_time_origin, start_time_original, total_time_ms, total_time_origin, total_time_original_ms, distance_m, distance_origin, elevation_gain_m, elevation_origin, avg_speed_kmh, avg_heart_rate_bpm, heart_rate_origin, filtered_outliers_count, max_speed_threshold_kmh, section_count, point_count, has_position, session_index, processing_status, segment_success_count, created_at, updated_at, revision]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        title: {type: string, minLength: 1}
+        description: {type: [string, 'null']}
+        location: {type: [string, 'null'], description: 'Freies Feld, nur manuell gesetzt'}
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        source_sport: {type: [string, 'null'], description: 'Normalisierte Sportart laut Datei, z. B. `cycling-road` (RFC-0008)'}
+        sub_sport: {type: [string, 'null'], description: 'Schlüssel im Untertyp-Katalog der Sportklasse'}
+        start_time: {$ref: '#/components/schemas/Timestamp'}
+        start_time_origin: {type: string, enum: [file, first_point, manual, manual_corrected]}
+        start_time_original: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}], description: 'Nur bei Korrektur gesetzt'}
+        total_time_ms: {type: integer, minimum: 0, description: 'Gesamtzeit inklusive Pausen'}
+        total_time_origin: {type: string, enum: [file, gps_points, manual, manual_corrected]}
+        total_time_original_ms: {type: [integer, 'null'], minimum: 0}
+        distance_m: {type: [number, 'null'], minimum: 0}
+        distance_origin: {type: [string, 'null'], enum: [file, gps_points, null]}
+        elevation_gain_m: {type: [number, 'null'], minimum: 0, description: 'Dateiwert, sonst Hysteresewert des veröffentlichten Stands'}
+        elevation_origin: {type: [string, 'null'], enum: [file, hysteresis, null]}
+        avg_speed_kmh: {type: [number, 'null'], minimum: 0, description: 'Distanz durch Gesamtzeit, null bei fehlender Distanz oder Gesamtzeit 0'}
+        avg_heart_rate_bpm: {type: [integer, 'null'], minimum: 1, maximum: 300}
+        heart_rate_origin: {type: [string, 'null'], enum: [file, points, null]}
+        filtered_outliers_count: {type: integer, minimum: 0}
+        max_speed_threshold_kmh: {type: [number, 'null'], exclusiveMinimum: 0}
+        section_count: {type: integer, minimum: 1}
+        point_count: {type: integer, minimum: 0}
+        has_position: {type: boolean}
+        session_index: {type: integer, minimum: 0}
+        processing_status: {type: string, enum: [pending, running, done, failed]}
+        segment_success_count: {type: integer, minimum: 0, description: 'Versuche der Aktivität mit erster Bestzeit oder Verbesserung'}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        updated_at: {$ref: '#/components/schemas/Timestamp'}
+        revision: {type: integer, minimum: 1}
+    ActivityResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/Activity'}
+        meta:
+          type: object
+          properties:
+            notices: {type: array, items: {$ref: '#/components/schemas/Notice'}}
+      examples:
+        - data:
+            id: 0198c1f2-6b3a-7c1e-9d44-2f6a1b8e5a10
+            title: Almunecar - Puerta de la Cabra - Padul
+            description: null
+            location: Almuñécar
+            sport_class: cycling
+            source_sport: cycling
+            sub_sport: road
+            start_time: '2026-10-22T08:15:03.000Z'
+            start_time_origin: file
+            start_time_original: null
+            total_time_ms: 24122000
+            total_time_origin: file
+            total_time_original_ms: null
+            distance_m: 136210
+            distance_origin: file
+            elevation_gain_m: 2572
+            elevation_origin: file
+            avg_speed_kmh: 20.3
+            avg_heart_rate_bpm: 124
+            heart_rate_origin: file
+            filtered_outliers_count: 2
+            max_speed_threshold_kmh: 110
+            section_count: 1
+            point_count: 24122
+            has_position: true
+            session_index: 0
+            processing_status: done
+            segment_success_count: 3
+            created_at: '2026-10-22T19:02:11.412Z'
+            updated_at: '2026-10-22T19:02:11.412Z'
+            revision: 1
+    ActivityListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Activity'}}
+        meta: {$ref: '#/components/schemas/ActivityListMeta'}
+    ActivityListMeta:
+      type: object
+      required: [total, limit, offset, summary, calculation]
+      properties:
+        total: {type: integer, minimum: 0}
+        limit: {type: integer, minimum: 1}
+        offset: {type: integer, minimum: 0}
+        summary: {$ref: '#/components/schemas/ActivityListSummary'}
+        calculation: {$ref: '#/components/schemas/Calculation'}
+    ActivityListSummary:
+      type: object
+      description: Summenzeile über alle gefilterten Aktivitäten, nicht nur die gelieferte Seite (RFC-0006). Summen zählen nur vorhandene Werte.
+      required: [count, distance_m, total_time_ms, elevation_gain_m, activities_without_distance, activities_without_elevation, mixed_sport_classes, avg_speed_kmh, avg_heart_rate_bpm, segment_success_count]
+      properties:
+        count: {type: integer, minimum: 0}
+        distance_m: {type: number, minimum: 0}
+        total_time_ms: {type: integer, minimum: 0}
+        elevation_gain_m: {type: number, minimum: 0}
+        activities_without_distance: {type: integer, minimum: 0}
+        activities_without_elevation: {type: integer, minimum: 0}
+        mixed_sport_classes: {type: boolean, description: 'Mehr als eine Sportklasse; dann gibt es keinen gemeinsamen Schnitt'}
+        avg_speed_kmh: {type: [number, 'null'], minimum: 0, description: 'Distanz durch Gesamtzeit über Aktivitäten mit Distanz, null bei gemischten Sportklassen'}
+        avg_heart_rate_bpm: {type: [integer, 'null'], minimum: 1, description: 'Zeitgewichtet über Aktivitäten mit Herzfrequenz'}
+        segment_success_count: {type: integer, minimum: 0}
+    ActivityUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        title: {type: string, minLength: 1}
+        description: {type: [string, 'null']}
+        location: {type: [string, 'null'], minLength: 1}
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        sub_sport: {type: [string, 'null'], minLength: 1, description: 'Schlüssel im Katalog der (neuen) Sportklasse, sonst 400 not_in_catalog; ohne Angabe entfällt bei Klassenwechsel ein unpassender Untertyp'}
+        start_time: {$ref: '#/components/schemas/LocalTimeInput'}
+        total_time_ms: {type: integer, minimum: 0}
+      examples:
+        - {title: Abendrunde, location: Kelheim}
+        - {start_time: {local: '2026-10-25T02:30:00', occurrence: second}}
+    DeletionPreview:
+      type: object
+      required: [object_type, effort_count, affected_segment_count, original_file_removed]
+      properties:
+        object_type: {type: string, enum: [activity, segment]}
+        effort_count: {type: integer, minimum: 0, description: 'Versuche und Bestzeiten, die entfallen'}
+        affected_segment_count: {type: integer, minimum: 0, description: 'Segmente, deren Ergebnisse neu berechnet werden'}
+        original_file_removed: {type: [boolean, 'null'], description: 'Nur bei Aktivitäten: Datei wird entfernt, weil keine weitere Aktivität darauf verweist. Bei Segmenten null.'}
+    DeletionPreviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/DeletionPreview'}
+    TrackSection:
+      type: object
+      description: Spaltenweise Messpunkte eines Abschnitts. Alle Arrays haben `returned_point_count` Einträge.
+      required: [section_index, point_count, returned_point_count, simplified, index, t_ms, lat, lon, ele_m, hr, dist_m]
+      properties:
+        section_index: {type: integer, minimum: 0}
+        point_count: {type: integer, minimum: 1}
+        returned_point_count: {type: integer, minimum: 1}
+        simplified: {type: boolean}
+        index: {type: array, items: {type: integer, minimum: 0}, description: 'Positionen der gelieferten Punkte im Abschnitt'}
+        t_ms: {type: array, items: {type: [integer, 'null']}, description: 'Gerätezeit in Millisekunden seit 1970-01-01 UTC'}
+        lat: {type: array, items: {type: [number, 'null'], minimum: -90, maximum: 90}}
+        lon: {type: array, items: {type: [number, 'null'], minimum: -180, maximum: 180}}
+        ele_m: {type: array, items: {type: [number, 'null']}}
+        hr: {type: array, items: {type: [integer, 'null'], minimum: 1, maximum: 300}}
+        dist_m: {type: array, items: {type: [number, 'null'], minimum: 0}, description: 'Kumulierte Strecke im Abschnitt (WGS84 ohne Höhe), null bei Punkten ohne Position'}
+    ActivityTrackResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [sections]
+          properties:
+            sections: {type: array, items: {$ref: '#/components/schemas/TrackSection'}}
+      examples:
+        - data:
+            sections:
+              - section_index: 0
+                point_count: 5
+                returned_point_count: 3
+                simplified: true
+                index: [0, 2, 4]
+                t_ms: [1761120903000, 1761120905000, 1761120907000]
+                lat: [36.7338, 36.7339, null]
+                lon: [-3.6906, -3.6905, null]
+                ele_m: [20.1, 20.4, 20.6]
+                hr: [118, 119, 121]
+                dist_m: [0, 14.6, null]
+    SegmentTrack:
+      type: object
+      required: [point_count, returned_point_count, simplified, index, lat, lon, ele_m, dist_m]
+      properties:
+        point_count: {type: integer, minimum: 2}
+        returned_point_count: {type: integer, minimum: 2}
+        simplified: {type: boolean}
+        index: {type: array, items: {type: integer, minimum: 0}}
+        lat: {type: array, items: {type: number, minimum: -90, maximum: 90}}
+        lon: {type: array, items: {type: number, minimum: -180, maximum: 180}}
+        ele_m: {type: array, items: {type: [number, 'null']}}
+        dist_m: {type: array, items: {type: number, minimum: 0}}
+    SegmentTrackResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/SegmentTrack'}
+    EffortStatus: {type: string, enum: [valid, not_ranked]}
+    Effort:
+      type: object
+      required: [id, segment_id, segment_name, activity_id, activity_title, activity_sport_class, activity_sub_sport, attempt_position, status, not_ranked_reason, start_time, end_time, duration_ms, rank, record_kind, improvement_ms, coverage_ratio, avg_heart_rate_bpm, max_heart_rate_bpm]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        segment_id: {$ref: '#/components/schemas/Uuid'}
+        segment_name: {type: string}
+        activity_id: {$ref: '#/components/schemas/Uuid'}
+        activity_title: {type: string}
+        activity_sport_class: {$ref: '#/components/schemas/SportClass'}
+        activity_sub_sport: {type: [string, 'null'], description: 'Untertyp-Schlüssel der Aktivität (Symbol in der Bestenliste)'}
+        attempt_position: {type: integer, minimum: 0, description: 'Position des Versuchs innerhalb des Abschnitts'}
+        status: {$ref: '#/components/schemas/EffortStatus'}
+        not_ranked_reason: {type: [string, 'null'], enum: [ambiguous_geometry, time_invalid, null]}
+        start_time: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}], description: 'Interpolierter Segmentstart (Gerätezeit)'}
+        end_time: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+        duration_ms: {type: [integer, 'null'], minimum: 1, description: 'Gerankte Dauer, Anzeige in Zehnteln'}
+        rank: {type: [integer, 'null'], minimum: 1, description: 'Abgeleitet, nur bei gültigen Versuchen und in der Rangliste'}
+        record_kind: {type: [string, 'null'], enum: [first_best, improvement, equaled, null], description: 'Abgeleitet: Erste Bestzeit, Verbesserung oder Rekordeinstellung zum damaligen Zeitpunkt'}
+        improvement_ms: {type: [integer, 'null'], minimum: 1, description: 'Abgeleitet, nur bei `improvement`'}
+        coverage_ratio: {type: [number, 'null'], minimum: 0, maximum: 1}
+        avg_heart_rate_bpm: {type: [integer, 'null'], minimum: 1, description: 'Zeitgewichteter Ø über den Versuch (RFC-0002 Abschnitt 6)'}
+        max_heart_rate_bpm: {type: [integer, 'null'], minimum: 1}
+        segment:
+          type: object
+          description: Nur in `listActivityEfforts`, Kurzangaben für die Segmenttabelle des Aktivitätsdetails (RFC-0006)
+          required: [kind, category, sport_class, length_m, elevation_gain_m, average_grade_pct, ranked_count]
+          properties:
+            kind: {$ref: '#/components/schemas/SegmentKind'}
+            category: {oneOf: [{$ref: '#/components/schemas/SegmentCategory'}, {type: 'null'}]}
+            sport_class: {$ref: '#/components/schemas/RankedSportClass'}
+            length_m: {type: number, minimum: 0}
+            elevation_gain_m: {type: [number, 'null'], minimum: 0}
+            average_grade_pct: {type: [number, 'null'], description: 'Aus Start- und Zielhöhe der Referenz, eine Nachkommastelle'}
+            ranked_count: {type: integer, minimum: 0, description: 'Gewertete Versuche des Segments, für „Rang n von m“'}
+    EffortListMeta:
+      type: object
+      required: [calculation]
+      properties:
+        total: {type: integer, minimum: 0}
+        limit: {type: integer, minimum: 1}
+        offset: {type: integer, minimum: 0}
+        calculation: {$ref: '#/components/schemas/Calculation'}
+    EffortListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Effort'}}
+        meta: {$ref: '#/components/schemas/EffortListMeta'}
+      examples:
+        - data:
+            - id: 0198c1f9-0000-7000-8000-00000000a001
+              segment_id: 0198c1f2-aaaa-7c1e-9d44-2f6a1b8e5a11
+              segment_name: Puerta de la Cabra
+              activity_id: 0198c1f2-6b3a-7c1e-9d44-2f6a1b8e5a10
+              activity_title: Almunecar - Puerta de la Cabra - Padul
+              attempt_position: 0
+              status: valid
+              not_ranked_reason: null
+              start_time: '2026-10-22T09:03:11.480Z'
+              end_time: '2026-10-22T09:17:50.130Z'
+              duration_ms: 878650
+              rank: 1
+              record_kind: improvement
+              improvement_ms: 4300
+              coverage_ratio: 0.98
+            - id: 0198c1f9-0000-7000-8000-00000000a002
+              segment_id: 0198c1f2-aaaa-7c1e-9d44-2f6a1b8e5a11
+              segment_name: Puerta de la Cabra
+              activity_id: 0198c1f2-6b3a-7c1e-9d44-2f6a1b8e5a10
+              activity_title: Almunecar - Puerta de la Cabra - Padul
+              attempt_position: 1
+              status: not_ranked
+              not_ranked_reason: time_invalid
+              start_time: null
+              end_time: null
+              duration_ms: null
+              rank: null
+              record_kind: null
+              improvement_ms: null
+              coverage_ratio: 0.96
+          meta:
+            total: 2
+            limit: 50
+            offset: 0
+            calculation: {status: current, version_id: 0198c000-0000-7000-8000-000000000001, published_at: '2026-10-22T19:05:00.000Z'}
+    ImportStatus: {type: string, enum: [staged, awaiting_decision, running, done, failed, rolled_back]}
+    DuplicateCandidate:
+      type: object
+      required: [activity_id, title, sport_class, start_time, total_time_ms, distance_m, matched_criteria]
+      properties:
+        activity_id: {$ref: '#/components/schemas/Uuid'}
+        title: {type: string}
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        start_time: {$ref: '#/components/schemas/Timestamp'}
+        total_time_ms: {type: integer, minimum: 0}
+        distance_m: {type: [number, 'null'], minimum: 0}
+        matched_criteria: {type: array, items: {type: string, enum: [start_time, total_time, distance]}, description: 'Verglichen wird mit den Originalwerten, nicht mit manuellen Korrekturen'}
+    ImportSession:
+      type: object
+      required: [session_index, state, lock_reason, preselected, title, source_sport, sport_class, sub_sport, start_time, total_time_ms, distance_m, avg_heart_rate_bpm, point_count, has_position, time_input_required, existing_activity_id, duplicate_candidates]
+      properties:
+        session_index: {type: integer, minimum: 0, description: 'Bei GPX immer 0'}
+        state: {type: string, enum: [selectable, locked_existing, locked_limit, locked_vehicle]}
+        lock_reason: {type: [string, 'null'], description: 'Bei gesperrten Sessions: bereits vorhanden, Punktlimit überschritten oder Fahrzeugabschnitt mit Zeitraum, Geschwindigkeit und Grenze (RFC-0008 Abschnitt 5.1)'}
+        preselected: {type: boolean}
+        title: {type: string, minLength: 1, description: 'Titel aus der Datei, sonst Ersatztitel (RFC-0008)'}
+        source_sport: {type: [string, 'null']}
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        sub_sport: {type: [string, 'null']}
+        start_time: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+        total_time_ms: {type: [integer, 'null'], minimum: 0}
+        distance_m: {type: [number, 'null'], minimum: 0}
+        avg_heart_rate_bpm: {type: [integer, 'null'], minimum: 1, maximum: 300, description: 'Ø Herzfrequenz (Dateiwert, sonst Mittel der Messpunkte), nur Anzeige'}
+        point_count: {type: integer, minimum: 0}
+        has_position: {type: boolean}
+        time_input_required: {type: boolean, description: 'Datei ohne GPS-Punkte und ohne Zeitangaben, Start und Gesamtzeit müssen eingegeben werden'}
+        existing_activity_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}], description: 'Bei `locked_existing` die bereits importierte Aktivität'}
+        duplicate_candidates: {type: array, items: {$ref: '#/components/schemas/DuplicateCandidate'}}
+    ImportJob:
+      type: object
+      required: [id, status, original_filename, format, size_bytes, state_token, error, sessions, imported_activity_ids, created_at, finished_at]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        status: {$ref: '#/components/schemas/ImportStatus'}
+        original_filename: {type: string}
+        format: {type: [string, 'null'], enum: [fit, gpx, null]}
+        size_bytes: {type: [integer, 'null'], minimum: 0}
+        state_token: {type: [string, 'null'], description: 'Bindet die Bestätigung an den geprüften Stand, nur bei `awaiting_decision` gesetzt'}
+        error:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [code, message]
+              properties:
+                code: {type: string}
+                message: {type: string}
+        sessions: {type: array, items: {$ref: '#/components/schemas/ImportSession'}}
+        imported_activity_ids: {type: array, items: {$ref: '#/components/schemas/Uuid'}}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        finished_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+    ImportJobResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/ImportJob'}
+      examples:
+        - data:
+            id: 0198c200-0000-7000-8000-0000000000b1
+            status: awaiting_decision
+            original_filename: 2026-10-22-081503.fit
+            format: fit
+            size_bytes: 1843200
+            state_token: st_7f3a9c
+            error: null
+            sessions:
+              - session_index: 0
+                state: selectable
+                lock_reason: null
+                preselected: true
+                title: Almunecar - Puerta de la Cabra - Padul
+                source_sport: cycling
+                sport_class: cycling
+                sub_sport: null
+                start_time: '2026-10-22T08:15:03.000Z'
+                total_time_ms: 24122000
+                distance_m: 136210
+                avg_heart_rate_bpm: 121
+                point_count: 24122
+                has_position: true
+                time_input_required: false
+                existing_activity_id: null
+                duplicate_candidates:
+                  - activity_id: 0198c1f2-6b3a-7c1e-9d44-2f6a1b8e5a10
+                    title: Almunecar Ausfahrt
+                    sport_class: cycling
+                    start_time: '2026-10-22T08:15:30.000Z'
+                    total_time_ms: 24100000
+                    distance_m: 136000
+                    matched_criteria: [start_time, total_time, distance]
+              - session_index: 1
+                state: locked_existing
+                lock_reason: already_imported
+                preselected: false
+                title: Heimfahrt
+                source_sport: cycling
+                sport_class: cycling
+                sub_sport: null
+                start_time: '2026-10-22T17:40:00.000Z'
+                total_time_ms: 1800000
+                distance_m: 9000
+                avg_heart_rate_bpm: null
+                point_count: 1800
+                has_position: true
+                time_input_required: false
+                existing_activity_id: 0198c1e0-0000-7000-8000-0000000000c1
+                duplicate_candidates: []
+            imported_activity_ids: []
+            created_at: '2026-10-22T19:00:00.000Z'
+            finished_at: null
+    ImportJobListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/ImportJob'}}
+        meta: {$ref: '#/components/schemas/ListMeta'}
+    SessionDecision:
+      type: object
+      required: [session_index, action]
+      additionalProperties: false
+      properties:
+        session_index: {type: integer, minimum: 0}
+        action: {type: string, enum: [import, replace, skip], description: '`import` speichert zusätzlich, `replace` ersetzt `replace_activity_id`, `skip` importiert nicht'}
+        replace_activity_id: {$ref: '#/components/schemas/Uuid'}
+        title: {type: string, minLength: 1, description: 'Titel aus dem Importdialog, getrimmt; ohne Angabe Titel nach RFC-0008. Bei replace mit carry_over.title=true gilt der übernommene Titel'}
+        carry_over:
+          type: object
+          description: Nur bei `replace`. Welche Metadaten der alten Aktivität übernommen werden, Vorgabe jeweils true.
+          additionalProperties: false
+          properties:
+            title: {type: boolean, default: true}
+            description: {type: boolean, default: true}
+            location: {type: boolean, default: true}
+            sport_class: {type: boolean, default: true}
+            sub_sport: {type: boolean, default: true}
+        start_time: {$ref: '#/components/schemas/LocalTimeInput'}
+        total_time_ms: {type: integer, minimum: 0}
+      if:
+        properties: {action: {const: replace}}
+      then:
+        required: [replace_activity_id]
+    ImportDecision:
+      type: object
+      required: [state_token, sessions]
+      additionalProperties: false
+      properties:
+        state_token: {type: string}
+        sessions: {type: array, minItems: 1, items: {$ref: '#/components/schemas/SessionDecision'}, description: 'Jede Session des Vorgangs höchstens einmal, ein Ersetzungsziel höchstens einmal je Vorgang'}
+      examples:
+        - state_token: st_7f3a9c
+          sessions:
+            - {session_index: 0, action: replace, replace_activity_id: 0198c1f2-6b3a-7c1e-9d44-2f6a1b8e5a10, carry_over: {title: true, description: true, location: true, sport_class: true, sub_sport: false}}
+            - {session_index: 1, action: skip}
+    HistoryState:
+      type: object
+      required: [status, processed_items, total_items]
+      properties:
+        status: {type: string, enum: [running, complete, failed], description: 'Bis `complete` ist die Historie unvollständig'}
+        processed_items: {type: integer, minimum: 0}
+        total_items: {type: integer, minimum: 0}
+    SegmentSummary:
+      type: object
+      required: [attempt_count, valid_attempt_count, best, second, third, average_duration_ms, first_attempt_time, last_attempt_time]
+      properties:
+        attempt_count: {type: integer, minimum: 0}
+        valid_attempt_count: {type: integer, minimum: 0}
+        best: {oneOf: [{$ref: '#/components/schemas/Effort'}, {type: 'null'}]}
+        second: {oneOf: [{$ref: '#/components/schemas/Effort'}, {type: 'null'}]}
+        third: {oneOf: [{$ref: '#/components/schemas/Effort'}, {type: 'null'}]}
+        average_duration_ms: {type: [number, 'null'], minimum: 0}
+        first_attempt_time: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+        last_attempt_time: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+    GeoPoint:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat: {type: number, minimum: -90, maximum: 90}
+        lon: {type: number, minimum: -180, maximum: 180}
+    Segment:
+      type: object
+      required: [id, name, description, sport_class, kind, category, category_auto, location, length_m, elevation_gain_m, elevation_loss_m, average_grade_pct, start, end, history, summary, created_at, updated_at]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        name: {type: string, minLength: 1}
+        description: {type: [string, 'null']}
+        sport_class: {$ref: '#/components/schemas/RankedSportClass'}
+        kind: {$ref: '#/components/schemas/SegmentKind'}
+        category: {oneOf: [{$ref: '#/components/schemas/SegmentCategory'}, {type: 'null'}], description: 'Wirksam: von Hand gewählt, sonst automatisch; null ohne Höhen bzw. Positionen'}
+        category_auto: {oneOf: [{$ref: '#/components/schemas/SegmentCategory'}, {type: 'null'}], description: 'Automatisch aus der Referenz (RFC-0016 „Kategorien“)'}
+        location: {type: [string, 'null'], description: 'Ort als freier Text, vor allem für Rundkurse'}
+        length_m: {type: number, exclusiveMinimum: 0}
+        elevation_gain_m: {type: [number, 'null'], minimum: 0, description: 'Abgeleitet aus der Referenz (Hysterese)'}
+        elevation_loss_m: {type: [number, 'null'], minimum: 0, description: 'Abgeleitet aus der Referenz (Hysterese)'}
+        average_grade_pct: {type: [number, 'null'], description: 'Ø-Steigung in Prozent aus Start- und Zielhöhe der Referenz, eine Nachkommastelle'}
+        start: {$ref: '#/components/schemas/GeoPoint'}
+        end: {$ref: '#/components/schemas/GeoPoint'}
+        history: {$ref: '#/components/schemas/HistoryState'}
+        summary: {$ref: '#/components/schemas/SegmentSummary'}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        updated_at: {$ref: '#/components/schemas/Timestamp'}
+    SegmentResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/Segment'}
+        meta:
+          type: object
+          properties:
+            calculation: {$ref: '#/components/schemas/Calculation'}
+      examples:
+        - data:
+            id: 0198c1f2-aaaa-7c1e-9d44-2f6a1b8e5a11
+            name: Puerta de la Cabra
+            description: null
+            sport_class: cycling
+            kind: segment
+            category: climb
+            category_auto: climb
+            location: null
+            length_m: 8420.5
+            elevation_gain_m: 512
+            elevation_loss_m: 14
+            average_grade_pct: 5.9
+            start: {lat: 36.7501, lon: -3.5802}
+            end: {lat: 36.7912, lon: -3.5461}
+            history: {status: running, processed_items: 40, total_items: 212}
+            summary:
+              attempt_count: 1
+              valid_attempt_count: 1
+              best: null
+              second: null
+              third: null
+              average_duration_ms: 878650
+              first_attempt_time: '2026-10-22T09:03:11.480Z'
+              last_attempt_time: '2026-10-22T09:03:11.480Z'
+            created_at: '2026-10-22T19:10:00.000Z'
+            updated_at: '2026-10-22T19:10:00.000Z'
+          meta:
+            calculation: {status: running, version_id: null, published_at: null}
+    SegmentListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Segment'}}
+        meta: {$ref: '#/components/schemas/SegmentListMeta'}
+    SegmentListMeta:
+      allOf:
+        - $ref: '#/components/schemas/ListMeta'
+        - type: object
+          required: [summary]
+          properties:
+            summary: {$ref: '#/components/schemas/SegmentListSummary'}
+    SegmentListSummary:
+      type: object
+      description: Kennzahlen über alle gefilterten Segmente, nicht nur die gelieferte Seite (RFC-0006 „Segmentliste“).
+      required: [count, attempt_count, length_m, improvement_count]
+      properties:
+        count: {type: integer, minimum: 0}
+        attempt_count: {type: integer, minimum: 0, description: 'Versuche im veröffentlichten Stand, auch nicht gewertete'}
+        length_m: {type: number, minimum: 0, description: 'Summe der Segmentlängen'}
+        improvement_count: {type: integer, minimum: 0, description: 'Versuche mit Bestzeitenart improvement (RFC-0009)'}
+    SegmentCreate:
+      type: object
+      required: [activity_id, section_index, start_index, end_index, name, sport_class]
+      additionalProperties: false
+      properties:
+        activity_id: {$ref: '#/components/schemas/Uuid'}
+        section_index: {type: integer, minimum: 0}
+        start_index: {type: integer, minimum: 0}
+        end_index: {type: integer, minimum: 1}
+        name: {type: string, minLength: 1}
+        description: {type: [string, 'null']}
+        sport_class: {$ref: '#/components/schemas/RankedSportClass'}
+        kind: {allOf: [{$ref: '#/components/schemas/SegmentKind'}], default: segment, description: 'Strecke: Start und Ziel nahe am Rand des Abschnitts (RFC-0016)'}
+        location: {type: [string, 'null']}
+        category: {oneOf: [{$ref: '#/components/schemas/SegmentCategory'}, {type: 'null'}], description: 'Von Hand; muss zur Art passen, ohne Angabe automatisch'}
+      examples:
+        - {activity_id: 0198c1f2-6b3a-7c1e-9d44-2f6a1b8e5a10, section_index: 0, start_index: 4310, end_index: 9800, name: Puerta de la Cabra, sport_class: cycling}
+    SimilarRoutesQuery:
+      type: object
+      required: [activity_id, section_index, start_index, end_index, sport_class]
+      additionalProperties: false
+      properties:
+        activity_id: {$ref: '#/components/schemas/Uuid'}
+        section_index: {type: integer, minimum: 0}
+        start_index: {type: integer, minimum: 0}
+        end_index: {type: integer, minimum: 1}
+        sport_class: {$ref: '#/components/schemas/RankedSportClass'}
+    SimilarRoutesResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [id, name, length_m, overlap]
+            properties:
+              id: {$ref: '#/components/schemas/Uuid'}
+              name: {type: string}
+              length_m: {type: number}
+              overlap: {type: number, minimum: 0, maximum: 1}
+        meta: {type: object}
+    SegmentUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name: {type: string, minLength: 1}
+        description: {type: [string, 'null']}
+        kind: {$ref: '#/components/schemas/SegmentKind', description: 'Artwechsel bestimmt die Kategorie neu und verwirft eine Wahl von Hand'}
+        location: {type: [string, 'null']}
+        category: {oneOf: [{$ref: '#/components/schemas/SegmentCategory'}, {type: 'null'}], description: 'null: zurück zur automatischen Kategorie'}
+    SegmentCategory:
+      type: string
+      enum: [climb, descent, rolling, loop, out_and_back, point_to_point]
+      description: 'Segment: climb (Ø ≥ +2 %), descent (Ø ≤ −2 %), rolling; Strecke: loop (Start und Ziel ≤ 200 m), out_and_back (dazu Rückweg zu 70 % auf dem Hinweg), point_to_point („Strecke“)'
+    SegmentKind: {type: string, enum: [segment, route], description: 'route = Strecke über eine ganze Tour (RFC-0016), nur Anzeige und Filter'}
+    PeriodSummary:
+      type: object
+      description: Summen enthalten nur vorhandene Werte. Die Zähler nennen, wie viele Aktivitäten ohne Distanz bzw. Aufstieg eingegangen sind.
+      required: [period, sport_class, count, distance_m, total_time_ms, elevation_gain_m, activities_without_distance, activities_without_elevation]
+      properties:
+        period: {type: string, description: 'ISO-Woche `2026-W44`, Monat `2026-10`, Jahr `2026` oder `all`'}
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio, unknown, all]}
+        count: {type: integer, minimum: 0}
+        distance_m: {type: number, minimum: 0}
+        total_time_ms: {type: integer, minimum: 0}
+        elevation_gain_m: {type: number, minimum: 0}
+        activities_without_distance: {type: integer, minimum: 0}
+        activities_without_elevation: {type: integer, minimum: 0}
+    DayBucket:
+      type: object
+      description: Ein Eintrag je Kalendertag und Sportklasse mit mindestens einer Aktivität (gestapelte Balken, RFC-0018). Tage ohne Aktivität fehlen.
+      required: [date, sport_class, count, distance_m, total_time_ms]
+      properties:
+        date: {type: string, format: date, description: 'Lokaler Kalendertag'}
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        count: {type: integer, minimum: 0}
+        distance_m: {type: number, minimum: 0}
+        total_time_ms: {type: integer, minimum: 0}
+    PeriodBlock:
+      type: object
+      required: [period, from, to, summaries, by_day]
+      properties:
+        period: {type: string}
+        from: {type: string, format: date}
+        to: {type: string, format: date}
+        summaries: {type: array, items: {$ref: '#/components/schemas/PeriodSummary'}}
+        by_day: {type: array, items: {$ref: '#/components/schemas/DayBucket'}}
+    DashboardStatsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [week, month]
+          properties:
+            week: {$ref: '#/components/schemas/PeriodBlock'}
+            month: {$ref: '#/components/schemas/PeriodBlock'}
+            season:
+              description: 'Laufende, sonst zuletzt beendete Saison; `period` ist ihr Name. `null` ohne solche Saison.'
+              oneOf:
+                - allOf:
+                    - {$ref: '#/components/schemas/PeriodBlock'}
+                    - type: object
+                      required: [season]
+                      properties:
+                        season: {$ref: '#/components/schemas/Season'}
+                - {type: 'null'}
+    AvatarColor:
+      type: string
+      enum: [blue, teal, green, amber, orange, red, pink, violet]
+      description: Farbe des Benutzersymbols; ein eigenes Bild folgt später
+    Profile:
+      type: object
+      required: [id, nickname, first_name, last_name, birthday, avatar_color, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        nickname: {type: string, minLength: 1, maxLength: 40, description: 'Spitzname, überall angezeigt; im Symbol ganz bis 3 Zeichen, sonst das erste Zeichen'}
+        first_name: {type: [string, 'null'], maxLength: 60}
+        last_name: {type: [string, 'null'], maxLength: 60}
+        birthday: {type: [string, 'null'], format: date, description: 'Freiwillig; Zweck: Alter für spätere HF-Zonen und Auswertungen (B13)'}
+        avatar_color: {oneOf: [{$ref: '#/components/schemas/AvatarColor'}, {type: 'null'}]}
+        updated_at: {$ref: '#/components/schemas/Timestamp'}
+    ProfileResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/Profile'}
+    ProfileUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        nickname: {type: string, minLength: 1, maxLength: 40, description: 'Leerraum am Rand wird entfernt; leer oder null wird abgewiesen'}
+        first_name: {type: [string, 'null'], maxLength: 60}
+        last_name: {type: [string, 'null'], maxLength: 60}
+        birthday: {type: [string, 'null'], format: date, description: 'Zwischen 1900-01-01 und heute'}
+        avatar_color: {oneOf: [{$ref: '#/components/schemas/AvatarColor'}, {type: 'null'}]}
+    Season:
+      type: object
+      required: [id, name, start_date, end_date, state, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string, minLength: 1, maxLength: 80}
+        start_date: {type: string, format: date, description: 'Erster lokaler Kalendertag'}
+        end_date: {type: string, format: date, description: 'Letzter lokaler Kalendertag, einschließlich'}
+        state: {type: string, enum: [current, ended, upcoming], description: 'Lage zum heutigen lokalen Tag'}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        updated_at: {$ref: '#/components/schemas/Timestamp'}
+    SeasonCreate:
+      type: object
+      additionalProperties: false
+      required: [name, start_date, end_date]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 80, description: 'Leerraum am Rand wird entfernt; eindeutig ohne Rücksicht auf Groß- und Kleinschreibung'}
+        start_date: {type: string, format: date}
+        end_date: {type: string, format: date}
+    GarminActivityStatus:
+      type: string
+      enum: [imported, linked, locked, rejected, failed]
+      description: |
+        imported: neu angelegt; linked: gleiche Datei oder Duplikatkandidat vorhanden, nur verknüpft; locked: Session
+        gesperrt (Fahrzeug, Punktgrenze, ohne Startzeit); rejected: Datei unlesbar oder bei Garmin gelöscht;
+        failed: Abruf gescheitert, der nächste Lauf versucht es erneut (höchstens 5 Versuche).
+    GarminProgress:
+      type: object
+      required: [phase, total, processed, imported, linked, locked, rejected, failed]
+      properties:
+        phase: {type: string, enum: ['', token, list, download, import, idle], description: 'Leer vor dem ersten Lauf seit dem Start'}
+        total: {type: integer, minimum: 0, description: 'Zu bearbeitende Aktivitäten des Laufs; 0, solange die Liste gelesen wird'}
+        processed: {type: integer, minimum: 0}
+        imported: {type: integer, minimum: 0}
+        linked: {type: integer, minimum: 0}
+        locked: {type: integer, minimum: 0}
+        rejected: {type: integer, minimum: 0}
+        failed: {type: integer, minimum: 0}
+    GarminStatus:
+      type: object
+      required: [configured, key_set_at, enabled, start_date, interval_minutes, backfill_done, running, progress,
+                 last_run_started_at, last_run_finished_at, last_success_at, last_error, counts]
+      properties:
+        configured: {type: boolean, description: 'Schlüssel gesetzt'}
+        key_set_at: {type: [string, 'null'], format: date-time}
+        enabled: {type: boolean, description: 'Regelmäßiger Abruf eingeschaltet'}
+        start_date: {type: [string, 'null'], format: date, description: 'Frühester Starttag (Konfigurationszone), null = gesamte Historie'}
+        interval_minutes: {type: integer, minimum: 5, maximum: 1440}
+        backfill_done: {type: boolean, description: 'Gesamtimport bis Listenende bzw. Anfangsdatum durchgelaufen'}
+        running: {type: boolean}
+        progress: {$ref: '#/components/schemas/GarminProgress'}
+        last_run_started_at: {type: [string, 'null'], format: date-time}
+        last_run_finished_at: {type: [string, 'null'], format: date-time}
+        last_success_at: {type: [string, 'null'], format: date-time}
+        last_error:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [code, message]
+              properties:
+                code: {type: string, description: 'garmin_key_invalid, garmin_rate_limited, garmin_unreachable, garmin_http_error, garmin_bad_response, internal_error'}
+                message: {type: string, description: 'Deutsche Meldung für die Anzeige'}
+        counts:
+          type: object
+          required: [imported, linked, locked, rejected, failed]
+          properties:
+            imported: {type: integer}
+            linked: {type: integer}
+            locked: {type: integer}
+            rejected: {type: integer}
+            failed: {type: integer}
+    GarminStatusResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/GarminStatus'}
+    GarminSettingsUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        api_key: {type: [string, 'null'], minLength: 8, maxLength: 4096, writeOnly: true, description: 'Persönlicher API-Schlüssel aus Garmin Connect; null entfernt ihn'}
+        enabled: {type: boolean}
+        start_date: {type: [string, 'null'], format: date}
+        interval_minutes: {type: integer, minimum: 5, maximum: 1440}
+    GarminActivity:
+      type: object
+      required: [garmin_id, start_time, type_key, status, activity_id, activity_title, reason_code, reason, attempts, updated_at]
+      properties:
+        garmin_id: {type: string, description: 'Aktivitäts-ID in Garmin Connect'}
+        start_time: {type: string, format: date-time}
+        type_key: {type: [string, 'null'], description: 'Garmin-Typ; ersetzt beim Import den source_sport der Datei'}
+        status: {$ref: '#/components/schemas/GarminActivityStatus'}
+        activity_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}], description: 'null, wenn nichts übernommen wurde oder die Aktivität gelöscht ist'}
+        activity_title: {type: [string, 'null']}
+        reason_code: {type: [string, 'null']}
+        reason: {type: [string, 'null']}
+        attempts: {type: integer, minimum: 1}
+        updated_at: {type: string, format: date-time}
+    GarminActivityListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/GarminActivity'}}
+        meta: {$ref: '#/components/schemas/ListMeta'}
+    SportMapping:
+      type: object
+      required: [source_sport, mapped, sport_class, sub_sport, effective_sport_class, effective_sub_sport, activity_count]
+      properties:
+        source_sport: {type: string}
+        mapped: {type: boolean, description: 'Eigener Eintrag vorhanden'}
+        sport_class: {oneOf: [{$ref: '#/components/schemas/SportClass'}, {type: 'null'}]}
+        sub_sport: {type: [string, 'null']}
+        effective_sport_class: {$ref: '#/components/schemas/SportClass'}
+        effective_sub_sport: {type: [string, 'null']}
+        activity_count: {type: integer, minimum: 0}
+    SportMappingInput:
+      type: object
+      additionalProperties: false
+      required: [sport_class]
+      properties:
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        sub_sport: {type: [string, 'null'], description: 'Schlüssel im Katalog der Sportklasse'}
+    SportMappingResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/SportMapping'}
+    SportMappingListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/SportMapping'}}
+        meta: {type: object, required: [total], properties: {total: {type: integer}}}
+    SubSportCatalogEntry:
+      type: object
+      required: [key, name, icon, builtin]
+      properties:
+        key: {type: string, pattern: '^[a-z0-9_]+$', description: 'Fester Schlüssel; die Oberfläche übersetzt eingebaute (road, mtb …)'}
+        name: {type: [string, 'null'], description: 'Eigener Name; null = Übersetzung des Schlüssels'}
+        icon: {type: [string, 'null'], enum: [bike, road_bike, mtb, indoor_bike, ebike, run, street_run, trail_run, walk, ski, nordic, skating, swim, pool, studio, strength, unknown, tag, star, mountain, flag, null], description: 'Symbol aus dem festen Satz; null = Vorgabe der Oberfläche nach Klasse und Schlüssel'}
+        builtin: {type: boolean}
+    SubSport:
+      type: object
+      required: [sport_class, key, name, icon, builtin, activity_count, mapping_count]
+      properties:
+        sport_class: {$ref: '#/components/schemas/SportClass'}
+        key: {type: string, pattern: '^[a-z0-9_]+$'}
+        name: {type: [string, 'null'], maxLength: 40}
+        icon: {type: [string, 'null'], enum: [bike, road_bike, mtb, indoor_bike, ebike, run, street_run, trail_run, walk, ski, nordic, skating, swim, pool, studio, strength, unknown, tag, star, mountain, flag, null], description: 'Symbol aus dem festen Satz; null = Vorgabe der Oberfläche nach Klasse und Schlüssel'}
+        builtin: {type: boolean}
+        activity_count: {type: integer, minimum: 0, description: 'Aktivitäten derselben Sportklasse mit diesem Untertyp'}
+        mapping_count: {type: integer, minimum: 0}
+    SubSportCreate:
+      type: object
+      additionalProperties: false
+      required: [sport_class, name]
+      properties:
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
+        name: {type: string, minLength: 1, maxLength: 40, description: 'Ohne Leerzeichen am Rand; ohne Groß-/Kleinschreibung eindeutig je Klasse'}
+        icon: {type: [string, 'null'], enum: [bike, road_bike, mtb, indoor_bike, ebike, run, street_run, trail_run, walk, ski, nordic, skating, swim, pool, studio, strength, unknown, tag, star, mountain, flag, null], description: 'Symbol aus dem festen Satz; null = Vorgabe der Oberfläche nach Klasse und Schlüssel'}
+    SubSportRename:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: {type: [string, 'null'], minLength: 1, maxLength: 40}
+        icon: {type: [string, 'null'], enum: [bike, road_bike, mtb, indoor_bike, ebike, run, street_run, trail_run, walk, ski, nordic, skating, swim, pool, studio, strength, unknown, tag, star, mountain, flag, null], description: 'Symbol aus dem festen Satz; null = Vorgabe der Oberfläche nach Klasse und Schlüssel'}
+    SubSportResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/SubSport'}
+    SubSportListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/SubSport'}}
+        meta: {type: object, required: [total], properties: {total: {type: integer}}}
+    SeasonUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: {type: string, minLength: 1, maxLength: 80}
+        start_date: {type: string, format: date}
+        end_date: {type: string, format: date}
+    SeasonResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/Season'}
+    SeasonListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Season'}}
+        meta:
+          type: object
+          required: [total, default_season_id, today]
+          properties:
+            total: {type: integer, minimum: 0}
+            default_season_id: {oneOf: [{type: string, format: uuid}, {type: 'null'}]}
+            today: {type: string, format: date, description: 'Heutiger lokaler Tag in der Zeitzone der TOML'}
+    StatisticsSummary:
+      type: object
+      required: [sport_class, count, distance_m, total_time_ms, elevation_gain_m, activities_without_distance, activities_without_elevation, segment_success_count]
+      properties:
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio, all]}
+        count: {type: integer, minimum: 0}
+        distance_m: {type: number, minimum: 0}
+        total_time_ms: {type: integer, minimum: 0}
+        elevation_gain_m: {type: number, minimum: 0}
+        activities_without_distance: {type: integer, minimum: 0}
+        activities_without_elevation: {type: integer, minimum: 0}
+        segment_success_count: {type: integer, minimum: 0, description: 'Erste Bestzeiten und PR-Verbesserungen der Aktivitäten (RFC-0009)'}
+    StatisticsResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [from, to, first_day, last_day, summaries, by_month, by_week, records]
+          properties:
+            from: {type: [string, 'null'], format: date}
+            to: {type: [string, 'null'], format: date}
+            first_day: {type: [string, 'null'], format: date, description: 'Erster lokaler Tag mit Aktivität in der Auswahl'}
+            last_day: {type: [string, 'null'], format: date}
+            summaries: {type: array, items: {$ref: '#/components/schemas/StatisticsSummary'}}
+            by_month:
+              type: array
+              description: Ein Eintrag je Monat und Sportklasse mit Aktivität
+              items:
+                type: object
+                required: [month, sport_class, count, distance_m, total_time_ms, elevation_gain_m]
+                properties:
+                  month: {type: string, pattern: '^[0-9]{4}-[0-9]{2}$'}
+                  sport_class: {$ref: '#/components/schemas/SportClass'}
+                  count: {type: integer, minimum: 1}
+                  distance_m: {type: number}
+                  total_time_ms: {type: integer}
+                  elevation_gain_m: {type: number}
+            by_week:
+              type: array
+              description: Ein Eintrag je ISO-Woche und Sportklasse mit Aktivität
+              items:
+                type: object
+                required: [week, week_start, sport_class, count, distance_m, total_time_ms]
+                properties:
+                  week: {type: string, pattern: '^[0-9]{4}-W[0-9]{2}$'}
+                  week_start: {type: string, format: date, description: 'Montag der Woche'}
+                  sport_class: {$ref: '#/components/schemas/SportClass'}
+                  count: {type: integer, minimum: 1}
+                  distance_m: {type: number}
+                  total_time_ms: {type: integer}
+            records: {type: array, items: {$ref: '#/components/schemas/RecordItem'}, description: 'Eine Kategorie fehlt, wenn keine Aktivität der Sportklasse in der Auswahl einen Wert hat'}
+        meta:
+          type: object
+          required: [calculation]
+          properties:
+            calculation: {$ref: '#/components/schemas/Calculation'}
+    RecordItem:
+      type: object
+      required: [sport_class, kind, value, equaled_count, activity]
+      properties:
+        sport_class: {$ref: '#/components/schemas/RankedSportClass'}
+        kind: {type: string, enum: [distance, elevation, time, speed]}
+        value: {type: number, description: 'Ungerundet in m, m, ms bzw. km/h. Verglichen wird gerundet wie angezeigt (10 m, 1 m, 1 s, 0,1 km/h, beim Laufen Pace 1 s/km)'}
+        equaled_count: {type: integer, minimum: 0, description: 'Spätere Aktivitäten mit gleichem gerundeten Wert (Einstellung)'}
+        activity:
+          type: object
+          required: [id, title, start_time, sub_sport]
+          properties:
+            id: {$ref: '#/components/schemas/Uuid'}
+            title: {type: string}
+            start_time: {$ref: '#/components/schemas/Timestamp'}
+            sub_sport: {type: [string, 'null']}
+    PeriodShortSummary:
+      type: object
+      required: [count, distance_m, total_time_ms]
+      properties:
+        count: {type: integer, minimum: 0}
+        distance_m: {type: number, minimum: 0}
+        total_time_ms: {type: integer, minimum: 0}
+    StatisticsPeriodsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [seasons, years]
+          properties:
+            seasons:
+              type: array
+              items:
+                allOf:
+                  - {$ref: '#/components/schemas/PeriodShortSummary'}
+                  - {type: object, required: [season_id], properties: {season_id: {$ref: '#/components/schemas/Uuid'}}}
+            years:
+              type: array
+              items:
+                allOf:
+                  - {$ref: '#/components/schemas/PeriodShortSummary'}
+                  - {type: object, required: [year], properties: {year: {type: integer}}}
+    TargetState: {type: string, enum: [available, unavailable, not_writable]}
+    BackupOutcome: {type: string, enum: [created, skipped_no_changes, skipped_target_unavailable, failed]}
+    BackupStatus:
+      type: object
+      required: [last_attempt, last_success, pending_changes, running_operation_id, target]
+      properties:
+        last_attempt:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [time, outcome, reason]
+              properties:
+                time: {$ref: '#/components/schemas/Timestamp'}
+                outcome: {$ref: '#/components/schemas/BackupOutcome'}
+                reason: {type: [string, 'null']}
+        last_success:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [time, revision_id]
+              properties:
+                time: {$ref: '#/components/schemas/Timestamp'}
+                revision_id: {type: string}
+        pending_changes: {type: boolean, description: 'Sicherungsrelevante Änderungen seit der letzten erfolgreichen Sicherung'}
+        running_operation_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}
+        target:
+          type: object
+          required: [state, free_bytes]
+          properties:
+            state: {$ref: '#/components/schemas/TargetState'}
+            free_bytes: {type: [integer, 'null'], minimum: 0}
+    BackupStatusResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/BackupStatus'}
+    BackupEntry:
+      type: object
+      required: [id, kind, created_at, revision_id, format_version, size_bytes, check_status, activity_count, segment_count]
+      properties:
+        id: {type: string, description: 'Undurchsichtige Referenz auf den Stand im Sicherungsziel (kein Dateipfad)'}
+        kind: {type: string, enum: [regular, pre_migration]}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        revision_id: {type: string}
+        format_version: {type: integer, minimum: 1}
+        size_bytes: {type: integer, minimum: 0}
+        check_status: {type: string, enum: [ok, failed, unchecked]}
+        activity_count: {type: integer, minimum: 0}
+        segment_count: {type: integer, minimum: 0}
+    BackupListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/BackupEntry'}}
+        meta:
+          type: object
+          required: [target]
+          properties:
+            target:
+              type: object
+              required: [state]
+              properties:
+                state: {$ref: '#/components/schemas/TargetState'}
+    Operation:
+      type: object
+      required: [id, kind, status, phase, outcome, error, started_at, finished_at]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        kind: {type: string, enum: [backup, restore]}
+        status: {type: string, enum: [queued, running, done, failed, rolled_back]}
+        phase: {type: [string, 'null'], description: 'Aktuelle Phase, zum Beispiel `checking`, `staging`, `copying`, `switching`, `verifying`'}
+        outcome: {type: [string, 'null'], enum: [created, skipped_no_changes, skipped_target_unavailable, restored, failed, null]}
+        error:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [code, message]
+              properties:
+                code: {type: string}
+                message: {type: string}
+        started_at: {$ref: '#/components/schemas/Timestamp'}
+        finished_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+    OperationResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/Operation'}
+    RestorePreviewRequest:
+      type: object
+      required: [backup_id]
+      additionalProperties: false
+      properties:
+        backup_id: {type: string}
+    RestorePreviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [preview_token, backup, current, comparison, requires_acknowledgement, warnings]
+          properties:
+            preview_token: {type: string}
+            backup: {$ref: '#/components/schemas/BackupEntry'}
+            current:
+              type: object
+              required: [revision_id, activity_count, segment_count, is_empty]
+              properties:
+                revision_id: {type: [string, 'null']}
+                activity_count: {type: integer, minimum: 0}
+                segment_count: {type: integer, minimum: 0}
+                is_empty: {type: boolean}
+            comparison: {type: string, enum: [older, same, newer, not_comparable], description: 'Stand der Sicherung gegenüber dem aktuellen Stand, nur bekannte Vorgängerbeziehungen zählen'}
+            requires_acknowledgement: {type: boolean, description: 'Bei `older` und `not_comparable` ist eine ausdrückliche Zustimmung nötig'}
+            warnings: {type: array, items: {$ref: '#/components/schemas/Notice'}}
+    RestoreRequest:
+      type: object
+      required: [preview_token]
+      additionalProperties: false
+      properties:
+        preview_token: {type: string}
+        acknowledge_warnings: {type: boolean, default: false}
+    JobKind: {type: string, enum: [segment_history, activity_evaluation, recalculation]}
+    JobStatus: {type: string, enum: [queued, running, done, failed]}
+    Job:
+      type: object
+      required: [id, kind, status, segment_id, activity_id, processed_items, total_items, error_message, created_at, started_at, finished_at]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        kind: {$ref: '#/components/schemas/JobKind'}
+        status: {$ref: '#/components/schemas/JobStatus'}
+        segment_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}
+        activity_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}
+        processed_items: {type: integer, minimum: 0}
+        total_items: {type: integer, minimum: 0}
+        error_message: {type: [string, 'null']}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        started_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+        finished_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+    JobResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/Job'}
+    JobListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Job'}}
+        meta: {$ref: '#/components/schemas/ListMeta'}
+    HealthResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [status, checks]
+          properties:
+            status: {type: string, enum: [ok, degraded, fail], description: '`fail` wird mit 503 geliefert'}
+            checks:
+              type: array
+              items:
+                type: object
+                required: [name, status, message]
+                properties:
+                  name: {type: string, enum: [backend, database, filesystem, storage]}
+                  status: {type: string, enum: [ok, warn, fail]}
+                  message: {type: [string, 'null']}
+    ReadyResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [ready]
+          properties:
+            ready: {type: boolean, const: true}
+    VersionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [app_version, api_version, schema_version, algorithm_version]
+          properties:
+            app_version: {type: string}
+            api_version: {type: string, const: v1}
+            schema_version: {type: integer, minimum: 1}
+            algorithm_version: {type: integer, minimum: 1, description: 'Version des Matching- und Statistikalgorithmus'}
+    SystemResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [uptime_s, started_at, platform, tzdata_version, tls_certificate_expires_at, counts, storage, calculation, jobs, warnings]
+          properties:
+            uptime_s: {type: integer, minimum: 0}
+            started_at: {$ref: '#/components/schemas/Timestamp'}
+            platform: {type: string, enum: [windows_service, windows_console, container], description: 'Betriebsart nach RFC-0005'}
+            tzdata_version: {type: string, description: 'Version der im Programm enthaltenen IANA-Zeitzonendaten, z. B. `2026a`'}
+            tls_certificate_expires_at:
+              description: 'Ablauf des Zertifikats aus `[tls]`; null, wenn das Backend kein TLS terminiert (Docker)'
+              oneOf:
+                - {$ref: '#/components/schemas/Timestamp'}
+                - {type: 'null'}
+            counts:
+              type: object
+              required: [activities, segments, efforts]
+              properties:
+                activities: {type: integer, minimum: 0}
+                segments: {type: integer, minimum: 0}
+                efforts: {type: integer, minimum: 0}
+            storage:
+              type: object
+              required: [data_free_bytes, backup_target_free_bytes]
+              properties:
+                data_free_bytes: {type: integer, minimum: 0}
+                backup_target_free_bytes: {type: [integer, 'null'], minimum: 0}
+            calculation: {$ref: '#/components/schemas/Calculation'}
+            jobs:
+              type: object
+              required: [queued, running, failed]
+              properties:
+                queued: {type: integer, minimum: 0}
+                running: {type: integer, minimum: 0}
+                failed: {type: integer, minimum: 0}
+            warnings:
+              type: array
+              items:
+                type: object
+                required: [code, message, since]
+                properties:
+                  code: {type: string, description: 'Zum Beispiel `low_disk_space`, `backup_pending`, `backup_failed`, `job_failed`, `calculation_stale`, `certificate_expiring` (30 Tage vor Ablauf, RFC-0013)'}
+                  message: {type: string}
+                  since: {$ref: '#/components/schemas/Timestamp'}
+    ConfigResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [timezone, user, map, import_limits, segments, sub_sport_catalog]
+          properties:
+            timezone: {type: string, description: 'IANA-Zeitzone für Anzeige, Kalender und lokale Eingaben'}
+            user:
+              type: object
+              required: [display_name]
+              properties:
+                display_name: {type: string, description: 'Spitzname aus der Datenbank'}
+            map:
+              type: object
+              required: [tile_url, attribution, track_max_points]
+              properties:
+                tile_url: {type: string}
+                attribution: {type: string}
+                track_max_points: {type: integer, minimum: 2, maximum: 100000, description: 'max_points, mit dem die Detailseite Karte und Diagramm lädt (C2)'}
+            import_limits:
+              type: object
+              required: [max_file_size_mb, max_points_per_session]
+              properties:
+                max_file_size_mb: {type: integer, minimum: 1}
+                max_points_per_session: {type: integer, minimum: 1}
+            segments:
+              type: object
+              required: [minimum_length_m, route_edge_m]
+              properties:
+                minimum_length_m: {type: number, exclusiveMinimum: 0}
+                route_edge_m: {type: number, exclusiveMinimum: 0, description: 'Strecke: größter Abstand von Start und Ziel zum Rand des Abschnitts'}
+            sub_sport_catalog:
+              type: object
+              description: Untertypen je Sportklasse für Auswahl, Filter und Anzeige, aus der Datenbank
+              additionalProperties:
+                type: array
+                items: {$ref: '#/components/schemas/SubSportCatalogEntry'}

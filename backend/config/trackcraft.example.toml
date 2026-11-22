@@ -1,0 +1,108 @@
+# TrackCraft-Konfiguration für Windows (Referenzgerät). Schlüssel und Prüfungen: RFC-0021.
+# Windows-Pfade in einfachen Anführungszeichen, damit \ kein Escape ist.
+
+[app]
+timezone = "Europe/Berlin"
+
+[user]
+display_name = "Beispielname"
+
+[server]
+allowed_origins = ["https://trackcraft.home.arpa"]   # Adressen, unter denen TrackCraft im Browser aufgerufen wird
+listen          = "0.0.0.0:443"
+static_dir      = 'C:\Program Files\TrackCraft\web'
+
+[tls]
+cert_file = 'C:\ProgramData\TrackCraft\config\tls\server.pem'       # von setup/cert verwaltet (eigene CA)
+key_file  = 'C:\ProgramData\TrackCraft\config\tls\server-key.pem'
+
+[paths]
+database_dir   = 'C:\ProgramData\TrackCraft\data\database'
+activities_dir = 'C:\ProgramData\TrackCraft\data\activities'
+logs_dir       = 'C:\ProgramData\TrackCraft\data\logs'
+
+[backup]
+target_dir    = 'E:\TrackCraft-Sicherung'                     # USB-Laufwerk; Netzwerkfreigabe als UNC-Pfad, z. B. '\\ds214\backup\trackcraft'
+migration_dir = 'C:\ProgramData\TrackCraft\data\backups'   # nur lokale Migrationssicherung, nur die letzte
+daily_time    = "03:00"
+
+[logging]
+level = "info"
+
+[monitoring]
+low_disk_free_gb = 1.0
+
+[maps]
+tile_url    = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+attribution = "© OpenStreetMap-Mitwirkende"
+track_max_points = 2000   # Messpunkte für Karte und Diagramm der Detailseite
+
+[import]
+max_file_size_mb       = 50
+max_points_per_session = 100000
+upload_timeout_minutes = 60
+
+[import.duplicates]
+start_tolerance_s        = 60
+duration_tolerance_ratio = 0.05
+distance_tolerance_ratio = 0.05
+
+# Die Sportart-Zuordnung (source_sport -> Sportklasse, Untertyp) steht seit Schemaversion 7 in der Datenbank
+# und wird in der Oberfläche unter Einstellungen -> Sportarten gepflegt.
+
+[processing.elevation]
+hysteresis_m = 3.0
+
+[processing.outlier_filter]
+enabled               = true
+default_max_speed_kmh = 100.0
+
+[processing.outlier_filter.max_speed_kmh]
+running       = 35.0
+running-trail = 30.0
+cycling       = 110.0
+e_biking      = 100.0
+hiking        = 25.0
+swimming      = 12.0
+alpine_skiing = 130.0
+
+[processing.vehicle_detection]
+enabled        = true
+min_duration_s = 30
+window_s       = 300
+max_pause_s    = 60
+
+[processing.vehicle_detection.peak_speed_kmh]
+running  = 35.0
+cycling  = 90.0
+e_biking = 90.0
+
+[processing.vehicle_detection.avg_speed_kmh]
+running  = 20.0
+cycling  = 70.0
+e_biking = 70.0
+
+[segments]
+minimum_length_m = 20.0
+
+[segments.matching]
+matching_radius_meters  = 20.0
+max_vector_angle_deg    = 45.0
+max_offset_m            = 15.0
+tolerance_m             = 20.0
+min_coverage_ratio      = 0.95
+direction_reference_m   = 5.0
+max_backstep_m          = 5.0
+max_inner_gap_m         = 30.0
+max_inner_gap_ratio     = 0.02
+max_interpolation_gap_s = 15
+coverage_connection_s   = 15
+
+# Strecken: großzügigere Werte, alle übrigen wie [segments.matching] (RFC-0002 Abschnitt 4.8)
+[segments.route_matching]
+matching_radius_meters = 35.0
+tolerance_m            = 35.0
+max_inner_gap_m        = 200.0
+recording_edge_m       = 100.0
+max_vector_angle_deg   = 90.0
+direction_reference_m  = 50.0

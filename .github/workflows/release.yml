@@ -1,0 +1,150 @@
+# Release aus einem Tag vX.Y.Z (Beta: vX.Y.Z-beta.N), RFC-0015. Nur dieser Workflow erzeugt Releases.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - id: v
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then echo "Tag $tag passt nicht zu vX.Y.Z[-beta.N]"; exit 1; fi
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          if [[ "$tag" == *-beta.* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+
+  windows:
+    needs: [checks, meta]
+    runs-on: windows-latest
+    env:
+      TRACKCRAFT_VERSION: ${{ needs.meta.outputs.version }}
+      TRACKCRAFT_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - name: Frontend bauen
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Backend bauen
+        working-directory: backend
+        run: cargo build --release --locked
+      - name: Lizenzen der Abhängigkeiten
+        shell: pwsh
+        run: |
+          cargo about generate --manifest-path backend/Cargo.toml -c infrastructure/licenses/about.toml infrastructure/licenses/about.hbs -o rust-licenses.txt
+          Push-Location frontend
+          npx --yes license-checker-rseidelsohn@4 --production --plainVertical --out ../npm-licenses.txt
+          Pop-Location
+          Get-Content rust-licenses.txt, npm-licenses.txt | Set-Content -Encoding utf8 THIRD-PARTY-LICENSES.txt
+      - name: ZIP packen
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -Version $env:TRACKCRAFT_VERSION -OutDir dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: dist/trackcraft-*-windows-x86_64.zip
+
+  linux:
+    needs: [checks, meta]
+    uses: ./.github/workflows/linux-package.yml
+    with:
+      version: ${{ needs.meta.outputs.version }}
+
+  images:
+    needs: [checks, meta]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tags
+        run: |
+          v="${{ needs.meta.outputs.version }}"
+          for img in backend frontend; do
+            t="ghcr.io/ulilaun/trackcraft-$img:$v"
+            if [ "${{ needs.meta.outputs.prerelease }}" = "false" ]; then t="$t,ghcr.io/ulilaun/trackcraft-$img:stable"; fi
+            echo "$img=$t" >> "$GITHUB_OUTPUT"
+          done
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/backend.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.tags.outputs.backend }}
+          build-args: |
+            TRACKCRAFT_VERSION=${{ needs.meta.outputs.version }}
+            TRACKCRAFT_COMMIT=${{ github.sha }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/frontend.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.tags.outputs.frontend }}
+      - name: Docker-Paket
+        run: |
+          v="${{ needs.meta.outputs.version }}"
+          d="trackcraft-$v-docker"
+          mkdir -p "dist/$d/config"
+          sed "s/\${TRACKCRAFT_VERSION}/$v/g" infrastructure/docker/compose.yaml > "dist/$d/compose.yaml"
+          cp infrastructure/docker/nginx.conf infrastructure/docker/BETRIEB.md LICENSE "dist/$d/"
+          cp backend/config/trackcraft.container.example.toml "dist/$d/config/"
+          (cd dist && zip -qr "$d.zip" "$d")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docker-zip
+          path: dist/trackcraft-*-docker.zip
+
+  publish:
+    needs: [meta, windows, linux, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Nur die Pakete (Artefaktnamen *-zip, Linux als .tar.gz); docker/build-push-action legt eigene Artefakte (*.dockerbuild) ab, die hier nicht hingehören.
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: "*-zip"
+          merge-multiple: true
+      - name: Prüfsummen
+        working-directory: out
+        run: sha256sum *.zip *.tar.gz > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          flag=""
+          if [ "${{ needs.meta.outputs.prerelease }}" = "true" ]; then flag="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" out/*.zip out/*.tar.gz out/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" \
+            --title "TrackCraft ${{ needs.meta.outputs.version }}" --generate-notes $flag

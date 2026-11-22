@@ -1,0 +1,2 @@
+# Coverage-Ausnahmen (RFC-0014). Eine Zeile je Pfad relativ zu backend/, mit Begründung nach "#".
+# Fest ausgenommen und hier nicht aufzuführen: Testcode, src/main.rs, src/platform/ (cfg(windows)).

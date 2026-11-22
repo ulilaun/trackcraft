@@ -1,0 +1,64 @@
+# Linux-Paket (RFC-0005 „Linux“). Der Release-Workflow ruft ihn mit der Releaseversion auf. Von Hand
+# (workflow_dispatch) entsteht ein Testpaket als Artefakt, das kein Release ist. Bei Pull Requests läuft er
+# nicht mehr (GitHub-Minuten sparen); Testpakete für einen PR per „Run workflow“ auf dessen Branch.
+name: linux-package
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version im Paket, z. B. 0.3.0-dev1
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux-Paket
+    # Ältere glibc als Debian 12 (2.36), damit das Programm auf verbreiteten Systemen läuft
+    runs-on: ubuntu-22.04
+    env:
+      TRACKCRAFT_VERSION: ${{ inputs.version }}
+      TRACKCRAFT_COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - name: Frontend bauen
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Backend bauen
+        working-directory: backend
+        run: cargo build --release --locked
+      - name: Lizenzen der Abhängigkeiten
+        run: |
+          cargo about generate --manifest-path backend/Cargo.toml -c infrastructure/licenses/about.toml infrastructure/licenses/about.hbs -o rust-licenses.txt
+          (cd frontend && npx --yes license-checker-rseidelsohn@4 --production --plainVertical --out ../npm-licenses.txt)
+          cat rust-licenses.txt npm-licenses.txt > THIRD-PARTY-LICENSES.txt
+      - name: Paket packen
+        run: scripts/package-linux.sh "$TRACKCRAFT_VERSION" dist THIRD-PARTY-LICENSES.txt
+      - name: Programm startet und kennt seine Version
+        run: dist/trackcraft-*-linux-x86_64/trackcraft --version | grep -F "$TRACKCRAFT_VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-zip
+          path: dist/trackcraft-*-linux-x86_64.tar.gz

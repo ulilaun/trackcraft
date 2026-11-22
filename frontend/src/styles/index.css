@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* Dark-Variante über die Klasse `dark` am <html> (Schalter in der Kopfzeile, RFC-0006). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Farbtokens aus RFC-0006 Abschnitt 1; Komponenten nutzen nur diese Namen. */
+:root {
+  --tc-bg: #eef2f7;
+  --tc-card: #ffffff;
+  --tc-card-2: #f4f7fb;
+  --tc-line: rgb(15 23 42 / 0.08);
+  --tc-text: #0f172a;
+  --tc-muted: #64748b;
+  --tc-accent: #0284c7;
+  --tc-accent-strong: #0369a1;
+  color-scheme: light;
+}
+:root.dark {
+  --tc-bg: #0b1120;
+  --tc-card: #121b2e;
+  --tc-card-2: #1a2540;
+  --tc-line: rgb(148 163 184 / 0.14);
+  --tc-text: #e5e9f0;
+  --tc-muted: #8b98ad;
+  --tc-accent: #38bdf8;
+  --tc-accent-strong: #0284c7;
+  color-scheme: dark;
+}
+
+@theme {
+  --color-bg: var(--tc-bg);
+  --color-card: var(--tc-card);
+  --color-card-2: var(--tc-card-2);
+  --color-line: var(--tc-line);
+  --color-text: var(--tc-text);
+  --color-muted: var(--tc-muted);
+  --color-accent: var(--tc-accent);
+  --color-accent-strong: var(--tc-accent-strong);
+  --color-warn: #f59e0b;
+  --color-danger: #f43f5e;
+  --color-good: #22c55e;
+  --color-gold: #facc15;
+  /* Sportklassen (RFC-0006) */
+  --color-cycling: #0ea5e9;
+  --color-ebike: #14b8a6;
+  --color-running: #f43f5e;
+  --color-skiing: #6366f1;
+  --color-swimming: #2563eb;
+  --color-studio: #f59e0b;
+  --color-unknown: #64748b;
+  --radius-card: 16px;
+}
+
+body {
+  @apply bg-bg text-text antialiased;
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Messwerte in Monospace mit gleich breiten Ziffern (RFC-0006). */
+.num {
+  font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Karte der Detailseite (RFC-0006). */
+.leaflet-container {
+  background: var(--tc-card-2);
+  font: inherit;
+}
+
+/* Ziehbare Start- und Zielmarker im Erstellen-Dialog (RFC-0016); nur Klassen wegen CSP style-src 'self'. */
+/* Trefferfläche 40 px für den Finger, sichtbar ist der 18-px-Punkt (::after); kein Kontextmenü, kein Markieren */
+.tc-mk {
+  cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.tc-mk::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+.tc-mk-start::after {
+  background: #16a34a;
+}
+.tc-mk-end::after {
+  background: #dc2626;
+}
+.tc-dragging,
+.tc-dragging .tc-mk {
+  cursor: grabbing;
+}
+
+/* Bedienbereich des Erstellen-Dialogs (Karte, Profil, Regler): langes Drücken zeigt kein Menü, markiert nichts. */
+.tc-no-callout,
+.tc-no-callout * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Karte mit Finger nur zweifingrig verschieben (Leaflet setzt ohne `dragging` sonst pan-x pan-y, dann scrollt der Dialog) */
+.leaflet-container.tc-two-fingers {
+  touch-action: none;
+}
