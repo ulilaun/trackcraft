@@ -185,10 +185,30 @@ pub async fn evaluate_activity(cfg: &Validated, db: &Db, activity_id: &str) -> a
             .execute(&mut *tx)
             .await?;
         insert(&mut tx, &v, &found, now).await?;
+        if route_name_on_import(&mut tx, activity_id, &v, now).await? {
+            crate::db::bump_revision(&mut tx, now).await?;
+        }
     }
     sqlx::query("UPDATE activities SET processing_status = 'done' WHERE id = ?").bind(activity_id).execute(&mut *tx).await?;
     tx.commit().await?;
     Ok(())
+}
+
+/// Neu angelegte Aktivität mit gültigem Versuch auf einer Strecke bekommt deren Namen und, falls vorhanden, deren Ort
+/// (Uli 22.11.2026). Nur solange sie nie geändert wurde (`revision = 1`): Ersetzen, Sportklassenwechsel und jede
+/// Bearbeitung erhöhen die Revision, die Übernahme selbst auch – spätere Auswertungen benennen also nichts mehr um.
+/// Passt sie zu mehreren Strecken, gilt die längste. `true`, wenn sich etwas geändert hat.
+async fn route_name_on_import(conn: &mut SqliteConnection, activity_id: &str, version: &str, now: i64) -> sqlx::Result<bool> {
+    let changed = sqlx::query(
+        "UPDATE activities SET title = r.name, location = coalesce(r.location, activities.location),              revision = revision + 1, updated_at_ms = ?3          FROM (SELECT s.name, s.location FROM segment_efforts e JOIN segments s ON s.id = e.segment_id                WHERE e.activity_id = ?1 AND e.calculation_version_id = ?2 AND e.status = 'valid' AND s.kind = 'route'                ORDER BY s.length_m DESC, s.name LIMIT 1) AS r          WHERE activities.id = ?1 AND activities.revision = 1",
+    )
+    .bind(activity_id)
+    .bind(version)
+    .bind(now)
+    .execute(conn)
+    .await?
+    .rows_affected();
+    Ok(changed > 0)
 }
 
 /// Segment gegen die Historie (Job `segment_history`); `progress(verarbeitet, gesamt)` nach jeder Aktivität.

@@ -539,3 +539,44 @@ async fn new_calculation_version_recomputes_efforts_and_drops_the_old_one() {
         sqlx::query_scalar("SELECT count(*) FROM segment_efforts WHERE segment_id = ?").bind(&id).fetch_one(&db2.reader).await.unwrap();
     assert_eq!(efforts, 3);
 }
+
+#[tokio::test]
+async fn new_activity_on_a_route_takes_its_name_and_location() {
+    let f = fixture().await;
+    let (a, _b, _c) = three_rides(&f).await;
+    let (s, v) = create(
+        &f,
+        json!({ "activity_id": a, "section_index": 0, "start_index": 0, "end_index": 39, "name": "Hausrunde", "sport_class": "cycling",
+                "kind": "route", "location": "Oberndorf" }),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let route = v["data"]["id"].as_str().unwrap().to_string();
+    run_jobs(&f).await;
+    // Bestehende Aktivitäten bleiben, auch die Quelle der Strecke
+    let (_, v) = get(&f, &format!("/api/v1/activities/{a}")).await;
+    assert_eq!((v["data"]["title"].as_str(), v["data"]["location"].as_str()), (Some("A"), None), "{v}");
+
+    // Neu importiert: übernimmt Name und Ort, ohne dass die Auswertung später noch einmal umbenennt
+    let d = import(&f, "d.gpx", &gpx("D", "cycling", T0 + 3 * DAY, 40, 10)).await;
+    run_jobs(&f).await;
+    let (_, v) = get(&f, &format!("/api/v1/activities/{d}")).await;
+    assert_eq!((v["data"]["title"].as_str(), v["data"]["location"].as_str()), (Some("Hausrunde"), Some("Oberndorf")), "{v}");
+
+    // Vor der Auswertung schon bearbeitet: bleibt wie bearbeitet
+    let e = import(&f, "e.gpx", &gpx("E", "cycling", T0 + 4 * DAY, 40, 10)).await;
+    let (s, _) = with_body(&f, Method::PATCH, &format!("/api/v1/activities/{e}"), json!({ "title": "Mit Freunden" })).await;
+    assert_eq!(s, StatusCode::OK);
+    run_jobs(&f).await;
+    let (_, v) = get(&f, &format!("/api/v1/activities/{e}")).await;
+    assert_eq!((v["data"]["title"].as_str(), v["data"]["location"].as_str()), (Some("Mit Freunden"), None), "{v}");
+
+    // Strecke ohne Ort: nur der Name
+    let (s, _) = with_body(&f, Method::PATCH, &format!("/api/v1/segments/{route}"), json!({ "location": null })).await;
+    assert_eq!(s, StatusCode::OK);
+    run_jobs(&f).await;
+    let g = import(&f, "g.gpx", &gpx("G", "cycling", T0 + 5 * DAY, 40, 10)).await;
+    run_jobs(&f).await;
+    let (_, v) = get(&f, &format!("/api/v1/activities/{g}")).await;
+    assert_eq!((v["data"]["title"].as_str(), v["data"]["location"].as_str()), (Some("Hausrunde"), None), "{v}");
+}
