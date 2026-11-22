@@ -749,5 +749,9 @@
   "load.pending": "Die Belastung wird gerade berechnet.",
   "error.hr_zone_set_not_found": "Dieser Stand der HF-Zonen existiert nicht mehr.",
   "error.hr_zone_set_date_taken": "Für diese Sportklasse gibt es an diesem Datum schon einen Stand.",
-  "form.weekOf": "Woche ab {day}"
+  "form.weekOf": "Woche ab {day}",
+  "list.col.load": "Belastung",
+  "list.loadEstimated": "Geschätzt: ohne Herzfrequenz oder ohne HF-Zonen aus der Dauer gerechnet",
+  "detail.kpi.load": "Belastung",
+  "detail.kpi.loadSub": "aerob {aerobic} · anaerob {anaerobic}"
 }

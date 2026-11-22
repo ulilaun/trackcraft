@@ -46,6 +46,7 @@ export function summary(over: Partial<ActivitySummary> = {}): ActivitySummary {
     avg_speed_kmh: 25,
     avg_heart_rate_bpm: 128,
     segment_success_count: 0,
+    load: 72.9,
     ...over,
   };
 }

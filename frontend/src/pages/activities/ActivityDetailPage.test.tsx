@@ -15,7 +15,10 @@ vi.mock("./CreateSegmentDialog", () => ({ CreateSegmentDialog: (p: { kind: strin
 let all: ReturnType<typeof activity>[] = [];
 const initial = () => [
   activity({ id: "old", title: "Ältere", start_time: "2026-10-30T09:00:00.000Z" }),
-  activity({ id: "a1", title: "Runde Wald", description: "Mit Regen", location: "Taunus" }),
+  {
+    ...activity({ id: "a1", title: "Runde Wald", description: "Mit Regen", location: "Taunus" }),
+    training_load: { trimp: 187.4, aerobic: 161.2, anaerobic: 26.2, method: "samples" as const, zone_seconds: [60, 1800, 1200, 400, 140], zone_set: null },
+  },
   activity({ id: "run", title: "Lauf", sport_class: "running", avg_speed_kmh: 12, start_time: "2026-11-02T09:00:00.000Z" }),
 ];
 const calls: string[] = [];
@@ -146,6 +149,8 @@ describe("Aktivitätsdetail", () => {
     expect(await screen.findByText("Karte mit 2 Punkten")).toBeInTheDocument();
     expect(screen.getByText("Diagramm")).toBeInTheDocument();
     expect(screen.getByText("Mit Regen")).toBeInTheDocument();
+    // Kachel Belastung neben der Herzfrequenz
+    expect(screen.getByText("aerob 161 · anaerob 26").parentElement).toHaveTextContent(/^Belastung187/);
     expect(calls).toContain("/api/v1/activities/a1/track?max_points=2000");
   });
 
@@ -286,7 +291,7 @@ describe("Aktivitätsdetail", () => {
     expect(screen.getByText("−0:12,3")).toBeInTheDocument();
     expect(screen.getAllByText("1,52 km · 88 m ↑ · 5,8 %")).toHaveLength(3);
     // Kennzahl Segmente: Zahl der Versuche
-    expect(screen.getByText("Segmente", { selector: "div" }).parentElement).toHaveTextContent("3");
+    expect(screen.getByTestId("kpi-segments")).toHaveTextContent(/Segmente\s*3/);
 
     fireEvent.click(screen.getByRole("button", { name: "Segment erstellen" }));
     expect(screen.getByText("Erstellen-Dialog segment")).toBeInTheDocument();

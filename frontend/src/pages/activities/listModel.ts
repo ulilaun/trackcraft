@@ -3,7 +3,7 @@ import type { Season, SportClass } from "../../api/client";
 import { addDays } from "../../utils/format";
 import { SPORT_CLASSES } from "../../utils/sports";
 
-export type SortField = "start_time" | "distance_m" | "total_time_ms" | "elevation_gain_m";
+export type SortField = "start_time" | "distance_m" | "total_time_ms" | "elevation_gain_m" | "load";
 
 /**
  * Zeitraum der Liste: Knopfreihe Gesamt · Letzte 12 Wochen · Jahr · Saison · Von–Bis.
@@ -55,7 +55,7 @@ export function readFilter(p: URLSearchParams): ListFilter {
   const sortRaw = p.get("sort") ?? "-start_time";
   const desc = sortRaw.startsWith("-");
   const field = sortRaw.replace(/^-/, "");
-  const fields: SortField[] = ["start_time", "distance_m", "total_time_ms", "elevation_gain_m"];
+  const fields: SortField[] = ["start_time", "distance_m", "total_time_ms", "elevation_gain_m", "load"];
   return {
     period: readPeriod(p),
     q: p.get("q") ?? "",

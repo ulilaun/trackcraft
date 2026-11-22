@@ -168,6 +168,13 @@ async fn zones_drive_activity_load() {
     // Liste zeigt die Belastung
     let list = get(&f, "/api/v1/activities?limit=10").await;
     assert!(list.as_array().unwrap().iter().all(|a| a["load"].is_number() && a["load_method"].is_string()));
+    // Sortierung nach Belastung und Summe in der Summenzeile
+    let (_, v) = send(&f, Method::GET, "/api/v1/activities?sort=-load", None).await;
+    let loads: Vec<f64> = v["data"].as_array().unwrap().iter().map(|a| a["load"].as_f64().unwrap()).collect();
+    assert!(loads.windows(2).all(|w| w[0] >= w[1]), "{loads:?}");
+    assert_eq!(v["meta"]["summary"]["load"].as_f64(), Some(loads.iter().sum::<f64>().round()));
+    let (_, v) = send(&f, Method::GET, "/api/v1/activities?sort=load", None).await;
+    assert_eq!(v["data"][0]["id"], studio.as_str());
 
     // Löschen: wieder der allgemeine Satz
     let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/hr-zones/{cycling}"), None).await;

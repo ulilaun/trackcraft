@@ -90,7 +90,7 @@ paths:
           schema:
             type: string
             default: -start_time
-            enum: [-start_time, start_time, -distance_m, distance_m, -total_time_ms, total_time_ms, -elevation_gain_m, elevation_gain_m]
+            enum: [-start_time, start_time, -distance_m, distance_m, -total_time_ms, total_time_ms, -elevation_gain_m, elevation_gain_m, -load, load]
         - {$ref: '#/components/parameters/Limit'}
         - {$ref: '#/components/parameters/Offset'}
       responses:
@@ -1088,7 +1088,7 @@ components:
     ActivityListSummary:
       type: object
       description: Summenzeile über alle gefilterten Aktivitäten, nicht nur die gelieferte Seite (RFC-0006). Summen zählen nur vorhandene Werte.
-      required: [count, distance_m, total_time_ms, elevation_gain_m, activities_without_distance, activities_without_elevation, mixed_sport_classes, avg_speed_kmh, avg_heart_rate_bpm, segment_success_count]
+      required: [count, distance_m, total_time_ms, elevation_gain_m, activities_without_distance, activities_without_elevation, mixed_sport_classes, avg_speed_kmh, avg_heart_rate_bpm, segment_success_count, load]
       properties:
         count: {type: integer, minimum: 0}
         distance_m: {type: number, minimum: 0}
@@ -1100,6 +1100,7 @@ components:
         avg_speed_kmh: {type: [number, 'null'], minimum: 0, description: 'Distanz durch Gesamtzeit über Aktivitäten mit Distanz, null bei gemischten Sportklassen'}
         avg_heart_rate_bpm: {type: [integer, 'null'], minimum: 1, description: 'Zeitgewichtet über Aktivitäten mit Herzfrequenz'}
         segment_success_count: {type: integer, minimum: 0}
+        load: {type: [number, 'null'], description: 'Summe der berechneten Belastungen (TRIMP), gerundet'}
     ActivityUpdate:
       type: object
       minProperties: 1

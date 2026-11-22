@@ -81,6 +81,7 @@ function SumRow({ s, shown, sport }: { s: ActivitySummary; shown: number; sport:
       </td>
       <td className="num px-3 py-2.5 text-right">{gain(s.elevation_gain_m)}</td>
       <td className="num px-3 py-2.5 text-right">{s.avg_heart_rate_bpm ?? "–"}</td>
+      <td className="num px-3 py-2.5 text-right">{s.load == null ? "–" : num(s.load)}</td>
     </tr>
   );
 }
@@ -310,6 +311,7 @@ export function ActivityListPage() {
                   <th className="px-3 py-2.5 text-right font-medium">{t("list.col.avg")}</th>
                   {sortTh("elevation_gain_m", "list.col.gain")}
                   <th className="px-3 py-2.5 text-right font-medium">{t("list.col.hr")}</th>
+                  {sortTh("load", "list.col.load")}
                 </tr>
               </thead>
               <tbody>
@@ -338,6 +340,10 @@ export function ActivityListPage() {
                     <td className="num px-3 py-2.5 text-right">{avg(a.avg_speed_kmh, a.sport_class === "running")}</td>
                     <td className="num px-3 py-2.5 text-right">{gain(a.elevation_gain_m)}</td>
                     <td className="num px-3 py-2.5 text-right">{a.avg_heart_rate_bpm ?? "–"}</td>
+                    <td className="num px-3 py-2.5 text-right" title={a.load_method === "estimated" ? t("list.loadEstimated") : undefined}>
+                      {a.load == null ? "–" : num(a.load)}
+                      {a.load_method === "estimated" && <span className="ml-0.5 text-muted">*</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
