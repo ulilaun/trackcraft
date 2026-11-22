@@ -33,7 +33,8 @@ export { SPORT_CLASSES };
 
 const isDay = (v: string | null): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
-function readPeriod(p: URLSearchParams): ListPeriod {
+/** Zeitraum aus der Adresse (`zeitraum`, `jahr`, `saison`, `von`/`bis`); Vorgabe „Letzte 12 Wochen“. */
+export function readPeriod(p: URLSearchParams): ListPeriod {
   const season = p.get("saison");
   if (season) return { kind: "season", id: season };
   const year = Number(p.get("jahr"));
@@ -68,7 +69,17 @@ export function readFilter(p: URLSearchParams): ListFilter {
 
 export function writeFilter(f: ListFilter): URLSearchParams {
   const p = new URLSearchParams();
-  const z = f.period;
+  writePeriod(p, f.period);
+  if (f.q.trim()) p.set("q", f.q);
+  if (f.sport) p.set("sport", f.sport);
+  if (f.sport && f.sub) p.set("sub", f.sub);
+  if (f.route) p.set("strecke", f.route);
+  if (f.sort !== "start_time" || !f.desc) p.set("sort", `${f.desc ? "-" : ""}${f.sort}`);
+  return p;
+}
+
+/** Zeitraum in die Adresse; „Letzte 12 Wochen“ als Vorgabe ohne Parameter. */
+export function writePeriod(p: URLSearchParams, z: ListPeriod): void {
   if (z.kind === "all") p.set("zeitraum", "alle");
   else if (z.kind === "year") p.set("jahr", String(z.year));
   else if (z.kind === "season") p.set("saison", z.id);
@@ -77,12 +88,6 @@ export function writeFilter(f: ListFilter): URLSearchParams {
     if (z.from) p.set("von", z.from);
     if (z.to) p.set("bis", z.to);
   }
-  if (f.q.trim()) p.set("q", f.q);
-  if (f.sport) p.set("sport", f.sport);
-  if (f.sport && f.sub) p.set("sub", f.sub);
-  if (f.route) p.set("strecke", f.route);
-  if (f.sort !== "start_time" || !f.desc) p.set("sort", `${f.desc ? "-" : ""}${f.sort}`);
-  return p;
 }
 
 /** Klick auf einen Spaltenkopf: erst absteigend, dann aufsteigend. */

@@ -48,6 +48,9 @@ where
     // Auswertungsaufträge im Hintergrund (Segmentversuche, RFC-0007)
     let worker = tokio::spawn(crate::jobs::worker(cfg.clone(), db.clone()));
 
+    // Belastung je Aktivität (E7)
+    let load_task = tokio::spawn(crate::load::worker(cfg.clone(), db.clone()));
+
     // Abruf aus Garmin Connect
     let garmin_task = tokio::spawn(crate::garmin::scheduler(cfg.clone(), db.clone(), garmin));
 
@@ -79,6 +82,7 @@ where
     };
     maintenance.abort();
     worker.abort();
+    load_task.abort();
     garmin_task.abort();
     db.close().await;
     drop(started);

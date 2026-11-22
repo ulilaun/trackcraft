@@ -63,6 +63,9 @@ impl ApiError {
         Self::new(StatusCode::CONFLICT, "route_already_matched", "Activity already has an attempt on a route");
     pub const SEGMENT_DIRECTION_UNDETERMINABLE: Self =
         Self::new(StatusCode::BAD_REQUEST, "segment_direction_undeterminable", "Direction at start or end cannot be determined");
+    pub const HR_ZONE_SET_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "hr_zone_set_not_found", "Heart rate zone set not found");
+    pub const HR_ZONE_SET_DATE_TAKEN: Self =
+        Self::new(StatusCode::CONFLICT, "hr_zone_set_date_taken", "Another zone set of this sport class starts on this date");
     pub const SEASON_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "season_not_found", "Season not found");
     pub const SEASON_OVERLAP: Self = Self::new(StatusCode::CONFLICT, "season_overlap", "Season overlaps another season");
     pub const SEASON_NAME_TAKEN: Self = Self::new(StatusCode::CONFLICT, "season_name_taken", "Another season has this name");

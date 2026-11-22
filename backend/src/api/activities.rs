@@ -66,7 +66,10 @@ pub async fn list(State(state): State<AppState>, Query(params): Query<HashMap<St
 
 pub async fn get_one(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Value>, ApiError> {
     match activities::get(&state.db, &id).await? {
-        Some(a) => Ok(Json(json!({ "data": a }))),
+        Some(mut a) => {
+            a["training_load"] = crate::load::activity_load(&state.db, &id).await?;
+            Ok(Json(json!({ "data": a })))
+        }
         None => Err(ApiError::ACTIVITY_NOT_FOUND),
     }
 }
@@ -78,6 +81,8 @@ pub async fn update(State(state): State<AppState>, Path(id): Path<String>, body:
     };
     match activities::update(&state.cfg, &state.db, &id, &u).await {
         Ok((a, notices)) => {
+            // Sportklasse, Zeit oder Dauer können die Belastung ändern.
+            crate::load::wake();
             let mut out = json!({ "data": a });
             if !notices.is_empty() {
                 out["meta"] = json!({ "notices": notices });

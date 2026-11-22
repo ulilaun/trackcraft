@@ -27,6 +27,8 @@ export function activity(over: Partial<Activity> = {}): Activity {
     point_count: 3600,
     has_position: true,
     segment_success_count: 0,
+    load: 72.9,
+    load_method: "samples",
     revision: 1,
     ...over,
   };

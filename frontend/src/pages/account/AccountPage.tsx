@@ -10,6 +10,7 @@ import { UserAvatar } from "../../components/UserAvatar";
 import { useConfig } from "../../hooks/useConfig";
 import { t, type TextKey } from "../../i18n";
 import { localDate } from "../../utils/format";
+import { HeartRateZones } from "./HeartRateZones";
 import { AVATAR_CLASS, AVATAR_COLORS, age, formOf, formProblem, inputOf, type ProfileForm } from "./profileModel";
 import { useProfile } from "./useProfile";
 
@@ -18,8 +19,9 @@ const input = "w-full rounded-lg border border-line bg-card-2 px-2 py-1.5 text-s
 /** Kontoseite hinter dem Benutzersymbol oben rechts. */
 export function AccountPage() {
   const profile = useProfile();
+  const today = localDate(new Date(), useConfig().data?.data.timezone);
   return (
-    <div className="grid min-w-0 max-w-2xl gap-4">
+    <div className="grid min-w-0 max-w-3xl gap-4">
       <h1 className="text-2xl font-bold">{t("account.title")}</h1>
       {profile.error ? (
         <Problem error={profile.error} />
@@ -29,6 +31,7 @@ export function AccountPage() {
       ) : (
         <p className="text-muted">{t("account.loading")}</p>
       )}
+      <HeartRateZones today={today} />
     </div>
   );
 }

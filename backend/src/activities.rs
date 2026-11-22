@@ -37,9 +37,10 @@ pub(crate) const BASE: &str = "SELECT a.id, a.title, a.description, a.location, 
      AND NOT EXISTS (SELECT 1 FROM segment_efforts p WHERE p.segment_id = e.segment_id AND p.status = 'valid' \
        AND p.calculation_version_id = e.calculation_version_id AND p.duration_ms <= e.duration_ms \
        AND (p.start_time_ms, p.activity_id, p.attempt_position) < (e.start_time_ms, e.activity_id, e.attempt_position))) \
-    AS segment_success_count \
+    AS segment_success_count, l.trimp AS load_trimp, l.method AS load_method \
     FROM activities a LEFT JOIN activity_calculations c ON c.activity_id = a.id \
-    AND c.calculation_version_id = (SELECT id FROM calculation_versions WHERE status = 'published')";
+    AND c.calculation_version_id = (SELECT id FROM calculation_versions WHERE status = 'published') \
+    LEFT JOIN activity_loads l ON l.activity_id = a.id";
 
 fn avg_speed(distance: Option<f64>, total_ms: i64) -> Option<f64> {
     match distance {
@@ -88,6 +89,9 @@ fn activity_json(r: &SqliteRow) -> Value {
         "processing_status": r.get::<String, _>("processing_status"),
         // Erste Bestzeit oder Verbesserung, abgeleitet (RFC-0009 „Historische PRs“)
         "segment_success_count": r.get::<i64, _>("segment_success_count"),
+        // Belastung (E7), abgeleitet; `null`, solange nicht berechnet
+        "load": r.get::<Option<f64>, _>("load_trimp").map(|v| (v * 10.0).round() / 10.0),
+        "load_method": r.get::<Option<String>, _>("load_method"),
         "created_at": timestamp(r.get("created_at_ms")),
         "updated_at": timestamp(r.get("updated_at_ms")),
         "revision": r.get::<i64, _>("revision"),

@@ -278,7 +278,16 @@ export interface Activity {
   point_count: number;
   has_position: boolean;
   segment_success_count: number;
+  /** Belastung (TRIMP), abgeleitet; `null`, solange nicht berechnet. */
+  load: number | null;
+  load_method: LoadMethod | null;
   revision: number;
+}
+
+/** Detailansicht: Aktivität mit Belastung samt Zonen. */
+export interface ActivityDetail extends Activity {
+  /** Nur bei `GET /activities/{id}`; die Antwort auf PATCH enthält sie nicht. */
+  training_load?: ActivityLoad | null;
 }
 
 export interface ActivitySummary {
@@ -300,7 +309,7 @@ export interface ActivityListResponse {
 }
 
 export interface ActivityResponse {
-  data: Activity;
+  data: ActivityDetail;
   meta?: { notices?: { code: string; message: string }[] };
 }
 
@@ -704,4 +713,112 @@ export interface GarminActivity {
 export interface GarminActivityListResponse {
   data: GarminActivity[];
   meta: { total: number; limit: number; offset: number };
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Belastung und Form (E7)
+
+/** samples: aus HF je Messpunkt, average: aus Durchschnitts-HF, estimated: ohne HF aus der Dauer geschätzt */
+export type LoadMethod = "samples" | "average" | "estimated";
+/** % der max. HF, % der HF-Reserve (Karvonen), % der Schwellen-HF (Friel) */
+export type ZoneModel = "max" | "reserve" | "threshold";
+
+export interface HrZoneSet {
+  id: string;
+  /** `null`: allgemeiner Satz */
+  sport_class: SportClass | null;
+  valid_from: string;
+  max_hr: number;
+  resting_hr: number;
+  threshold_hr: number | null;
+  model: ZoneModel;
+  /** Untere Grenzen der fünf Zonen in Prozent */
+  bounds: number[];
+  /** Je Zone [von, bis] in Schlägen pro Minute; die letzte Zone ist nach oben offen. */
+  zones_bpm: [number, number | null][];
+  anaerobic_from_bpm: number;
+}
+
+export interface HrZoneSetInput {
+  sport_class?: SportClass | null;
+  valid_from?: string;
+  max_hr?: number;
+  resting_hr?: number;
+  threshold_hr?: number | null;
+  model?: ZoneModel;
+  bounds?: number[];
+}
+
+export interface HrZonesResponse {
+  data: HrZoneSet[];
+  meta: { suggestion: { age: number | null; max_hr: number | null } };
+}
+
+export interface HrZoneSetResponse {
+  data: HrZoneSet;
+}
+
+export interface ActivityLoad {
+  trimp: number;
+  aerobic: number;
+  anaerobic: number;
+  method: LoadMethod;
+  zone_seconds: number[] | null;
+  zone_set: HrZoneSet | null;
+}
+
+export interface LoadSettings {
+  sex_factor: number;
+  fitness_days: number;
+  fatigue_days: number;
+  estimate_per_hour: Record<SportClass, number>;
+}
+
+export interface LoadSettingsResponse {
+  data: LoadSettings;
+}
+
+export type ForecastMode = "rest" | "steady";
+
+export interface FormDay {
+  date: string;
+  load: number;
+  aerobic: number;
+  anaerobic: number;
+  estimated: number;
+  fitness: number;
+  fatigue: number;
+  form: number;
+}
+
+export interface FormForecastDay {
+  date: string;
+  load: number;
+  fitness: number;
+  fatigue: number;
+  form: number;
+}
+
+export interface FormResponse {
+  data: {
+    today: string;
+    from: string;
+    to: string;
+    settings: LoadSettings;
+    zones_configured: boolean;
+    /** Aktivitäten, deren Belastung noch berechnet wird */
+    pending: number;
+    first_date: string | null;
+    current: {
+      fitness: number;
+      fatigue: number;
+      form: number;
+      load_7d: number;
+      load_prev_7d: number;
+      fitness_week_ago: number;
+      fatigue_week_ago: number;
+    };
+    days: FormDay[];
+    forecast: { mode: ForecastMode; daily_load: number; days: FormForecastDay[] };
+  };
 }

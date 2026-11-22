@@ -75,6 +75,7 @@ export function EditDialog({
       queryClient.setQueryData(["activities", "one", a.id], { data: res.data });
       void queryClient.invalidateQueries({ queryKey: ["activities"] });
       void queryClient.invalidateQueries({ queryKey: ["stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["form"] });
       const shifted = res.meta?.notices?.some((n) => n.code === "local_time_shifted");
       flash(t(shifted ? "edit.savedShifted" : "edit.saved"));
       onClose();
