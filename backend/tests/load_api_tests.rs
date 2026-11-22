@@ -271,4 +271,37 @@ async fn settings_and_form_curve_with_forecast() {
     assert_eq!(st, StatusCode::BAD_REQUEST);
     let (st, _) = send(&f, Method::GET, "/api/v1/form?season=1", None).await;
     assert_eq!(st, StatusCode::BAD_REQUEST);
+
+    // Stufe 3: Monotonie und Strain stehen immer in den Tagen (zwei Fahrten in 7 Tagen)
+    let v = get(&f, "/api/v1/form?from=2026-07-03&to=2026-07-03").await;
+    let d = &v["days"][0];
+    assert!(d["monotony"].as_f64().unwrap() > 0.0 && d["strain"].as_f64().unwrap() > 0.0, "{d}");
+    assert_eq!(d["fatigue_aerobic"], Value::Null);
+    assert_eq!(v["monotony_warn"], 2.0);
+
+    // Stufe 2: Zwei-Kurven-Modell mit getrennter Ermüdung
+    let s = get(&f, "/api/v1/form/settings").await;
+    assert_eq!(
+        (s["curve_model"].as_str(), s["aerobic_days"].as_u64(), s["anaerobic_days"].as_u64()),
+        (Some("standard"), Some(5), Some(12))
+    );
+    assert_eq!((s["rest_bonus_pct"].as_u64(), s["foster_surcharge"].as_bool()), (Some(18), Some(false)));
+    let (st, v) = send(&f, Method::PATCH, "/api/v1/form/settings", Some(json!({ "curve_model": "banister" }))).await;
+    assert_eq!((st, v["error"]["details"]["fields"][0]["field"].as_str()), (StatusCode::BAD_REQUEST, Some("curve_model")));
+    let (st, _) = send(&f, Method::PATCH, "/api/v1/form/settings", Some(json!({ "rest_bonus_pct": 60 }))).await;
+    assert_eq!(st, StatusCode::BAD_REQUEST);
+    let (st, v) = send(&f, Method::PATCH, "/api/v1/form/settings", Some(json!({ "fitness_days": 20, "anaerobic_days": 25 }))).await;
+    assert_eq!((st, v["error"]["details"]["fields"][0]["code"].as_str()), (StatusCode::BAD_REQUEST, Some("not_below_fitness")));
+    let (st, v) =
+        send(&f, Method::PATCH, "/api/v1/form/settings", Some(json!({ "curve_model": "two_curve", "foster_surcharge": true }))).await;
+    assert_eq!(st, StatusCode::OK, "{v}");
+    let v = get(&f, "/api/v1/form?from=2026-07-01&to=2026-07-03&forecast=steady&forecast_days=3").await;
+    let d = &v["days"][2];
+    let (a, b) = (d["fatigue_aerobic"].as_f64().unwrap(), d["fatigue_anaerobic"].as_f64().unwrap());
+    // Fahrten ohne HF zählen aerob
+    assert!(a > 0.0 && b == 0.0, "{d}");
+    assert!((d["fatigue"].as_f64().unwrap() - a - b).abs() < 0.11);
+    assert!(v["current"]["fatigue_aerobic"].is_number());
+    let v = get(&f, "/api/v1/form?forecast=steady&forecast_days=3").await;
+    assert!(v["forecast"]["days"][0]["fatigue_aerobic"].is_number());
 }

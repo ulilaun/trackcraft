@@ -159,56 +159,145 @@ pub struct DayLoad {
     pub estimated: f64,
 }
 
+impl DayLoad {
+    /// Anteil für die aerobe Ermüdung im Zwei-Kurven-Modell: aerob plus geschätzt.
+    fn aerobic_part(&self) -> f64 {
+        (self.total - self.anaerobic).max(0.0)
+    }
+}
+
+/// Rechenmodell der Formkurve.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CurveModel {
+    /// Fitness und Ermüdung als gleitende Mittel (τ₁, τ₂)
+    Standard { fatigue_days: f64 },
+    /// Ermüdung getrennt aerob und anaerob; an Tagen ohne Belastung klingt sie um `rest_bonus` schneller ab
+    TwoCurve { aerobic_days: f64, anaerobic_days: f64, rest_bonus: f64 },
+}
+
+/// Parameter der Formkurve.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CurveParams {
+    pub fitness_days: f64,
+    pub model: CurveModel,
+    /// Aufschlag auf die Ermüdung an Tagen mit Monotonie über [`MONOTONY_WARN`] (Foster), z. B. 0,15; `None`: aus
+    pub foster_surcharge: Option<f64>,
+}
+
+/// Ab dieser Monotonie warnt die Seite (Foster).
+pub const MONOTONY_WARN: f64 = 2.0;
+const WINDOW: usize = 7;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DayValue {
     pub date: NaiveDate,
     pub load: DayLoad,
     /// Fitness nach dem Training des Tages
     pub fitness: f64,
-    /// Ermüdung nach dem Training des Tages
+    /// Ermüdung nach dem Training des Tages (im Zwei-Kurven-Modell die Summe beider Teile)
     pub fatigue: f64,
+    /// Nur im Zwei-Kurven-Modell: aerober und anaerober Teil der Ermüdung
+    pub fatigue_parts: Option<(f64, f64)>,
     /// Form zu Beginn des Tages (Fitness − Ermüdung des Vortags)
     pub form: f64,
+    /// Monotonie der letzten 7 Tage (Mittel / Standardabweichung); `None` ohne Belastung oder ohne Streuung
+    pub monotony: Option<f64>,
+    /// Strain der letzten 7 Tage (Wochensumme × Monotonie)
+    pub strain: Option<f64>,
 }
 
-/// Fitness und Ermüdung als exponentiell gleitende Mittel (Standardmodell), Tag für Tag von `start` bis `end`.
-/// Fehlende Tage haben die Belastung 0.
-pub fn series(
-    loads: &BTreeMap<NaiveDate, DayLoad>,
-    start: NaiveDate,
-    end: NaiveDate,
-    fitness_days: f64,
-    fatigue_days: f64,
-) -> Vec<DayValue> {
-    let k1 = 1.0 - (-1.0 / fitness_days).exp();
-    let k2 = 1.0 - (-1.0 / fatigue_days).exp();
-    let (mut ctl, mut atl) = (0.0_f64, 0.0_f64);
+fn decay(days: f64) -> f64 {
+    1.0 - (-1.0 / days).exp()
+}
+
+/// Zustand der Kurve, Tag für Tag fortgeschrieben; Vergangenheit und Vorschau rechnen gleich.
+#[derive(Debug, Clone)]
+pub struct Curve {
+    p: CurveParams,
+    fitness: f64,
+    /// Standard: Ermüdung; Zwei-Kurven: aerober Teil
+    fatigue_a: f64,
+    /// Zwei-Kurven: anaerober Teil
+    fatigue_b: f64,
+    window: std::collections::VecDeque<f64>,
+}
+
+impl Curve {
+    pub fn new(p: CurveParams) -> Self {
+        Self { p, fitness: 0.0, fatigue_a: 0.0, fatigue_b: 0.0, window: std::collections::VecDeque::with_capacity(WINDOW) }
+    }
+
+    fn fatigue(&self) -> f64 {
+        self.fatigue_a + self.fatigue_b
+    }
+
+    /// Monotonie und Strain der letzten sieben Tage einschließlich heute.
+    fn foster(&self) -> (Option<f64>, Option<f64>) {
+        let n = self.window.len() as f64;
+        let sum: f64 = self.window.iter().sum();
+        if sum <= 0.0 {
+            return (None, None);
+        }
+        // Wie Foster: Mittel über 7 Tage, fehlende Tage am Anfang zählen als 0
+        let mean = sum / WINDOW as f64;
+        let var = (self.window.iter().map(|v| (v - mean).powi(2)).sum::<f64>() + (WINDOW as f64 - n) * mean * mean) / WINDOW as f64;
+        let sd = var.sqrt();
+        if sd < 1e-9 {
+            return (None, None);
+        }
+        let m = mean / sd;
+        (Some(m), Some(sum * m))
+    }
+
+    pub fn step(&mut self, date: NaiveDate, load: DayLoad) -> DayValue {
+        let form = self.fitness - self.fatigue();
+        if self.window.len() == WINDOW {
+            self.window.pop_front();
+        }
+        self.window.push_back(load.total);
+        let (monotony, strain) = self.foster();
+        let surcharge = match (self.p.foster_surcharge, monotony) {
+            (Some(s), Some(m)) if m > MONOTONY_WARN => 1.0 + s,
+            _ => 1.0,
+        };
+        self.fitness += (load.total - self.fitness) * decay(self.p.fitness_days);
+        let parts = match self.p.model {
+            CurveModel::Standard { fatigue_days } => {
+                self.fatigue_a += (load.total * surcharge - self.fatigue_a) * decay(fatigue_days);
+                None
+            }
+            CurveModel::TwoCurve { aerobic_days, anaerobic_days, rest_bonus } => {
+                // Ruhetag: Zeitkonstanten kürzer, die Ermüdung klingt schneller ab
+                let f = if load.total <= 0.0 { 1.0 - rest_bonus } else { 1.0 };
+                self.fatigue_a += (load.aerobic_part() * surcharge - self.fatigue_a) * decay(aerobic_days * f);
+                self.fatigue_b += (load.anaerobic * surcharge - self.fatigue_b) * decay(anaerobic_days * f);
+                Some((self.fatigue_a, self.fatigue_b))
+            }
+        };
+        DayValue { date, load, fitness: self.fitness, fatigue: self.fatigue(), fatigue_parts: parts, form, monotony, strain }
+    }
+}
+
+/// Kurve Tag für Tag von `start` bis `end`; fehlende Tage haben die Belastung 0. Liefert auch den Zustand am Ende.
+pub fn series(loads: &BTreeMap<NaiveDate, DayLoad>, start: NaiveDate, end: NaiveDate, p: CurveParams) -> (Vec<DayValue>, Curve) {
+    let mut curve = Curve::new(p);
     let mut out = Vec::new();
     let mut d = start;
     while d <= end {
-        let load = loads.get(&d).copied().unwrap_or_default();
-        let form = ctl - atl;
-        ctl += (load.total - ctl) * k1;
-        atl += (load.total - atl) * k2;
-        out.push(DayValue { date: d, load, fitness: ctl, fatigue: atl, form });
+        out.push(curve.step(d, loads.get(&d).copied().unwrap_or_default()));
         d = d.succ_opt().expect("Datum");
     }
-    out
+    (out, curve)
 }
 
 /// Führt die Kurve ab dem Tag nach `last` mit gleicher Tagesbelastung `daily` für `days` Tage fort.
-pub fn forecast(last: &DayValue, daily: f64, days: u32, fitness_days: f64, fatigue_days: f64) -> Vec<DayValue> {
-    let k1 = 1.0 - (-1.0 / fitness_days).exp();
-    let k2 = 1.0 - (-1.0 / fatigue_days).exp();
-    let (mut ctl, mut atl) = (last.fitness, last.fatigue);
-    let mut d = last.date;
+pub fn forecast(curve: &Curve, last: NaiveDate, daily: DayLoad, days: u32) -> Vec<DayValue> {
+    let mut c = curve.clone();
+    let mut d = last;
     (0..days)
         .map(|_| {
             d = d.succ_opt().expect("Datum");
-            let form = ctl - atl;
-            ctl += (daily - ctl) * k1;
-            atl += (daily - atl) * k2;
-            DayValue { date: d, load: DayLoad { total: daily, ..Default::default() }, fitness: ctl, fatigue: atl, form }
+            c.step(d, daily)
         })
         .collect()
 }
@@ -268,23 +357,78 @@ mod tests {
         assert!(from_samples(&[vec![pt(0, 120)]], &z, 1.92).is_none());
     }
 
+    const STD: CurveParams = CurveParams { fitness_days: 42.0, model: CurveModel::Standard { fatigue_days: 7.0 }, foster_surcharge: None };
+
+    fn steady(days: u64, load: DayLoad) -> BTreeMap<NaiveDate, DayLoad> {
+        let d0 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        (0..days).map(|i| (d0 + chrono::Days::new(i), load)).collect()
+    }
+
     #[test]
     fn steady_load_converges_and_rest_recovers() {
         let d0 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        let mut loads = BTreeMap::new();
-        for i in 0..200 {
-            loads.insert(d0 + chrono::Days::new(i), DayLoad { total: 50.0, ..Default::default() });
-        }
-        let s = series(&loads, d0, d0 + chrono::Days::new(199), 42.0, 7.0);
+        let loads = steady(200, DayLoad { total: 50.0, ..Default::default() });
+        let (s, curve) = series(&loads, d0, d0 + chrono::Days::new(199), STD);
         let last = s.last().unwrap();
         assert!((last.fatigue - 50.0).abs() < 0.01);
         assert!(last.fitness > 49.0 && last.fitness < 50.0);
         assert!(s[0].form == 0.0 && s[1].form < 0.0);
+        assert_eq!(last.fatigue_parts, None);
+        // Gleichmäßige Belastung: keine Streuung, keine Monotonie
+        assert_eq!(last.monotony, None);
         // Ruhe: Form steigt, Fitness sinkt
-        let f = forecast(last, 0.0, 14, 42.0, 7.0);
+        let f = forecast(&curve, last.date, DayLoad::default(), 14);
         assert_eq!(f.len(), 14);
         assert!(f[13].fitness < last.fitness && f[13].form > 20.0);
         assert_eq!(f[0].date, last.date.succ_opt().unwrap());
+    }
+
+    #[test]
+    fn two_curve_splits_fatigue_and_rests_faster() {
+        let d0 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let two = CurveParams { model: CurveModel::TwoCurve { aerobic_days: 5.0, anaerobic_days: 12.0, rest_bonus: 0.18 }, ..STD };
+        let loads = steady(120, DayLoad { total: 60.0, aerobic: 30.0, anaerobic: 20.0, estimated: 10.0 });
+        let end = d0 + chrono::Days::new(119);
+        let (s, curve) = series(&loads, d0, end, two);
+        let last = s.last().unwrap();
+        let (a, b) = last.fatigue_parts.unwrap();
+        // aerob = aerob + geschätzt
+        assert!((a - 40.0).abs() < 0.01 && (b - 20.0).abs() < 0.05, "{a} {b}");
+        assert!((last.fatigue - a - b).abs() < 1e-9);
+        // Der anaerobe Teil klingt langsamer ab als der aerobe
+        let rest = forecast(&curve, end, DayLoad::default(), 5);
+        let (a5, b5) = rest[4].fatigue_parts.unwrap();
+        assert!(a5 / a < b5 / b);
+        // Ruhetags-Bonus: schneller als ohne
+        let no_bonus = CurveParams { model: CurveModel::TwoCurve { aerobic_days: 5.0, anaerobic_days: 12.0, rest_bonus: 0.0 }, ..STD };
+        let (_, c2) = series(&loads, d0, end, no_bonus);
+        let slow = forecast(&c2, end, DayLoad::default(), 5);
+        assert!(rest[4].fatigue < slow[4].fatigue);
+    }
+
+    #[test]
+    fn foster_monotony_strain_and_surcharge() {
+        let d0 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        // Woche: 100, 0, 100, 0, 100, 0, 100 → Mittel 57,14, sd 49,49, Monotonie 1,155
+        let mut loads = BTreeMap::new();
+        for i in 0..7u64 {
+            loads.insert(d0 + chrono::Days::new(i), DayLoad { total: if i % 2 == 0 { 100.0 } else { 0.0 }, ..Default::default() });
+        }
+        let end = d0 + chrono::Days::new(6);
+        let (s, _) = series(&loads, d0, end, STD);
+        let m = s[6].monotony.unwrap();
+        assert!((m - 1.1547).abs() < 1e-3, "{m}");
+        assert!((s[6].strain.unwrap() - 400.0 * m).abs() < 1e-6);
+        // Fast gleich jeden Tag → hohe Monotonie; der Aufschlag erhöht nur die Ermüdung
+        let mut mono = BTreeMap::new();
+        for i in 0..7u64 {
+            mono.insert(d0 + chrono::Days::new(i), DayLoad { total: 100.0 + i as f64, ..Default::default() });
+        }
+        let (plain, _) = series(&mono, d0, end, STD);
+        let (more, _) = series(&mono, d0, end, CurveParams { foster_surcharge: Some(0.15), ..STD });
+        assert!(plain[6].monotony.unwrap() > MONOTONY_WARN);
+        assert!(more[6].fatigue > plain[6].fatigue);
+        assert_eq!(more[6].fitness, plain[6].fitness);
     }
 
     #[test]

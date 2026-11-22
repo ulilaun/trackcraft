@@ -63,7 +63,16 @@ pub struct Settings {
     pub fitness_days: u32,
     pub fatigue_days: u32,
     pub estimate_per_hour: BTreeMap<String, f64>,
+    /// `standard` oder `two_curve`
+    pub curve_model: String,
+    pub aerobic_days: u32,
+    pub anaerobic_days: u32,
+    pub rest_bonus_pct: u32,
+    pub foster_surcharge: bool,
+    pub foster_surcharge_pct: u32,
 }
+
+pub const CURVE_MODELS: [&str; 2] = ["standard", "two_curve"];
 
 impl Settings {
     pub fn to_json(&self) -> Value {
@@ -72,30 +81,63 @@ impl Settings {
             "fitness_days": self.fitness_days,
             "fatigue_days": self.fatigue_days,
             "estimate_per_hour": self.estimate_per_hour,
+            "curve_model": self.curve_model,
+            "aerobic_days": self.aerobic_days,
+            "anaerobic_days": self.anaerobic_days,
+            "rest_bonus_pct": self.rest_bonus_pct,
+            "foster_surcharge": self.foster_surcharge,
+            "foster_surcharge_pct": self.foster_surcharge_pct,
         })
     }
 
     fn per_hour(&self, class: &str) -> f64 {
         self.estimate_per_hour.get(class).copied().unwrap_or(0.0)
     }
+
+    /// Parameter der Formkurve aus den Einstellungen.
+    pub fn curve(&self) -> model::CurveParams {
+        model::CurveParams {
+            fitness_days: self.fitness_days as f64,
+            model: if self.curve_model == "two_curve" {
+                model::CurveModel::TwoCurve {
+                    aerobic_days: self.aerobic_days as f64,
+                    anaerobic_days: self.anaerobic_days as f64,
+                    rest_bonus: self.rest_bonus_pct as f64 / 100.0,
+                }
+            } else {
+                model::CurveModel::Standard { fatigue_days: self.fatigue_days as f64 }
+            },
+            foster_surcharge: self.foster_surcharge.then_some(self.foster_surcharge_pct as f64 / 100.0),
+        }
+    }
 }
 
 pub const SEX_FACTORS: [f64; 2] = [1.92, 1.67];
 
 pub async fn settings(db: &Db) -> anyhow::Result<Settings> {
-    let r = sqlx::query("SELECT sex_factor, fitness_days, fatigue_days, estimate_per_hour FROM load_settings WHERE id = 1")
-        .fetch_one(&db.reader)
-        .await?;
+    let r = sqlx::query(
+        "SELECT sex_factor, fitness_days, fatigue_days, estimate_per_hour, curve_model, aerobic_days, anaerobic_days, \
+         rest_bonus_pct, foster_surcharge, foster_surcharge_pct FROM load_settings WHERE id = 1",
+    )
+    .fetch_one(&db.reader)
+    .await?;
     let est: String = r.get("estimate_per_hour");
     let mut estimate_per_hour: BTreeMap<String, f64> = serde_json::from_str(&est)?;
     for c in SPORT_CLASSES {
         estimate_per_hour.entry((*c).to_string()).or_insert(0.0);
     }
+    let int = |k: &str| r.get::<i64, _>(k) as u32;
     Ok(Settings {
         sex_factor: r.get("sex_factor"),
-        fitness_days: r.get::<i64, _>("fitness_days") as u32,
-        fatigue_days: r.get::<i64, _>("fatigue_days") as u32,
+        fitness_days: int("fitness_days"),
+        fatigue_days: int("fatigue_days"),
         estimate_per_hour,
+        curve_model: r.get("curve_model"),
+        aerobic_days: int("aerobic_days"),
+        anaerobic_days: int("anaerobic_days"),
+        rest_bonus_pct: int("rest_bonus_pct"),
+        foster_surcharge: r.get::<i64, _>("foster_surcharge") == 1,
+        foster_surcharge_pct: int("foster_surcharge_pct"),
     })
 }
 
@@ -107,6 +149,19 @@ pub struct SettingsInput {
     pub fatigue_days: Option<u32>,
     /// Nur die genannten Sportklassen ändern sich.
     pub estimate_per_hour: Option<BTreeMap<String, f64>>,
+    pub curve_model: Option<String>,
+    pub aerobic_days: Option<u32>,
+    pub anaerobic_days: Option<u32>,
+    pub rest_bonus_pct: Option<u32>,
+    pub foster_surcharge: Option<bool>,
+    pub foster_surcharge_pct: Option<u32>,
+}
+
+fn in_range(field: &'static str, v: Option<u32>, lo: u32, hi: u32, message: &'static str) -> Result<Option<u32>, Error> {
+    match v {
+        Some(d) if !(lo..=hi).contains(&d) => Err(invalid(field, "out_of_range", message)),
+        _ => Ok(v),
+    }
 }
 
 pub async fn update_settings(db: &Db, input: &SettingsInput) -> Result<Settings, Error> {
@@ -118,20 +173,38 @@ pub async fn update_settings(db: &Db, input: &SettingsInput) -> Result<Settings,
         }
         new.sex_factor = f;
     }
-    if let Some(d) = input.fitness_days {
-        if !(7..=120).contains(&d) {
-            return Err(invalid("fitness_days", "out_of_range", "Fitness time constant must be 7 to 120 days"));
-        }
+    if let Some(d) = in_range("fitness_days", input.fitness_days, 7, 120, "Fitness time constant must be 7 to 120 days")? {
         new.fitness_days = d;
     }
-    if let Some(d) = input.fatigue_days {
-        if !(2..=30).contains(&d) {
-            return Err(invalid("fatigue_days", "out_of_range", "Fatigue time constant must be 2 to 30 days"));
-        }
+    if let Some(d) = in_range("fatigue_days", input.fatigue_days, 2, 30, "Fatigue time constant must be 2 to 30 days")? {
         new.fatigue_days = d;
+    }
+    if let Some(d) = in_range("aerobic_days", input.aerobic_days, 2, 30, "Aerobic fatigue time constant must be 2 to 30 days")? {
+        new.aerobic_days = d;
+    }
+    if let Some(d) = in_range("anaerobic_days", input.anaerobic_days, 2, 30, "Anaerobic fatigue time constant must be 2 to 30 days")? {
+        new.anaerobic_days = d;
+    }
+    if let Some(p) = in_range("rest_bonus_pct", input.rest_bonus_pct, 0, 50, "Rest day bonus must be 0 to 50 percent")? {
+        new.rest_bonus_pct = p;
+    }
+    if let Some(p) = in_range("foster_surcharge_pct", input.foster_surcharge_pct, 1, 50, "Surcharge must be 1 to 50 percent")? {
+        new.foster_surcharge_pct = p;
+    }
+    if let Some(b) = input.foster_surcharge {
+        new.foster_surcharge = b;
+    }
+    if let Some(m) = &input.curve_model {
+        if !CURVE_MODELS.contains(&m.as_str()) {
+            return Err(invalid("curve_model", "invalid", "Curve model must be standard or two_curve"));
+        }
+        new.curve_model = m.clone();
     }
     if new.fatigue_days >= new.fitness_days {
         return Err(invalid("fatigue_days", "not_below_fitness", "Fatigue must decay faster than fitness"));
+    }
+    if new.aerobic_days.max(new.anaerobic_days) >= new.fitness_days {
+        return Err(invalid("anaerobic_days", "not_below_fitness", "Fatigue must decay faster than fitness"));
     }
     if let Some(m) = &input.estimate_per_hour {
         for (k, v) in m {
@@ -150,12 +223,20 @@ pub async fn update_settings(db: &Db, input: &SettingsInput) -> Result<Settings,
     let now = chrono::Utc::now().timestamp_millis();
     let mut tx = db.writer.begin().await?;
     sqlx::query(
-        "UPDATE load_settings SET sex_factor = ?, fitness_days = ?, fatigue_days = ?, estimate_per_hour = ?, updated_at_ms = ? WHERE id = 1",
+        "UPDATE load_settings SET sex_factor = ?, fitness_days = ?, fatigue_days = ?, estimate_per_hour = ?, curve_model = ?, \
+         aerobic_days = ?, anaerobic_days = ?, rest_bonus_pct = ?, foster_surcharge = ?, foster_surcharge_pct = ?, updated_at_ms = ? \
+         WHERE id = 1",
     )
     .bind(new.sex_factor)
     .bind(new.fitness_days as i64)
     .bind(new.fatigue_days as i64)
     .bind(serde_json::to_string(&new.estimate_per_hour)?)
+    .bind(&new.curve_model)
+    .bind(new.aerobic_days as i64)
+    .bind(new.anaerobic_days as i64)
+    .bind(new.rest_bonus_pct as i64)
+    .bind(new.foster_surcharge as i64)
+    .bind(new.foster_surcharge_pct as i64)
     .bind(now)
     .execute(&mut *tx)
     .await?;
@@ -651,6 +732,10 @@ async fn day_loads(cfg: &Validated, db: &Db) -> anyhow::Result<BTreeMap<NaiveDat
     Ok(out)
 }
 
+fn opt1(v: Option<f64>) -> Value {
+    v.map(|x| json!((x * 100.0).round() / 100.0)).unwrap_or(Value::Null)
+}
+
 fn day_json(d: &DayValue, with_parts: bool) -> Value {
     let mut v = json!({
         "date": d.date.to_string(),
@@ -658,6 +743,10 @@ fn day_json(d: &DayValue, with_parts: bool) -> Value {
         "fitness": round1(d.fitness),
         "fatigue": round1(d.fatigue),
         "form": round1(d.form),
+        "fatigue_aerobic": d.fatigue_parts.map(|p| round1(p.0)),
+        "fatigue_anaerobic": d.fatigue_parts.map(|p| round1(p.1)),
+        "monotony": opt1(d.monotony),
+        "strain": d.strain.map(|s| s.round()),
     });
     if with_parts {
         v["aerobic"] = json!(round1(d.load.aerobic));
@@ -678,20 +767,29 @@ pub struct FormQuery {
 pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> anyhow::Result<Value> {
     let s = settings(db).await?;
     let loads = day_loads(cfg, db).await?;
-    let (fd, gd) = (s.fitness_days as f64, s.fatigue_days as f64);
     let start = loads.keys().next().copied().unwrap_or(today).min(today);
-    let all = model::series(&loads, start, today, fd, gd);
+    let (all, curve) = model::series(&loads, start, today, s.curve());
     let to = q.to.unwrap_or(today).min(today);
     let from = q.from.unwrap_or(today - chrono::Days::new(83));
     let days: Vec<Value> = all.iter().filter(|d| d.date >= from && d.date <= to).map(|d| day_json(d, true)).collect();
 
     let last = all.last().expect("mindestens heute");
+    // „Wie bisher“: mittlere Tagesbelastung der letzten 28 Tage, mit ihrer Aufteilung aerob/anaerob/geschätzt
     let daily = match q.forecast {
-        Forecast::Rest => 0.0,
-        Forecast::Steady => all.iter().rev().take(STEADY_WINDOW).map(|d| d.load.total).sum::<f64>() / STEADY_WINDOW as f64,
+        Forecast::Rest => DayLoad::default(),
+        Forecast::Steady => {
+            let w = STEADY_WINDOW as f64;
+            let recent = all.iter().rev().take(STEADY_WINDOW);
+            recent.fold(DayLoad::default(), |a, d| DayLoad {
+                total: a.total + d.load.total / w,
+                aerobic: a.aerobic + d.load.aerobic / w,
+                anaerobic: a.anaerobic + d.load.anaerobic / w,
+                estimated: a.estimated + d.load.estimated / w,
+            })
+        }
     };
     let forecast: Vec<Value> = if q.to.is_none_or(|t| t >= today) {
-        model::forecast(last, daily, q.forecast_days, fd, gd).iter().map(|d| day_json(d, false)).collect()
+        model::forecast(&curve, today, daily, q.forecast_days).iter().map(|d| day_json(d, false)).collect()
     } else {
         Vec::new()
     };
@@ -707,16 +805,22 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
         "zones_configured": !sets.is_empty(),
         "pending": todo(cfg, db, &s, &sets).await?.len(),
         "first_date": loads.keys().next().map(|d| d.to_string()),
+        "monotony_warn": model::MONOTONY_WARN,
         "current": {
             "fitness": round1(last.fitness),
             "fatigue": round1(last.fatigue),
+            "fatigue_aerobic": last.fatigue_parts.map(|p| round1(p.0)),
+            "fatigue_anaerobic": last.fatigue_parts.map(|p| round1(p.1)),
             "form": round1(last.form),
             "load_7d": round1(week(0, 7)),
             "load_prev_7d": round1(week(7, 14)),
             "fitness_week_ago": round1(week_ago.fitness),
             "fatigue_week_ago": round1(week_ago.fatigue),
+            "monotony": opt1(last.monotony),
+            "strain": last.strain.map(|v| v.round()),
+            "strain_week_ago": week_ago.strain.map(|v| v.round()),
         },
         "days": days,
-        "forecast": { "mode": if q.forecast == Forecast::Rest { "rest" } else { "steady" }, "daily_load": round1(daily), "days": forecast },
+        "forecast": { "mode": if q.forecast == Forecast::Rest { "rest" } else { "steady" }, "daily_load": round1(daily.total), "days": forecast },
     }))
 }

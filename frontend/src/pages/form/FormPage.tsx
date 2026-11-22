@@ -17,6 +17,7 @@ import { FormSettingsDialog } from "./FormSettingsDialog";
 import {
   FORECAST_DAYS,
   STATE_CLASS,
+  axisTicks,
   chartPoints,
   formState,
   signed,
@@ -62,15 +63,24 @@ function CurveTooltip({ active, payload }: { active?: boolean; payload?: { paylo
       </div>
       {row("form.fitness", p.fitness ?? p.fitnessForecast, "var(--color-fitness)")}
       {row("form.fatigue", p.fatigue ?? p.fatigueForecast, "var(--color-fatigue)")}
+      {row("form.fatigueAerobic", p.fatigueAerobic ?? p.fatigueAerobicForecast, "var(--color-aerobic)")}
+      {row("form.fatigueAnaerobic", p.fatigueAnaerobic ?? p.fatigueAnaerobicForecast, "var(--color-anaerobic)")}
       {row("form.form", p.form ?? p.formForecast, "var(--tc-text)")}
       {!forecast && row("form.load", p.load, "var(--tc-muted)")}
+      {!forecast && p.monotony != null && (
+        <div className="flex justify-between gap-4">
+          <span className="text-muted">{t("form.monotony")}</span>
+          <span className="num">{num(p.monotony, 2)}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function Curve({ points }: { points: ChartPoint[] }) {
+function Curve({ points, twoCurve }: { points: ChartPoint[]; twoCurve: boolean }) {
   const span = points.length;
   const offset = zeroOffset(points);
+  const ticks = axisTicks(points.map((p) => p.date));
   return (
     <div className="h-72" data-testid="form-curve">
       <ResponsiveContainer width="100%" height="100%">
@@ -84,6 +94,8 @@ function Curve({ points }: { points: ChartPoint[] }) {
           <CartesianGrid stroke="var(--tc-line)" vertical={false} />
           <XAxis
             dataKey="date"
+            ticks={ticks}
+            interval={ticks ? 0 : "preserveEnd"}
             tickFormatter={tickOf(span)}
             minTickGap={24}
             tick={{ fill: "var(--tc-muted)", fontSize: 11 }}
@@ -103,6 +115,21 @@ function Curve({ points }: { points: ChartPoint[] }) {
             fillOpacity={0.5}
             isAnimationActive={false}
           />
+          {twoCurve && (
+            <>
+              <Line dataKey="fatigueAerobic" stroke="var(--color-aerobic)" strokeWidth={1} dot={false} isAnimationActive={false} />
+              <Line dataKey="fatigueAerobicForecast" stroke="var(--color-aerobic)" strokeWidth={1} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
+              <Line dataKey="fatigueAnaerobic" stroke="var(--color-anaerobic)" strokeWidth={1} dot={false} isAnimationActive={false} />
+              <Line
+                dataKey="fatigueAnaerobicForecast"
+                stroke="var(--color-anaerobic)"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+                dot={false}
+                isAnimationActive={false}
+              />
+            </>
+          )}
           <Line dataKey="fatigue" stroke="var(--color-fatigue)" strokeWidth={1.6} dot={false} isAnimationActive={false} />
           <Line dataKey="fatigueForecast" stroke="var(--color-fatigue)" strokeWidth={1.6} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
           <Line dataKey="fitness" stroke="var(--color-fitness)" strokeWidth={2.4} dot={false} isAnimationActive={false} />
@@ -141,6 +168,13 @@ function WeekTooltip({ active, payload }: { active?: boolean; payload?: { payloa
   );
 }
 
+/** Wochenbalken: bei vielen Wochen nur die erste Woche jedes Monats (bzw. Jahres) beschriften. */
+function weekTicks(bars: WeekBar[]): string[] | undefined {
+  if (bars.length <= 17) return undefined;
+  const long = bars.length * 7 > 3 * 365;
+  return bars.filter((b, i) => i > 0 && b.week.slice(long ? 0 : 5, 7) !== bars[i - 1]!.week.slice(long ? 0 : 5, 7)).map((b) => b.week);
+}
+
 function Weeks({ bars }: { bars: WeekBar[] }) {
   return (
     <div className="h-36" data-testid="form-weeks">
@@ -154,6 +188,8 @@ function Weeks({ bars }: { bars: WeekBar[] }) {
           <CartesianGrid stroke="var(--tc-line)" vertical={false} />
           <XAxis
             dataKey="week"
+            ticks={weekTicks(bars)}
+            interval={bars.length > 17 ? 0 : "preserveEnd"}
             tickFormatter={tickOf(bars.length * 7)}
             minTickGap={24}
             tick={{ fill: "var(--tc-muted)", fontSize: 11 }}
@@ -241,6 +277,8 @@ export function FormPage() {
   const bars = useMemo(() => weekBars(days), [days]);
   const c = d?.current;
   const state = c ? formState(c.form) : null;
+  const twoCurve = d?.settings.curve_model === "two_curve";
+  const monotonous = c?.monotony != null && d != null && c.monotony > d.monotony_warn;
 
   return (
     <div className="grid gap-4">
@@ -272,7 +310,7 @@ export function FormPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <KpiCard
           label={t("form.fitness")}
           value={c ? <span className="text-fitness">{num(c.fitness)}</span> : "–"}
@@ -281,7 +319,12 @@ export function FormPage() {
         <KpiCard
           label={t("form.fatigue")}
           value={c ? <span className="text-fatigue">{num(c.fatigue)}</span> : "–"}
-          sub={c && t("form.vsLastWeek", { delta: signed(c.fatigue - c.fatigue_week_ago) })}
+          sub={
+            c &&
+            (c.fatigue_aerobic != null && c.fatigue_anaerobic != null
+              ? `${t("load.aerobic")} ${num(c.fatigue_aerobic)} · ${t("load.anaerobic")} ${num(c.fatigue_anaerobic)}`
+              : t("form.vsLastWeek", { delta: signed(c.fatigue - c.fatigue_week_ago) }))
+          }
         />
         <KpiCard
           label={t("form.form")}
@@ -299,6 +342,30 @@ export function FormPage() {
           value={c ? num(c.load_7d) : "–"}
           sub={c && t("form.vsLastWeek", { delta: signed(c.load_7d - c.load_prev_7d) })}
         />
+        <div title={d ? t("form.monotonyHint", { warn: num(d.monotony_warn, 1) }) : undefined}>
+          <KpiCard
+            label={t("form.monotony")}
+            value={c?.monotony != null ? num(c.monotony, 2) : "–"}
+            sub={
+              c?.monotony != null && (
+                <span className={`rounded-full px-2 py-0.5 font-semibold ${monotonous ? STATE_CLASS.overload : STATE_CLASS.fresh}`}>
+                  {t(monotonous ? "form.monotonyHigh" : "form.monotonyOk")}
+                </span>
+              )
+            }
+          />
+        </div>
+        <div title={t("form.strainHint")}>
+          <KpiCard
+            label={t("form.strain")}
+            value={c?.strain != null ? num(c.strain) : "–"}
+            sub={
+              d?.settings.foster_surcharge && monotonous
+                ? t("form.surchargeActive", { pct: d.settings.foster_surcharge_pct })
+                : c?.strain != null && c.strain_week_ago != null && t("form.vsLastWeek", { delta: signed(c.strain - c.strain_week_ago) })
+            }
+          />
+        </div>
       </div>
 
       <Card>
@@ -350,6 +417,12 @@ export function FormPage() {
               items={[
                 ["form.fitness", "var(--color-fitness)"],
                 ["form.fatigue", "var(--color-fatigue)"],
+                ...(twoCurve
+                  ? ([
+                      ["form.fatigueAerobic", "var(--color-aerobic)"],
+                      ["form.fatigueAnaerobic", "var(--color-anaerobic)"],
+                    ] as [TextKey, string][])
+                  : []),
                 ["form.form", "var(--color-good)"],
               ]}
             />
@@ -361,7 +434,7 @@ export function FormPage() {
                 : t("form.forecastHint.steady", { days: d.forecast.days.length, load: num(d.forecast.daily_load) })}
             </p>
           )}
-          {d && days.length === 0 ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <Curve points={points} />}
+          {d && days.length === 0 ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <Curve points={points} twoCurve={twoCurve} />}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">{t("form.weeks")}</h2>
             <Legend
