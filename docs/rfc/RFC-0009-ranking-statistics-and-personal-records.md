@@ -76,6 +76,16 @@ Versionierte Neuberechnung bei wirksamen Rechenparametern, keine bei reinen Betr
 
 Keine Streak-Funktion oder Definition aktiver Serientage in V1. Frühere Abstimmungen hierzu verworfen, keine Ersatzfunktion automatisch hinzugefügt.
 
-Trainingsbelastungs-/Stressscore je Aktivität und daraus Fitnesszustand ausschließlich sehr späte Zukunftsidee, keine V1-Formel/Messwertpflicht.
+Keine globalen Leaderboards/Clubs/Challenges/Achievements, FTP-Analysen als V1-Zusage. Diagramme mit Recharts (ADR-0004).
 
-Keine globalen Leaderboards/Clubs/Challenges/Achievements, FTP-/Herzfrequenzanalysen als V1-Zusage. Diagramme mit Recharts (ADR-0004).
+## Belastung und Form
+
+Seit Schemaversion 11 (Entscheidungen Uli 22.11.2026). Leistung (Watt) liegt kaum vor, daher rechnet TrackCraft die Belastung für alle Sportarten aus der Herzfrequenz.
+
+**HF-Zonen** (`hr_zone_sets`, Kontoseite „Herzfrequenz“): maximale HF, Ruhepuls, optional Schwellen-HF; Zonenmodell % der max. HF, % der HF-Reserve (Karvonen, Vorgabe) oder % der Schwellen-HF (Friel, nur mit Schwellen-HF); fünf untere Grenzen in Prozent, aufsteigend, Vorgaben je Modell. Jeder Satz gilt ab einem lokalen Datum. Ein allgemeiner Satz gilt für alle Sportklassen; eine Sportklasse kann eigene Sätze haben, die ab ihrem Datum vorgehen. Vor dem ältesten allgemeinen Satz gilt dieser rückwirkend. Vorschlag für die maximale HF aus dem Geburtstag nach Tanaka (208 − 0,7 × Alter). Anaerob zählt ab der Schwellen-HF, ohne sie ab Beginn von Zone 4.
+
+**Belastung je Aktivität** (`activity_loads`, abgeleitet): Banister-TRIMP aus den Messpunkten, Σ Minuten × x × 0,64 × e^(k·x) mit x = Anteil der HF-Reserve (auf 0–1 begrenzt) und k = 1,92 bzw. 1,67 (Einstellung „Faktor der Belastungsformel“). Es zählt jedes Intervall zwischen zwei Messpunkten mit HF am ersten Punkt; Lücken über 60 s gelten als Pause. Dazu die Zeit in den Zonen (unter Zone 2 zählt zu Zone 1) und die Aufteilung aerob/anaerob, damit ein späteres Zwei-Kurven-Modell ohne neue Berechnung möglich ist. Hat die Datei nur eine Durchschnitts-HF, gilt sie für die ganze Dauer (`average`). Ohne HF oder ohne jeden Zonensatz wird geschätzt: Dauer × Belastung je Stunde der Sportklasse (`estimated`, einstellbar, Vorgaben Rad 50, E-Bike 35, Laufen 65, Ski 55, Schwimmen 60, Studio 40, Unbekannt 45). Jede Zeile trägt einen Hash ihrer Eingaben (Formelversion, Zonensatz, Faktor, Revision der Aktivität); weicht er ab, rechnet ein Hintergrunddienst nach dem Start, nach Änderungen und alle 30 s neu. Zonensätze und Einstellungen sind sicherungsrelevant, die Belastung selbst nicht.
+
+**Formkurve** (Seite „Form“): Tagesbelastung nach lokalem Datum; Fitness und Ermüdung als exponentiell gleitende Mittel mit den Zeitkonstanten 42 und 7 Tagen (einstellbar, Ermüdung kürzer als Fitness), Form = Fitness − Ermüdung des Vortags. Zustand der Form: über +25 erholt, +5 bis +25 frisch, −10 bis +5 ausgeglichen, −30 bis −10 im Aufbau, darunter Überlastungsgefahr. Vorschau ab morgen (Vorgabe 28 Tage, gestrichelt): „Ruhe“ ohne Belastung oder „wie bisher“ mit dem Mittel der letzten 28 Tage; die spätere Trainingsplanung ersetzt diese Annahme durch geplante Einheiten. Zeitraum wie in der Aktivitätenliste (Gesamt, 12 Wochen, Jahr, Saison, Von–Bis), dazu Wochenbalken aerob/anaerob/geschätzt.
+
+Noch nicht umgesetzt: gewichtetes Zwei-Kurven-Modell mit getrennter Ermüdung aerob/anaerob, Monotonie und Strain nach Foster, Belastungsspalte in der Aktivitätenliste. W′-Balance braucht Leistungsdaten und ist nicht vorgesehen.

@@ -167,6 +167,7 @@ pub async fn confirm(State(state): State<AppState>, Path(id): Path<String>, body
     };
     match import_job::confirm(&state.cfg, &state.db, &id, &decision).await {
         Ok(c) => {
+            crate::load::wake();
             let mut out = json!({ "data": c.job });
             if !c.notices.is_empty() {
                 out["meta"] = json!({ "notices": c.notices });

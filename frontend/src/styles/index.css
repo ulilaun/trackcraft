@@ -51,6 +51,19 @@
   --radius-card: 16px;
 }
 
+/* Formkurve, Belastung und HF-Zonen (E7). `static`, weil Diagramme und Balken sie als var() nutzen, nicht nur als Klasse. */
+@theme static {
+  --color-fitness: var(--tc-accent);
+  --color-fatigue: #f43f5e;
+  --color-aerobic: #38bdf8;
+  --color-anaerobic: #fb923c;
+  --color-zone-1: #94a3b8;
+  --color-zone-2: #22c55e;
+  --color-zone-3: #eab308;
+  --color-zone-4: #f97316;
+  --color-zone-5: #ef4444;
+}
+
 body {
   @apply bg-bg text-text antialiased;
   font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;

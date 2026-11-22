@@ -26,6 +26,8 @@ tags:
   - name: Seasons
   - name: Profile
     description: Profil des einzigen Benutzers; die Datenbank ist führend
+  - name: Load
+    description: HF-Zonen, Belastung je Aktivität (Banister-TRIMP) und Formkurve (RFC-0009 „Belastung und Form“)
   - name: Sports
     description: Sportart-Zuordnung und Untertyp-Katalog in der Datenbank (RFC-0008 Abschnitt 4)
   - name: Garmin
@@ -429,6 +431,90 @@ paths:
       responses:
         '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
+  /hr-zones:
+    get:
+      tags: [Load]
+      operationId: listHrZoneSets
+      summary: Alle HF-Zonensätze
+      description: Sortiert nach Sportklasse (allgemein zuerst) und Datum. `meta.suggestion` schlägt die maximale HF aus dem Geburtstag vor (Tanaka 208 − 0,7 × Alter).
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/HrZoneSetListResponse'}}}}
+    post:
+      tags: [Load]
+      operationId: createHrZoneSet
+      summary: Zonensatz anlegen
+      description: Gilt ab `valid_from` für die Sportklasse (`null` = allgemein). Ohne `bounds` gelten die Vorgaben des Modells. Sicherungsrelevant; die Belastung wird im Hintergrund neu berechnet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/HrZoneSetInput'}
+      responses:
+        '201': {description: 'Angelegt', content: {application/json: {schema: {$ref: '#/components/schemas/HrZoneSetResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /hr-zones/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    patch:
+      tags: [Load]
+      operationId: updateHrZoneSet
+      summary: Zonensatz ändern
+      description: Fehlende Felder bleiben. Ein neues Modell ohne `bounds` setzt dessen Vorgaben.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/HrZoneSetInput'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/HrZoneSetResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Load]
+      operationId: deleteHrZoneSet
+      summary: Zonensatz löschen
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /form:
+    get:
+      tags: [Load]
+      operationId: getForm
+      summary: Formkurve mit aktuellem Stand und Vorschau
+      description: >-
+        Fitness und Ermüdung als exponentiell gleitende Mittel der Tagesbelastung (Standardmodell), Form = Fitness − Ermüdung
+        des Vortags. `days` reicht von `from` (Vorgabe: heute − 83 Tage) bis `to` (höchstens heute). Die Vorschau beginnt morgen,
+        nur wenn der Zeitraum heute einschließt: `rest` ohne Belastung, `steady` mit dem Mittel der letzten 28 Tage.
+      parameters:
+        - {name: from, in: query, schema: {type: string, format: date}}
+        - {name: to, in: query, schema: {type: string, format: date}}
+        - {name: forecast, in: query, schema: {type: string, enum: [rest, steady], default: rest}}
+        - {name: forecast_days, in: query, schema: {type: integer, minimum: 0, maximum: 90, default: 28}}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/FormResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /form/settings:
+    get:
+      tags: [Load]
+      operationId: getLoadSettings
+      summary: Faktor der Formel, Zeitkonstanten, Schätzfaktoren
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/LoadSettingsResponse'}}}}
+    patch:
+      tags: [Load]
+      operationId: updateLoadSettings
+      summary: Einstellungen ändern
+      description: '`estimate_per_hour` ändert nur die genannten Sportklassen. Sicherungsrelevant.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/LoadSettingsUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/LoadSettingsResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
   /seasons:
     get:
       tags: [Seasons]
@@ -794,12 +880,12 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
     NotFound:
-      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `backup_not_found`, `operation_not_found`).
+      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `hr_zone_set_not_found`, `backup_not_found`, `operation_not_found`).
       content:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
     Conflict:
-      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`).
+      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `hr_zone_set_date_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`).
       content:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
@@ -901,7 +987,7 @@ components:
         published_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
     Activity:
       type: object
-      required: [id, title, description, location, sport_class, source_sport, sub_sport, start_time, start_time_origin, start_time_original, total_time_ms, total_time_origin, total_time_original_ms, distance_m, distance_origin, elevation_gain_m, elevation_origin, avg_speed_kmh, avg_heart_rate_bpm, heart_rate_origin, filtered_outliers_count, max_speed_threshold_kmh, section_count, point_count, has_position, session_index, processing_status, segment_success_count, created_at, updated_at, revision]
+      required: [id, title, description, location, sport_class, source_sport, sub_sport, start_time, start_time_origin, start_time_original, total_time_ms, total_time_origin, total_time_original_ms, distance_m, distance_origin, elevation_gain_m, elevation_origin, avg_speed_kmh, avg_heart_rate_bpm, heart_rate_origin, filtered_outliers_count, max_speed_threshold_kmh, section_count, point_count, has_position, session_index, processing_status, segment_success_count, load, load_method, created_at, updated_at, revision]
       properties:
         id: {$ref: '#/components/schemas/Uuid'}
         title: {type: string, minLength: 1}
@@ -931,6 +1017,8 @@ components:
         session_index: {type: integer, minimum: 0}
         processing_status: {type: string, enum: [pending, running, done, failed]}
         segment_success_count: {type: integer, minimum: 0, description: 'Versuche der Aktivität mit erster Bestzeit oder Verbesserung'}
+        load: {type: [number, 'null'], minimum: 0, description: 'Belastung (TRIMP), abgeleitet; null, solange nicht berechnet'}
+        load_method: {oneOf: [{$ref: '#/components/schemas/LoadMethod'}, {type: 'null'}]}
         created_at: {$ref: '#/components/schemas/Timestamp'}
         updated_at: {$ref: '#/components/schemas/Timestamp'}
         revision: {type: integer, minimum: 1}
@@ -938,7 +1026,13 @@ components:
       type: object
       required: [data]
       properties:
-        data: {$ref: '#/components/schemas/Activity'}
+        data:
+          description: '`GET /activities/{id}` ergänzt `training_load`; die Antwort auf PATCH enthält es nicht.'
+          allOf:
+            - {$ref: '#/components/schemas/Activity'}
+            - type: object
+              properties:
+                training_load: {oneOf: [{$ref: '#/components/schemas/ActivityLoad'}, {type: 'null'}]}
         meta:
           type: object
           properties:
@@ -1551,6 +1645,141 @@ components:
                       properties:
                         season: {$ref: '#/components/schemas/Season'}
                 - {type: 'null'}
+    LoadMethod:
+      type: string
+      enum: [samples, average, estimated]
+      description: 'samples: HF je Messpunkt; average: Durchschnitts-HF × Dauer; estimated: ohne HF oder ohne Zonensatz, Dauer × Faktor der Sportklasse'
+    ZoneModel:
+      type: string
+      enum: [max, reserve, threshold]
+      description: '% der max. HF, % der HF-Reserve (Karvonen), % der Schwellen-HF (Friel)'
+    HrZoneSet:
+      type: object
+      required: [id, sport_class, valid_from, max_hr, resting_hr, threshold_hr, model, bounds, zones_bpm, anaerobic_from_bpm]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        sport_class: {oneOf: [{$ref: '#/components/schemas/SportClass'}, {type: 'null'}], description: 'null = allgemeiner Satz'}
+        valid_from: {type: string, format: date, description: 'Gilt ab diesem lokalen Tag; der älteste allgemeine Satz gilt auch davor'}
+        max_hr: {type: integer, minimum: 100, maximum: 240}
+        resting_hr: {type: integer, minimum: 25, maximum: 120}
+        threshold_hr: {type: [integer, 'null']}
+        model: {$ref: '#/components/schemas/ZoneModel'}
+        bounds: {type: array, items: {type: integer, minimum: 30, maximum: 120}, minItems: 5, maxItems: 5, description: 'Untere Grenzen der Zonen 1–5 in Prozent, aufsteigend'}
+        zones_bpm:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items: {type: array, items: {type: [integer, 'null']}, minItems: 2, maxItems: 2}
+          description: 'Je Zone [von, bis] in Schlägen pro Minute; die letzte ist nach oben offen'
+        anaerobic_from_bpm: {type: integer, description: 'Schwellen-HF, sonst Beginn von Zone 4'}
+    HrZoneSetInput:
+      type: object
+      additionalProperties: false
+      properties:
+        sport_class: {oneOf: [{$ref: '#/components/schemas/SportClass'}, {type: 'null'}]}
+        valid_from: {type: string, format: date}
+        max_hr: {type: integer}
+        resting_hr: {type: integer}
+        threshold_hr: {type: [integer, 'null']}
+        model: {$ref: '#/components/schemas/ZoneModel'}
+        bounds: {type: array, items: {type: integer}, minItems: 5, maxItems: 5}
+    HrZoneSetResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/HrZoneSet'}
+    HrZoneSetListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/HrZoneSet'}}
+        meta:
+          type: object
+          required: [suggestion]
+          properties:
+            suggestion:
+              type: object
+              required: [age, max_hr]
+              properties:
+                age: {type: [integer, 'null']}
+                max_hr: {type: [integer, 'null']}
+    ActivityLoad:
+      type: object
+      required: [trimp, aerobic, anaerobic, method, zone_seconds, zone_set]
+      properties:
+        trimp: {type: number, minimum: 0, description: 'Banister-TRIMP: Σ Minuten × x × 0,64 × e^(Faktor × x), x = Anteil der HF-Reserve; Pausen über 60 s zählen nicht'}
+        aerobic: {type: number, minimum: 0, description: 'Anteil unter `anaerobic_from_bpm`'}
+        anaerobic: {type: number, minimum: 0}
+        method: {$ref: '#/components/schemas/LoadMethod'}
+        zone_seconds: {type: [array, 'null'], items: {type: integer}, description: 'Sekunden in Zone 1–5 (unter Zone 2 zählt zu Zone 1); nur bei `samples`'}
+        zone_set: {oneOf: [{$ref: '#/components/schemas/HrZoneSet'}, {type: 'null'}]}
+    LoadSettings:
+      type: object
+      required: [sex_factor, fitness_days, fatigue_days, estimate_per_hour]
+      properties:
+        sex_factor: {type: number, enum: [1.92, 1.67], description: 'Gewichtung der Banister-Formel (männlich / weiblich)'}
+        fitness_days: {type: integer, minimum: 7, maximum: 120, default: 42}
+        fatigue_days: {type: integer, minimum: 2, maximum: 30, default: 7, description: 'Kürzer als fitness_days'}
+        estimate_per_hour: {type: object, additionalProperties: {type: number, minimum: 0, maximum: 300}, description: 'Belastung je Stunde ohne HF, je Sportklasse'}
+    LoadSettingsUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        sex_factor: {type: number, enum: [1.92, 1.67]}
+        fitness_days: {type: integer}
+        fatigue_days: {type: integer}
+        estimate_per_hour: {type: object, additionalProperties: {type: number}}
+    LoadSettingsResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/LoadSettings'}
+    FormDay:
+      type: object
+      required: [date, load, fitness, fatigue, form]
+      properties:
+        date: {type: string, format: date}
+        load: {type: number}
+        aerobic: {type: number, description: 'Nur in `days`'}
+        anaerobic: {type: number, description: 'Nur in `days`'}
+        estimated: {type: number, description: 'Nur in `days`; geschätzter Anteil, nicht in aerob/anaerob enthalten'}
+        fitness: {type: number, description: 'Nach dem Training des Tages'}
+        fatigue: {type: number, description: 'Nach dem Training des Tages'}
+        form: {type: number, description: 'Zu Beginn des Tages: Fitness − Ermüdung des Vortags'}
+    FormResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [today, from, to, settings, zones_configured, pending, first_date, current, days, forecast]
+          properties:
+            today: {type: string, format: date}
+            from: {type: string, format: date}
+            to: {type: string, format: date}
+            settings: {$ref: '#/components/schemas/LoadSettings'}
+            zones_configured: {type: boolean}
+            pending: {type: integer, minimum: 0, description: 'Aktivitäten, deren Belastung noch (neu) berechnet wird'}
+            first_date: {type: [string, 'null'], format: date}
+            current:
+              type: object
+              required: [fitness, fatigue, form, load_7d, load_prev_7d, fitness_week_ago, fatigue_week_ago]
+              properties:
+                fitness: {type: number}
+                fatigue: {type: number}
+                form: {type: number}
+                load_7d: {type: number}
+                load_prev_7d: {type: number}
+                fitness_week_ago: {type: number}
+                fatigue_week_ago: {type: number}
+            days: {type: array, items: {$ref: '#/components/schemas/FormDay'}}
+            forecast:
+              type: object
+              required: [mode, daily_load, days]
+              properties:
+                mode: {type: string, enum: [rest, steady]}
+                daily_load: {type: number}
+                days: {type: array, items: {$ref: '#/components/schemas/FormDay'}}
     AvatarColor:
       type: string
       enum: [blue, teal, green, amber, orange, red, pink, violet]

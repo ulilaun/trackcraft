@@ -5,6 +5,7 @@ pub mod error;
 pub mod garmin;
 pub mod guard;
 pub mod import;
+pub mod load;
 pub mod profile;
 pub mod seasons;
 pub mod segments;
@@ -82,6 +83,10 @@ pub fn router(state: AppState) -> Router {
         .route("/segments/{id}/track", get(segments::track))
         .route("/segments/{id}/leaderboard", get(segments::leaderboard))
         .route("/segments/{id}/attempts", get(segments::attempts))
+        .route("/hr-zones", get(load::list_zones).post(load::create_zone_set))
+        .route("/hr-zones/{id}", patch(load::update_zone_set).delete(load::delete_zone_set))
+        .route("/form", get(load::form))
+        .route("/form/settings", get(load::get_settings).patch(load::update_settings))
         .route("/seasons", get(seasons::list).post(seasons::create))
         .route("/seasons/{id}", get(seasons::get_one).patch(seasons::update).delete(seasons::delete))
         .route("/sport-mappings", get(sports::list_mappings))

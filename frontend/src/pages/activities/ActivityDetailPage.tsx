@@ -25,6 +25,7 @@ import { ActivityMap } from "./ActivityMap";
 import { CreateSegmentDialog } from "./CreateSegmentDialog";
 import { DeleteDialog } from "./DeleteDialog";
 import { EditDialog } from "./EditDialog";
+import { LoadCard } from "./LoadCard";
 import { EffortTable, TopResults } from "./SegmentEfforts";
 import { hasPosition, mergeSections, pointRange, trackStartMs } from "./trackModel";
 
@@ -251,6 +252,8 @@ export function ActivityDetailPage() {
           <ActivityChart key={a.id} points={points} running={running} onHover={setHover} highlight={highlight} />
         </Card>
       )}
+
+      <LoadCard load={a.training_load} />
 
       {efforts.error ? (
         <Card>

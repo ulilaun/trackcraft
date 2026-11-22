@@ -15,6 +15,7 @@ pub mod import;
 pub mod import_job;
 pub mod install;
 pub mod jobs;
+pub mod load;
 pub mod localtime;
 pub mod logging;
 pub mod platform;

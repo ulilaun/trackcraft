@@ -19,6 +19,7 @@ pub const MIGRATIONS: &[(i64, &str)] = &[
     (8, include_str!("../migrations/0008_garmin.sql")),
     (9, include_str!("../migrations/0009_sub_sport_icons.sql")),
     (10, include_str!("../migrations/0010_user_profile.sql")),
+    (11, include_str!("../migrations/0011_training_load.sql")),
 ];
 
 /// Schemaversion dieses Programms.
