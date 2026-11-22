@@ -7,7 +7,7 @@ Status: Bestätigte Scopeentscheidungen, Piggy 009; Matrix im Konsolidierungsrev
 | Modul / Komponente | Version 1.0 (MVP) | Post-MVP (v1.1+) |
 | :--- | :--- | :--- |
 | **Segment Matching** | Zweistufig: Kandidatensuche (Puffer, Richtung) und Endprüfung gegen die vollständige Referenz, alle Parameter aus der TOML, asynchrone Auswertung (RFC-0002) | Flexible/dynamische Radien |
-| **Import Pipeline** | FIT / GPX Parser, Mehrfach-Upload mit Speichern ohne Rückfrage bei Dateien ohne Konflikt, Sessionauswahl, Duplikaterkennung, Outlier-Filter (TOML Schwellenwerte), Fahrzeugerkennung sperrt die Session, Kennzahlen (RFC-0008) | Drittanbieter-Sync APIs, Aktivität kürzen, Ort aus den Startkoordinaten bestimmen (Reverse-Geocoding; Datenschutz nach RFC-0011 offen: externer Dienst sieht den Startpunkt, Alternative lokale Ortsliste) |
+| **Import Pipeline** | FIT / GPX Parser, Mehrfach-Upload mit Speichern ohne Rückfrage bei Dateien ohne Konflikt, Sessionauswahl, Duplikaterkennung, Outlier-Filter (TOML Schwellenwerte), Fahrzeugerkennung sperrt die Session, Kennzahlen (RFC-0008) | Drittanbieter-Sync APIs, Aktivität kürzen (Ortsvorschlag aus eigenen Daten bzw. OpenStreetMap inzwischen umgesetzt, RFC-0017 „Ortsvorschlag“) |
 | **PWA & Offline** | Installierbar, App-Shell und statische Assets offline, keine Offline-Trainingsdaten, kein Login | Offline-Karten-Preloading |
 | **Karte** | Eine externe Standardkarte (OSM), Tile-URL und Attribution aus der TOML (RFC-0020) | Satellit/Topo, lokale Tiles, Heatmap |
 | **Backup/Restore** | Eine Vollsicherung in ein konfiguriertes Ziel, Restore im laufenden Backend (RFC-0012) | nicht festgelegt |

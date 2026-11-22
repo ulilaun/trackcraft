@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
+  apiGet,
   apiPatch,
   apiPost,
   type Activity,
   type ActivityResponse,
+  type LocationSuggestionResponse,
   type SportClass,
   type SubSportCatalog,
   type SubSportEntry,
@@ -46,15 +48,29 @@ export function EditDialog({
   catalog?: SubSportCatalog;
   onClose: () => void;
 }) {
-  const [form, setForm] = useState<EditForm>(() => initialForm(a, timeZone));
+  const [stored, setForm] = useState<EditForm>(() => initialForm(a, timeZone));
+  let form = stored;
   const [error, setError] = useState<string | null>(null);
   const corrected = a.start_time_original !== null || a.total_time_original_ms !== null;
   const [timeOpen, setTimeOpen] = useState(corrected);
   const queryClient = useQueryClient();
   const flash = useFlash();
 
+  // Ortsvorschlag (#22): nur bei leerem Ort; füllt das Feld vor, bis es jemand selbst ändert (Uli 22.11.2026).
+  const [locationTouched, setLocationTouched] = useState(false);
+  const suggestion = useQuery({
+    queryKey: ["activities", "location-suggestion", a.id],
+    queryFn: () => apiGet<LocationSuggestionResponse>(`/activities/${a.id}/location-suggestion`),
+    enabled: !a.location && a.has_position,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const suggested = !locationTouched && !form.location ? (suggestion.data?.data ?? null) : null;
+  if (suggested) form = { ...form, location: suggested.location };
+
   const set = (patch: Partial<EditForm>) => {
-    setForm((f) => ({ ...f, ...patch }));
+    if ("location" in patch) setLocationTouched(true);
+    setForm((f) => ({ ...(suggested ? { ...f, location: suggested.location } : f), ...patch }));
     setError(null);
   };
   const problem = formProblem(form);
@@ -158,7 +174,16 @@ export function EditDialog({
             )}
           </Field>
         </div>
-        <Field label={t("edit.field.location")}>
+        <Field
+          label={t("edit.field.location")}
+          hint={
+            suggested
+              ? suggested.source === "own"
+                ? t("edit.location.own", { distance: Math.round(suggested.distance_m ?? 0) })
+                : t("edit.location.osm")
+              : undefined
+          }
+        >
           <input className={input} value={form.location} disabled={busy} onChange={(e) => set({ location: e.target.value })} />
         </Field>
         <Field label={t("edit.field.description")}>

@@ -39,6 +39,8 @@ pub struct Config {
     pub segments: SegmentsSection,
     #[serde(default)]
     pub garmin: GarminSection,
+    #[serde(default)]
+    pub places: PlacesSection,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -154,6 +156,25 @@ impl Default for GarminSection {
     fn default() -> Self {
         Self { api_base_url: default_garmin_api(), request_delay_ms: default_garmin_delay() }
     }
+}
+
+/// Ortsvorschlag (#22). Ob OpenStreetMap gefragt wird, pflegt die Oberfläche (Datenbank).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlacesSection {
+    /// Basis des Nominatim-Dienstes für die Rückwärtssuche; nur für Tests oder eine eigene Instanz ändern.
+    #[serde(default = "default_nominatim")]
+    pub nominatim_url: String,
+}
+
+impl Default for PlacesSection {
+    fn default() -> Self {
+        Self { nominatim_url: default_nominatim() }
+    }
+}
+
+fn default_nominatim() -> String {
+    "https://nominatim.openstreetmap.org".into()
 }
 
 fn default_garmin_api() -> String {
@@ -635,6 +656,10 @@ fn validate(path: &Path, raw: Config) -> Result<Validated, ConfigError> {
     let g = raw.garmin.api_base_url.trim_end_matches('/');
     if !(g.starts_with("https://") || g.starts_with("http://127.0.0.1") || g.starts_with("http://localhost")) || g.len() < 12 {
         p.push(format!("[garmin] api_base_url: '{}' braucht https:// (http nur für 127.0.0.1/localhost)", raw.garmin.api_base_url));
+    }
+    let n = raw.places.nominatim_url.trim_end_matches('/');
+    if !(n.starts_with("https://") || n.starts_with("http://127.0.0.1") || n.starts_with("http://localhost")) || n.len() < 12 {
+        p.push(format!("[places] nominatim_url: '{}' braucht https:// (http nur für 127.0.0.1/localhost)", raw.places.nominatim_url));
     }
     if raw.garmin.request_delay_ms > 60_000 {
         p.push("[garmin] request_delay_ms: höchstens 60000".into());

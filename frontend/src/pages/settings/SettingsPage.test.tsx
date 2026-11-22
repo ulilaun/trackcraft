@@ -53,6 +53,7 @@ let mappings: SportMapping[];
 let subs: SubSport[];
 let writes: { method: string; url: string; body: unknown }[];
 let failNext: unknown;
+let osmEnabled: boolean;
 
 beforeEach(() => {
   mappings = [
@@ -63,6 +64,7 @@ beforeEach(() => {
   subs = [sub({ key: "road" }), sub({ key: "mtb", activity_count: 3, mapping_count: 1 }), sub({ key: "custom_1", name: "Gravel", builtin: false })];
   writes = [];
   failNext = null;
+  osmEnabled = true;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -74,10 +76,15 @@ beforeEach(() => {
           failNext = null;
           return json(409, f);
         }
+        if (url.endsWith("/places/settings")) {
+          osmEnabled = (JSON.parse(String(init?.body)) as { osm_enabled: boolean }).osm_enabled;
+          return json(200, { data: { osm_enabled: osmEnabled } });
+        }
         return method === "DELETE" ? new Response(null, { status: 204 }) : json(200, { data: {} });
       }
       if (url.endsWith("/sport-mappings")) return json(200, { data: mappings, meta: { total: mappings.length } });
       if (url.endsWith("/sub-sports")) return json(200, { data: subs, meta: { total: subs.length } });
+      if (url.endsWith("/places/settings")) return json(200, { data: { osm_enabled: osmEnabled } });
       return json(404, { error: { code: "not_found", message: "nope" } });
     }),
   );
@@ -105,11 +112,21 @@ describe("Einstellungen als Master-Detail", () => {
     expect(links.map((l) => l.getAttribute("href"))).toEqual([
       "/einstellungen/synchronisierung",
       "/einstellungen/sportarten",
+      "/einstellungen/orte",
       "/einstellungen/darstellung",
     ]);
     expect(links[0]).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { level: 2, name: "Synchronisierung" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Alle Einstellungen/ })).toBeNull();
+  });
+
+  it("Orte: OpenStreetMap-Abruf lässt sich abschalten (#22)", async () => {
+    setup("/einstellungen/orte");
+    const box = await screen.findByRole("checkbox", { name: /Sonst OpenStreetMap fragen/ });
+    expect(box).toBeChecked();
+    fireEvent.click(box);
+    await waitFor(() => expect(writes).toEqual([{ method: "PATCH", url: "/api/v1/places/settings", body: { osm_enabled: false } }]));
+    await waitFor(() => expect(box).not.toBeChecked());
   });
 
   it("wechselt per Link den Abschnitt, mit Zurück-Link für kleine Bildschirme", async () => {
