@@ -131,6 +131,8 @@ pub enum Sort {
     TimeAsc,
     ElevationDesc,
     ElevationAsc,
+    LoadDesc,
+    LoadAsc,
 }
 
 impl Sort {
@@ -144,6 +146,8 @@ impl Sort {
             "total_time_ms" => Self::TimeAsc,
             "-elevation_gain_m" => Self::ElevationDesc,
             "elevation_gain_m" => Self::ElevationAsc,
+            "-load" => Self::LoadDesc,
+            "load" => Self::LoadAsc,
             _ => return None,
         })
     }
@@ -159,6 +163,8 @@ impl Sort {
             Self::TimeAsc => "x.total_time_ms ASC, x.id ASC",
             Self::ElevationDesc => "x.elevation IS NULL, x.elevation DESC, x.id DESC",
             Self::ElevationAsc => "x.elevation IS NULL, x.elevation ASC, x.id ASC",
+            Self::LoadDesc => "x.load_trimp IS NULL, x.load_trimp DESC, x.id DESC",
+            Self::LoadAsc => "x.load_trimp IS NULL, x.load_trimp ASC, x.id ASC",
         }
     }
 }
@@ -252,7 +258,7 @@ pub async fn list(cfg: &Validated, db: &Db, q: &ListQuery) -> anyhow::Result<(Ve
          count(DISTINCT x.sport_class) AS classes, \
          sum(CASE WHEN x.avg_heart_rate_bpm IS NOT NULL THEN x.avg_heart_rate_bpm * x.total_time_ms END) AS hr_weighted, \
          sum(CASE WHEN x.avg_heart_rate_bpm IS NOT NULL THEN x.total_time_ms END) AS hr_time, \
-         coalesce(sum(x.segment_success_count), 0) AS successes \
+         coalesce(sum(x.segment_success_count), 0) AS successes, sum(x.load_trimp) AS load \
          FROM ({BASE}) x WHERE {where_sql}"
     );
     let s = bind_all!(sqlx::query(sqlx::AssertSqlSafe(sum_sql)), &binds).fetch_one(&db.reader).await?;
@@ -277,6 +283,8 @@ pub async fn list(cfg: &Validated, db: &Db, q: &ListQuery) -> anyhow::Result<(Ve
             _ => None,
         },
         "segment_success_count": s.get::<i64, _>("successes"),
+        // Summe der berechneten Belastungen (E7)
+        "load": s.get::<Option<f64>, _>("load").map(|v| v.round()),
     });
     Ok((rows.iter().map(activity_json).collect(), n, summary))
 }

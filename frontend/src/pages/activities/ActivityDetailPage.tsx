@@ -223,14 +223,25 @@ export function ActivityDetailPage() {
           />
           <KpiCard label={t("detail.kpi.hr")} value={a.avg_heart_rate_bpm ?? "–"} unit="bpm" />
           <KpiCard
-            label={t("detail.kpi.segments")}
-            value={efforts.isSuccess ? effortList.length : "–"}
+            label={t("detail.kpi.load")}
+            value={a.training_load ? num(a.training_load.trimp) : "–"}
             sub={
-              efforts.data?.meta.calculation.status === "running"
-                ? t("efforts.calculating")
-                : t("detail.kpi.segmentsPrs", { count: a.segment_success_count })
+              a.training_load &&
+              (a.training_load.method === "estimated"
+                ? t("form.estimated")
+                : t("detail.kpi.loadSub", { aerobic: num(a.training_load.aerobic), anaerobic: num(a.training_load.anaerobic) }))
             }
           />
+          {/* Segmente flach über beide Spalten (Uli 22.11.2026) */}
+          <section className="col-span-2 flex items-baseline gap-3 rounded-card border border-line bg-card px-4 py-2.5 shadow-sm" data-testid="kpi-segments">
+            <span className="text-xs font-medium text-muted">{t("detail.kpi.segments")}</span>
+            <span className="num text-lg font-semibold">{efforts.isSuccess ? effortList.length : "–"}</span>
+            <span className="text-xs text-muted">
+              {efforts.data?.meta.calculation.status === "running"
+                ? t("efforts.calculating")
+                : t("detail.kpi.segmentsPrs", { count: a.segment_success_count })}
+            </span>
+          </section>
         </div>
         <Card className="p-1.5 lg:col-span-7">
           {track.error ? (

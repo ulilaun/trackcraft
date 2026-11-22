@@ -301,6 +301,8 @@ export interface ActivitySummary {
   avg_speed_kmh: number | null;
   avg_heart_rate_bpm: number | null;
   segment_success_count: number;
+  /** Summe der berechneten Belastungen (TRIMP), gerundet */
+  load: number | null;
 }
 
 export interface ActivityListResponse {
