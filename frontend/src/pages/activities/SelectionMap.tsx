@@ -42,6 +42,9 @@ export function SelectionMap({ points, range, onChange, hoverIndex, tileUrl, att
     if (!el.current || points.length < 2) return;
     const ll = points.map((p) => L.latLng(p.lat, p.lon));
     const map = L.map(el.current, { zoomControl: true, attributionControl: true });
+    // Ausschnitt zuerst: Ohne Ansicht fügt Leaflet Ebenen erst später ein, dann hätten die Marker unten noch kein
+    // Element, das eigene Ziehen hinge nirgends und die Maus verschöbe die Karte (#21).
+    map.fitBounds(L.latLngBounds(ll), { padding: [16, 16] });
     L.tileLayer(tileUrl, { maxZoom: 19, attribution }).addTo(map);
     const full = L.polyline(ll, { color: token("--tc-muted", "#64748b"), weight: 4, opacity: 0.6 }).addTo(map);
     const sel = L.polyline([], { color: token("--tc-accent", "#38bdf8"), weight: 6 }).addTo(map);
@@ -108,7 +111,6 @@ export function SelectionMap({ points, range, onChange, hoverIndex, tileUrl, att
       const node = m.getElement();
       return node ? attachPointerDrag(node, drag(k === 0 ? "s" : "e")) : () => {};
     });
-    map.fitBounds(full.getBounds(), { padding: [16, 16] });
     layers.current = { map, full, sel, s, e, cursor };
     return () => {
       clearTimeout(hintTimer);
