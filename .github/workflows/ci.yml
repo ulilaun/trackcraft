@@ -1,9 +1,9 @@
-# Prüfungen für Pull Requests (RFC-0004, RFC-0014). Der Release-Workflow ruft ihn ebenfalls auf.
-# GitHub-Minuten sparen: kein Lauf beim Merge auf main (der PR ist schon geprüft). Windows-Backend und
-# Docker-Images laufen nur im Release und von Hand (workflow_dispatch); Windows prüfen wir lokal vor dem Push.
+# Prüfungen für jeden Push und Pull Request (RFC-0004, RFC-0014). Der Release-Workflow ruft ihn ebenfalls auf.
 name: ci
 
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_call:
   workflow_dispatch:
@@ -22,7 +22,6 @@ env:
 jobs:
   backend-windows:
     name: Backend (Windows)
-    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     defaults:
       run:
@@ -90,7 +89,6 @@ jobs:
 
   docker:
     name: Docker-Images bauen
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

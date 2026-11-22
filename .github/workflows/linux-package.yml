@@ -1,6 +1,5 @@
-# Linux-Paket (RFC-0005 „Linux“). Der Release-Workflow ruft ihn mit der Releaseversion auf. Von Hand
-# (workflow_dispatch) entsteht ein Testpaket als Artefakt, das kein Release ist. Bei Pull Requests läuft er
-# nicht mehr (GitHub-Minuten sparen); Testpakete für einen PR per „Run workflow“ auf dessen Branch.
+# Linux-Paket (RFC-0005 „Linux“). Der Release-Workflow ruft ihn mit der Releaseversion auf. Bei Pull Requests
+# und von Hand (workflow_dispatch) entsteht ein Testpaket als Artefakt, das kein Release ist.
 name: linux-package
 
 on:
@@ -9,6 +8,7 @@ on:
       version:
         type: string
         required: true
+  pull_request:
   workflow_dispatch:
     inputs:
       version:
@@ -25,7 +25,8 @@ jobs:
     # Ältere glibc als Debian 12 (2.36), damit das Programm auf verbreiteten Systemen läuft
     runs-on: ubuntu-22.04
     env:
-      TRACKCRAFT_VERSION: ${{ inputs.version }}
+      # Pull Requests ohne Eingabe: 0.0.0-pr<Nummer>
+      TRACKCRAFT_VERSION: ${{ inputs.version || format('0.0.0-pr{0}', github.event.number) }}
       TRACKCRAFT_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
