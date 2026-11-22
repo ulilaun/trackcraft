@@ -1807,7 +1807,7 @@ components:
         zone_set: {oneOf: [{$ref: '#/components/schemas/HrZoneSet'}, {type: 'null'}]}
     LoadSettings:
       type: object
-      required: [sex_factor, fitness_days, fatigue_days, estimate_per_hour, curve_model, aerobic_days, anaerobic_days, rest_bonus_pct, foster_surcharge, foster_surcharge_pct]
+      required: [sex_factor, fitness_days, fatigue_days, estimate_per_hour, curve_model, aerobic_days, anaerobic_days, rest_bonus_pct, foster_surcharge, foster_surcharge_pct, fatigue_weight]
       properties:
         sex_factor: {type: number, enum: [1.92, 1.67], description: 'Gewichtung der Banister-Formel (männlich / weiblich)'}
         fitness_days: {type: integer, minimum: 7, maximum: 120, default: 42}
@@ -1819,6 +1819,7 @@ components:
         rest_bonus_pct: {type: integer, minimum: 0, maximum: 50, default: 18}
         foster_surcharge: {type: boolean, default: false, description: 'Aufschlag auf die Ermüdung bei Monotonie über 2,0'}
         foster_surcharge_pct: {type: integer, minimum: 1, maximum: 50, default: 15}
+        fatigue_weight: {type: number, minimum: 0.25, maximum: 3, default: 1, description: 'Form = Fitness − Gewicht × Ermüdung (#24); auf zwei Nachkommastellen gerundet'}
     LoadSettingsUpdate:
       type: object
       additionalProperties: false
@@ -1833,6 +1834,17 @@ components:
         rest_bonus_pct: {type: integer}
         foster_surcharge: {type: boolean}
         foster_surcharge_pct: {type: integer}
+        fatigue_weight: {type: number}
+    FormSnapshot:
+      type: object
+      required: [date, fitness, fatigue, form, monotony, strain]
+      properties:
+        date: {type: string, format: date}
+        fitness: {type: number}
+        fatigue: {type: number}
+        form: {type: number}
+        monotony: {type: [number, 'null']}
+        strain: {type: [number, 'null']}
     LoadSettingsResponse:
       type: object
       required: [data]
@@ -1886,6 +1898,14 @@ components:
                 monotony: {type: [number, 'null']}
                 strain: {type: [number, 'null']}
                 strain_week_ago: {type: [number, 'null']}
+                compare:
+                  type: object
+                  description: 'Kachelreihen der Formseite (#25): Stand vor 30 und 7 Tagen sowie in 7 Tagen mit der gewählten Vorschau'
+                  required: [month_ago, week_ago, week_ahead]
+                  properties:
+                    month_ago: {$ref: '#/components/schemas/FormSnapshot'}
+                    week_ago: {$ref: '#/components/schemas/FormSnapshot'}
+                    week_ahead: {oneOf: [{$ref: '#/components/schemas/FormSnapshot'}, {type: 'null'}]}
             days: {type: array, items: {$ref: '#/components/schemas/FormDay'}}
             forecast:
               type: object

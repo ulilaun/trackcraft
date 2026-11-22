@@ -1,20 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FormDay } from "../../api/client";
 import { addDays } from "../../utils/format";
-import {
-  anaerobicFrom,
-  axisTicks,
-  chartPoints,
-  formState,
-  monday,
-  newZoneForm,
-  previewBpm,
-  signed,
-  weekBars,
-  zeroOffset,
-  zoneProblem,
-  type ZoneForm,
-} from "./formModel";
+import { anaerobicFrom, axisTicks, chartPoints, formState, monday, newZoneForm, previewBpm, signed, weekBars, zeroOffset, zoneProblem, type ZoneForm, fosterPoints, trend, MONOTONY_AXIS_MAX } from "./formModel";
 
 const day = (date: string, load: number, over: Partial<FormDay> = {}): FormDay => ({
   date,
@@ -127,5 +114,23 @@ describe("Zonensätze", () => {
       anaerobic_from_bpm: 160,
     };
     expect(newZoneForm(prev, "2026-11-22", 167)).toMatchObject({ valid_from: "2026-11-22", max_hr: "181", threshold_hr: "160", model: "threshold" });
+  });
+});
+
+describe("Kachelreihen und Foster-Diagramm (#25)", () => {
+  it("trend gibt Richtung und Betrag", () => {
+    expect(trend(-138.2)).toEqual({ dir: "down", abs: 138.2 });
+    expect(trend(21.94)).toEqual({ dir: "up", abs: 21.9 });
+    expect(trend(0.01)).toEqual({ dir: "flat", abs: 0 });
+  });
+
+  it("Monotonie gekappt, Abschnitte über der Schwelle samt Nachbarn als rote Linie", () => {
+    const pts = [1.2, 1.8, 2.4, 6, 1.5, 1.0].map((m, i) => ({ date: `2026-11-0${i + 1}`, monotony: m, strain: 100 * i }));
+    const f = fosterPoints(pts, 2);
+    expect(f.map((p) => p.monotony)).toEqual([1.2, 1.8, 2.4, MONOTONY_AXIS_MAX, 1.5, 1.0]);
+    expect(f[3]!.monotonyRaw).toBe(6);
+    expect(f[2]!.monotonyRaw).toBeUndefined();
+    expect(f.map((p) => p.monotonyHigh)).toEqual([undefined, 1.8, 2.4, MONOTONY_AXIS_MAX, 1.5, undefined]);
+    expect(f[5]!.strain).toBe(500);
   });
 });

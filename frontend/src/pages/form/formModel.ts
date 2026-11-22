@@ -71,6 +71,9 @@ export interface ChartPoint {
   fatigueAerobicForecast?: number;
   fatigueAnaerobicForecast?: number;
   monotony?: number;
+  strain?: number;
+  monotonyForecast?: number;
+  strainForecast?: number;
 }
 
 const part = (v: number | null | undefined) => (v == null ? undefined : v);
@@ -85,6 +88,7 @@ export function chartPoints(days: FormDay[], forecast: FormForecastDay[]): Chart
     fatigueAerobic: part(d.fatigue_aerobic),
     fatigueAnaerobic: part(d.fatigue_anaerobic),
     monotony: part(d.monotony),
+    strain: part(d.strain),
   }));
   if (forecast.length === 0) return out;
   const last = out[out.length - 1];
@@ -95,6 +99,8 @@ export function chartPoints(days: FormDay[], forecast: FormForecastDay[]): Chart
       formForecast: last.form,
       fatigueAerobicForecast: last.fatigueAerobic,
       fatigueAnaerobicForecast: last.fatigueAnaerobic,
+      monotonyForecast: last.monotony,
+      strainForecast: last.strain,
     });
   for (const f of forecast)
     out.push({
@@ -104,8 +110,52 @@ export function chartPoints(days: FormDay[], forecast: FormForecastDay[]): Chart
       formForecast: f.form,
       fatigueAerobicForecast: part(f.fatigue_aerobic),
       fatigueAnaerobicForecast: part(f.fatigue_anaerobic),
+      monotonyForecast: part(f.monotony),
+      strainForecast: part(f.strain),
     });
   return out;
+}
+
+/** Obere Grenze der Monotonie-Achse; höhere Werte werden dort abgeschnitten und markiert (#25). */
+export const MONOTONY_AXIS_MAX = 4;
+
+/** Punkte für das Diagramm „Monotonie & Strain“: Monotonie gekappt, Abschnitte über der Warnschwelle getrennt. */
+export interface FosterPoint {
+  date: string;
+  monotony?: number;
+  monotonyForecast?: number;
+  /** Nur über der Warnschwelle (rote Linie), Nachbarn mit, damit die Linie anschließt */
+  monotonyHigh?: number;
+  /** Ungekappter Wert, wenn gekappt */
+  monotonyRaw?: number;
+  strain?: number;
+  strainForecast?: number;
+}
+
+export function fosterPoints(points: ChartPoint[], warn: number): FosterPoint[] {
+  const cap = (v: number | undefined) => (v == null ? undefined : Math.min(v, MONOTONY_AXIS_MAX));
+  const value = (p: ChartPoint) => p.monotony ?? p.monotonyForecast;
+  const high = points.map((p) => (value(p) ?? 0) > warn);
+  return points.map((p, i) => {
+    const v = value(p);
+    const near = high[i] || high[i - 1] || high[i + 1];
+    return {
+      date: p.date,
+      monotony: cap(p.monotony),
+      monotonyForecast: cap(p.monotonyForecast),
+      monotonyHigh: near && v != null ? cap(v) : undefined,
+      monotonyRaw: v != null && v > MONOTONY_AXIS_MAX ? v : undefined,
+      strain: p.strain,
+      strainForecast: p.strainForecast,
+    };
+  });
+}
+
+/** Richtung und Betrag einer Änderung für die Kachelreihen (#25), z. B. ↓ 138. */
+export function trend(delta: number): { dir: "up" | "down" | "flat"; abs: number } {
+  const r = Math.round(delta * 10) / 10;
+  if (Math.abs(r) < 0.05) return { dir: "flat", abs: 0 };
+  return { dir: r > 0 ? "up" : "down", abs: Math.abs(r) };
 }
 
 /**
