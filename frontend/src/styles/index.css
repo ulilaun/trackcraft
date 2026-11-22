@@ -55,7 +55,7 @@
 @theme static {
   --color-fitness: var(--tc-accent);
   --color-fatigue: #f43f5e;
-  --color-aerobic: #38bdf8;
+  --color-aerobic: #2dd4bf;
   --color-anaerobic: #fb923c;
   --color-zone-1: #94a3b8;
   --color-zone-2: #22c55e;

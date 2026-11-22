@@ -774,7 +774,17 @@ export interface LoadSettings {
   fitness_days: number;
   fatigue_days: number;
   estimate_per_hour: Record<SportClass, number>;
+  /** Standard: gleitende Mittel; two_curve: Ermüdung aerob/anaerob getrennt, Ruhetags-Bonus */
+  curve_model: CurveModel;
+  aerobic_days: number;
+  anaerobic_days: number;
+  rest_bonus_pct: number;
+  /** Foster: Aufschlag auf die Ermüdung bei Monotonie über 2,0 */
+  foster_surcharge: boolean;
+  foster_surcharge_pct: number;
 }
+
+export type CurveModel = "standard" | "two_curve";
 
 export interface LoadSettingsResponse {
   data: LoadSettings;
@@ -791,6 +801,12 @@ export interface FormDay {
   fitness: number;
   fatigue: number;
   form: number;
+  /** Nur im Zwei-Kurven-Modell */
+  fatigue_aerobic: number | null;
+  fatigue_anaerobic: number | null;
+  /** Foster, letzte 7 Tage; `null` ohne Belastung oder ohne Streuung */
+  monotony: number | null;
+  strain: number | null;
 }
 
 export interface FormForecastDay {
@@ -799,6 +815,10 @@ export interface FormForecastDay {
   fitness: number;
   fatigue: number;
   form: number;
+  fatigue_aerobic: number | null;
+  fatigue_anaerobic: number | null;
+  monotony: number | null;
+  strain: number | null;
 }
 
 export interface FormResponse {
@@ -819,7 +839,14 @@ export interface FormResponse {
       load_prev_7d: number;
       fitness_week_ago: number;
       fatigue_week_ago: number;
+      fatigue_aerobic: number | null;
+      fatigue_anaerobic: number | null;
+      monotony: number | null;
+      strain: number | null;
+      strain_week_ago: number | null;
     };
+    /** Ab dieser Monotonie warnt die Seite (Foster) */
+    monotony_warn: number;
     days: FormDay[];
     forecast: { mode: ForecastMode; daily_load: number; days: FormForecastDay[] };
   };

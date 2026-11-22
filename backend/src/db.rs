@@ -20,6 +20,7 @@ pub const MIGRATIONS: &[(i64, &str)] = &[
     (9, include_str!("../migrations/0009_sub_sport_icons.sql")),
     (10, include_str!("../migrations/0010_user_profile.sql")),
     (11, include_str!("../migrations/0011_training_load.sql")),
+    (12, include_str!("../migrations/0012_form_models.sql")),
 ];
 
 /// Schemaversion dieses Programms.

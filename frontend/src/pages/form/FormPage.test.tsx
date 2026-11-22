@@ -11,7 +11,14 @@ const settings = {
   fitness_days: 42,
   fatigue_days: 7,
   estimate_per_hour: { cycling: 50, ebike: 35, running: 65, skiing: 55, swimming: 60, studio: 40, unknown: 45 },
+  curve_model: "standard" as const,
+  aerobic_days: 5,
+  anaerobic_days: 12,
+  rest_bonus_pct: 18,
+  foster_surcharge: false,
+  foster_surcharge_pct: 15,
 };
+const noParts = { fatigue_aerobic: null, fatigue_anaerobic: null, monotony: null, strain: null };
 
 function response(over: Partial<FormResponse["data"]> = {}): FormResponse {
   return {
@@ -23,13 +30,27 @@ function response(over: Partial<FormResponse["data"]> = {}): FormResponse {
       zones_configured: true,
       pending: 0,
       first_date: "2026-11-20",
-      current: { fitness: 66.4, fatigue: 54.2, form: 12.2, load_7d: 409, load_prev_7d: 198, fitness_week_ago: 67.1, fatigue_week_ago: 47 },
+      current: {
+        fitness: 66.4,
+        fatigue: 54.2,
+        form: 12.2,
+        load_7d: 409,
+        load_prev_7d: 198,
+        fitness_week_ago: 67.1,
+        fatigue_week_ago: 47,
+        fatigue_aerobic: null,
+        fatigue_anaerobic: null,
+        monotony: 1.34,
+        strain: 548,
+        strain_week_ago: 300,
+      },
+      monotony_warn: 2,
       days: [
-        { date: "2026-11-19", load: 0, aerobic: 0, anaerobic: 0, estimated: 0, fitness: 0, fatigue: 0, form: 0 },
-        { date: "2026-11-20", load: 120, aerobic: 100, anaerobic: 10, estimated: 10, fitness: 60, fatigue: 50, form: 10 },
-        { date: "2026-11-22", load: 80, aerobic: 80, anaerobic: 0, estimated: 0, fitness: 66.4, fatigue: 54.2, form: 12.2 },
+        { date: "2026-11-19", load: 0, aerobic: 0, anaerobic: 0, estimated: 0, fitness: 0, fatigue: 0, form: 0, ...noParts },
+        { date: "2026-11-20", load: 120, aerobic: 100, anaerobic: 10, estimated: 10, fitness: 60, fatigue: 50, form: 10, ...noParts, monotony: 1.1, strain: 132 },
+        { date: "2026-11-22", load: 80, aerobic: 80, anaerobic: 0, estimated: 0, fitness: 66.4, fatigue: 54.2, form: 12.2, ...noParts },
       ],
-      forecast: { mode: "rest", daily_load: 0, days: [{ date: "2026-11-23", load: 0, fitness: 64.9, fatigue: 47.8, form: 12.2 }] },
+      forecast: { mode: "rest", daily_load: 0, days: [{ date: "2026-11-23", load: 0, fitness: 64.9, fatigue: 47.8, form: 12.2, ...noParts }] },
       ...over,
     },
   };
@@ -123,6 +144,40 @@ describe("Seite Form", () => {
     expect(await screen.findByText(/Noch keine HF-Zonen eingetragen/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /HF-Zonen auf der Kontoseite/ })).toHaveAttribute("href", "/konto");
     expect(screen.getByRole("status")).toHaveTextContent("noch 12 Aktivitäten");
+  });
+
+  it("Monotonie und Strain mit Warnung, Zwei-Kurven-Modell zeigt die Teile der Ermüdung", async () => {
+    current = response({
+      settings: { ...settings, curve_model: "two_curve", foster_surcharge: true },
+      current: { ...response().data.current, monotony: 2.6, fatigue_aerobic: 40.1, fatigue_anaerobic: 14.1 },
+    });
+    setup();
+    expect(await screen.findByText("Monoton – mehr Abwechslung")).toBeInTheDocument();
+    expect(screen.getByText("2,60")).toBeInTheDocument();
+    expect(screen.getByText("548")).toBeInTheDocument();
+    expect(screen.getByText("Aufschlag 15 % auf die Ermüdung aktiv")).toBeInTheDocument();
+    expect(screen.getByText("aerob 40 · anaerob 14")).toBeInTheDocument();
+    expect(screen.getByText("Ermüdung aerob")).toBeInTheDocument();
+  });
+
+  it("Standardmodell: Monotonie unauffällig, Strain mit Vergleich", async () => {
+    setup();
+    expect(await screen.findByText("abwechslungsreich")).toBeInTheDocument();
+    expect(screen.getByText("+248 zur Vorwoche")).toBeInTheDocument();
+    expect(screen.queryByText("Ermüdung aerob")).not.toBeInTheDocument();
+  });
+
+  it("Modell umschalten schickt die Werte des Zwei-Kurven-Modells", async () => {
+    setup();
+    await screen.findByText("Frisch");
+    fireEvent.click(screen.getByRole("button", { name: /Einstellungen der Formkurve/ }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Zwei-Kurven" }));
+    expect(screen.queryByLabelText("Ermüdung, Zeitkonstante (Tage)")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Ermüdung anaerob, Zeitkonstante (Tage)"), { target: { value: "14" } });
+    fireEvent.click(screen.getByLabelText("Bei Monotonie über 2,0 die Ermüdung erhöhen"));
+    fireEvent.click(screen.getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(patches[0]).toMatchObject({ curve_model: "two_curve", aerobic_days: 5, anaerobic_days: 14, rest_bonus_pct: 18, foster_surcharge: true });
   });
 
   it("Einstellungen der Formkurve speichern nur gültige Werte", async () => {

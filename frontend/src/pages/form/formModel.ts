@@ -65,15 +65,60 @@ export interface ChartPoint {
   fitnessForecast?: number;
   fatigueForecast?: number;
   formForecast?: number;
+  /** Zwei-Kurven-Modell: Teile der Ermüdung */
+  fatigueAerobic?: number;
+  fatigueAnaerobic?: number;
+  fatigueAerobicForecast?: number;
+  fatigueAnaerobicForecast?: number;
+  monotony?: number;
 }
 
+const part = (v: number | null | undefined) => (v == null ? undefined : v);
+
 export function chartPoints(days: FormDay[], forecast: FormForecastDay[]): ChartPoint[] {
-  const out: ChartPoint[] = days.map((d) => ({ date: d.date, load: d.load, fitness: d.fitness, fatigue: d.fatigue, form: d.form }));
+  const out: ChartPoint[] = days.map((d) => ({
+    date: d.date,
+    load: d.load,
+    fitness: d.fitness,
+    fatigue: d.fatigue,
+    form: d.form,
+    fatigueAerobic: part(d.fatigue_aerobic),
+    fatigueAnaerobic: part(d.fatigue_anaerobic),
+    monotony: part(d.monotony),
+  }));
   if (forecast.length === 0) return out;
   const last = out[out.length - 1];
-  if (last) Object.assign(last, { fitnessForecast: last.fitness, fatigueForecast: last.fatigue, formForecast: last.form });
-  for (const f of forecast) out.push({ date: f.date, fitnessForecast: f.fitness, fatigueForecast: f.fatigue, formForecast: f.form });
+  if (last)
+    Object.assign(last, {
+      fitnessForecast: last.fitness,
+      fatigueForecast: last.fatigue,
+      formForecast: last.form,
+      fatigueAerobicForecast: last.fatigueAerobic,
+      fatigueAnaerobicForecast: last.fatigueAnaerobic,
+    });
+  for (const f of forecast)
+    out.push({
+      date: f.date,
+      fitnessForecast: f.fitness,
+      fatigueForecast: f.fatigue,
+      formForecast: f.form,
+      fatigueAerobicForecast: part(f.fatigue_aerobic),
+      fatigueAnaerobicForecast: part(f.fatigue_anaerobic),
+    });
   return out;
+}
+
+/**
+ * Feste Teilstriche der x-Achse bei langen Zeiträumen: Jahresanfänge (über drei Jahre) oder Monatserste (über 120 Tage);
+ * `undefined` überlässt die Wahl dem Diagramm. Bei vielen Monaten nur jeder zweite bzw. dritte.
+ */
+export function axisTicks(dates: string[]): string[] | undefined {
+  const span = dates.length;
+  if (span <= 120) return undefined;
+  if (span > 3 * 365) return dates.filter((d) => d.endsWith("-01-01"));
+  const firsts = dates.filter((d) => d.endsWith("-01"));
+  const step = firsts.length > 24 ? 3 : firsts.length > 12 ? 2 : 1;
+  return firsts.filter((d) => (Number(d.slice(5, 7)) - 1) % step === 0);
 }
 
 /** Anteil von oben, an dem die Form-Fläche die Nulllinie kreuzt (für den Farbverlauf grün/orange). */

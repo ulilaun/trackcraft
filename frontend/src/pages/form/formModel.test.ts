@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { FormDay } from "../../api/client";
+import { addDays } from "../../utils/format";
 import {
   anaerobicFrom,
+  axisTicks,
   chartPoints,
   formState,
   monday,
@@ -23,6 +25,10 @@ const day = (date: string, load: number, over: Partial<FormDay> = {}): FormDay =
   fitness: 10,
   fatigue: 12,
   form: -2,
+  fatigue_aerobic: null,
+  fatigue_anaerobic: null,
+  monotony: null,
+  strain: null,
   ...over,
 });
 
@@ -45,10 +51,19 @@ describe("Form", () => {
   });
 
   it("Vorschau schließt an heute an", () => {
-    const p = chartPoints([day("2026-11-21", 0), day("2026-11-22", 0)], [{ date: "2026-11-23", load: 0, fitness: 9, fatigue: 10, form: -1 }]);
+    const fc = { date: "2026-11-23", load: 0, fitness: 9, fatigue: 10, form: -1, fatigue_aerobic: 7, fatigue_anaerobic: 3, monotony: null, strain: null };
+    const p = chartPoints([day("2026-11-21", 0), day("2026-11-22", 0, { fatigue_aerobic: 8, fatigue_anaerobic: 4, monotony: 1.5 })], [fc]);
     expect(p).toHaveLength(3);
     expect(p[1]).toMatchObject({ fitness: 10, fitnessForecast: 10, formForecast: -2 });
-    expect(p[2]).toEqual({ date: "2026-11-23", fitnessForecast: 9, fatigueForecast: 10, formForecast: -1 });
+    expect(p[1]).toMatchObject({ fatigueAerobic: 8, fatigueAerobicForecast: 8, fatigueAnaerobicForecast: 4, monotony: 1.5 });
+    expect(p[2]).toEqual({
+      date: "2026-11-23",
+      fitnessForecast: 9,
+      fatigueForecast: 10,
+      formForecast: -1,
+      fatigueAerobicForecast: 7,
+      fatigueAnaerobicForecast: 3,
+    });
     expect(p[0]!.fitnessForecast).toBeUndefined();
     expect(chartPoints([day("2026-11-22", 0)], [])[0]!.fitnessForecast).toBeUndefined();
   });
@@ -57,6 +72,16 @@ describe("Form", () => {
     expect(zeroOffset([{ date: "a", form: 10 }, { date: "b", formForecast: -30 }])).toBe(0.25);
     expect(zeroOffset([{ date: "a", form: -5 }])).toBe(0);
     expect(zeroOffset([])).toBe(0.5);
+  });
+
+  it("Teilstriche bei langen Zeiträumen", () => {
+    const days = (from: string, n: number) => Array.from({ length: n }, (_, i) => addDays(from, i));
+    expect(axisTicks(days("2026-08-01", 100))).toBeUndefined();
+    expect(axisTicks(days("2026-01-01", 365))).toEqual(
+      ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((m) => `2026-${m}-01`),
+    );
+    expect(axisTicks(days("2025-01-15", 500))).toHaveLength(8);
+    expect(axisTicks(days("2016-03-01", 4000))?.[0]).toBe("2017-01-01");
   });
 
   it("Vorzeichen", () => {

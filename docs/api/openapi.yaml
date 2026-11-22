@@ -1716,12 +1716,18 @@ components:
         zone_set: {oneOf: [{$ref: '#/components/schemas/HrZoneSet'}, {type: 'null'}]}
     LoadSettings:
       type: object
-      required: [sex_factor, fitness_days, fatigue_days, estimate_per_hour]
+      required: [sex_factor, fitness_days, fatigue_days, estimate_per_hour, curve_model, aerobic_days, anaerobic_days, rest_bonus_pct, foster_surcharge, foster_surcharge_pct]
       properties:
         sex_factor: {type: number, enum: [1.92, 1.67], description: 'Gewichtung der Banister-Formel (männlich / weiblich)'}
         fitness_days: {type: integer, minimum: 7, maximum: 120, default: 42}
         fatigue_days: {type: integer, minimum: 2, maximum: 30, default: 7, description: 'Kürzer als fitness_days'}
         estimate_per_hour: {type: object, additionalProperties: {type: number, minimum: 0, maximum: 300}, description: 'Belastung je Stunde ohne HF, je Sportklasse'}
+        curve_model: {type: string, enum: [standard, two_curve], default: standard, description: 'two_curve: Ermüdung getrennt aerob/anaerob mit Ruhetags-Bonus (RFC-0009)'}
+        aerobic_days: {type: integer, minimum: 2, maximum: 30, default: 5}
+        anaerobic_days: {type: integer, minimum: 2, maximum: 30, default: 12}
+        rest_bonus_pct: {type: integer, minimum: 0, maximum: 50, default: 18}
+        foster_surcharge: {type: boolean, default: false, description: 'Aufschlag auf die Ermüdung bei Monotonie über 2,0'}
+        foster_surcharge_pct: {type: integer, minimum: 1, maximum: 50, default: 15}
     LoadSettingsUpdate:
       type: object
       additionalProperties: false
@@ -1730,6 +1736,12 @@ components:
         fitness_days: {type: integer}
         fatigue_days: {type: integer}
         estimate_per_hour: {type: object, additionalProperties: {type: number}}
+        curve_model: {type: string, enum: [standard, two_curve]}
+        aerobic_days: {type: integer}
+        anaerobic_days: {type: integer}
+        rest_bonus_pct: {type: integer}
+        foster_surcharge: {type: boolean}
+        foster_surcharge_pct: {type: integer}
     LoadSettingsResponse:
       type: object
       required: [data]
@@ -1747,6 +1759,10 @@ components:
         fitness: {type: number, description: 'Nach dem Training des Tages'}
         fatigue: {type: number, description: 'Nach dem Training des Tages'}
         form: {type: number, description: 'Zu Beginn des Tages: Fitness − Ermüdung des Vortags'}
+        fatigue_aerobic: {type: [number, 'null'], description: 'Nur im Zwei-Kurven-Modell'}
+        fatigue_anaerobic: {type: [number, 'null'], description: 'Nur im Zwei-Kurven-Modell'}
+        monotony: {type: [number, 'null'], description: 'Foster, letzte 7 Tage'}
+        strain: {type: [number, 'null'], description: 'Wochensumme × Monotonie'}
     FormResponse:
       type: object
       required: [data]
@@ -1762,6 +1778,7 @@ components:
             zones_configured: {type: boolean}
             pending: {type: integer, minimum: 0, description: 'Aktivitäten, deren Belastung noch (neu) berechnet wird'}
             first_date: {type: [string, 'null'], format: date}
+            monotony_warn: {type: number, description: 'Ab dieser Monotonie warnt die Seite (2,0)'}
             current:
               type: object
               required: [fitness, fatigue, form, load_7d, load_prev_7d, fitness_week_ago, fatigue_week_ago]
@@ -1773,6 +1790,11 @@ components:
                 load_prev_7d: {type: number}
                 fitness_week_ago: {type: number}
                 fatigue_week_ago: {type: number}
+                fatigue_aerobic: {type: [number, 'null']}
+                fatigue_anaerobic: {type: [number, 'null']}
+                monotony: {type: [number, 'null']}
+                strain: {type: [number, 'null']}
+                strain_week_ago: {type: [number, 'null']}
             days: {type: array, items: {$ref: '#/components/schemas/FormDay'}}
             forecast:
               type: object
