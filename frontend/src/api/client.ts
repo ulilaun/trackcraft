@@ -342,6 +342,11 @@ export interface PlaceSettingsResponse {
   data: { osm_enabled: boolean };
 }
 
+/** GET/POST /segments/{id}/name-transfer: Name und Ort einer Strecke auf ihre Aktivitäten (#23). */
+export interface NameTransferResponse {
+  data: { name: string; location: string | null; activity_count: number; changed_count: number };
+}
+
 export interface DeletionPreviewResponse {
   data: {
     object_type: "activity" | "segment";

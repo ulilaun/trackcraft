@@ -86,6 +86,7 @@ pub fn router(state: AppState) -> Router {
         .route("/segments/{id}/track", get(segments::track))
         .route("/segments/{id}/leaderboard", get(segments::leaderboard))
         .route("/segments/{id}/attempts", get(segments::attempts))
+        .route("/segments/{id}/name-transfer", get(segments::name_transfer_preview).post(segments::name_transfer))
         .route("/hr-zones", get(load::list_zones).post(load::create_zone_set))
         .route("/hr-zones/{id}", patch(load::update_zone_set).delete(load::delete_zone_set))
         .route("/form", get(load::form))

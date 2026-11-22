@@ -539,3 +539,60 @@ async fn new_calculation_version_recomputes_efforts_and_drops_the_old_one() {
         sqlx::query_scalar("SELECT count(*) FROM segment_efforts WHERE segment_id = ?").bind(&id).fetch_one(&db2.reader).await.unwrap();
     assert_eq!(efforts, 3);
 }
+
+#[tokio::test]
+async fn route_name_and_location_pass_to_activities() {
+    let f = fixture().await;
+    let (a, b, c) = three_rides(&f).await;
+    // C bekommt einen eigenen Titel und Ort; auch der wird überschrieben (Uli 22.11.2026)
+    let (s, _) =
+        with_body(&f, Method::PATCH, &format!("/api/v1/activities/{c}"), json!({ "title": "Eigener Titel", "location": "Woanders" })).await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, v) = create(
+        &f,
+        json!({ "activity_id": a, "section_index": 0, "start_index": 0, "end_index": 39, "name": "Hausrunde", "sport_class": "cycling",
+                "kind": "route", "location": "Oberndorf" }),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let route = v["data"]["id"].as_str().unwrap().to_string();
+    run_jobs(&f).await;
+
+    let path = format!("/api/v1/segments/{route}/name-transfer");
+    let (s, v) = get(&f, &path).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!((v["data"]["activity_count"].as_i64(), v["data"]["changed_count"].as_i64()), (Some(3), Some(3)), "{v}");
+    assert_eq!((v["data"]["name"].as_str(), v["data"]["location"].as_str()), (Some("Hausrunde"), Some("Oberndorf")));
+
+    let (s, v) = post_empty(&f, &path).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["data"]["changed_count"], 3, "{v}");
+    for id in [&a, &b, &c] {
+        let (_, v) = get(&f, &format!("/api/v1/activities/{id}")).await;
+        assert_eq!((v["data"]["title"].as_str(), v["data"]["location"].as_str()), (Some("Hausrunde"), Some("Oberndorf")), "{v}");
+    }
+    // Zweites Mal ändert nichts mehr
+    let (_, v) = get(&f, &path).await;
+    assert_eq!((v["data"]["activity_count"].as_i64(), v["data"]["changed_count"].as_i64()), (Some(3), Some(0)));
+
+    // Strecke ohne Ort: Orte der Aktivitäten bleiben
+    let (s, _) = with_body(&f, Method::PATCH, &format!("/api/v1/segments/{route}"), json!({ "name": "Runde neu", "location": null })).await;
+    assert_eq!(s, StatusCode::OK);
+    let (_, v) = post_empty(&f, &path).await;
+    assert_eq!(v["data"]["changed_count"], 3, "{v}");
+    let (_, v) = get(&f, &format!("/api/v1/activities/{b}")).await;
+    assert_eq!((v["data"]["title"].as_str(), v["data"]["location"].as_str()), (Some("Runde neu"), Some("Oberndorf")));
+
+    // Nur Strecken, unbekannte Segmente
+    let (s, v) = create(
+        &f,
+        json!({ "activity_id": a, "section_index": 0, "start_index": 2, "end_index": 12, "name": "Mitte", "sport_class": "cycling" }),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let seg = v["data"]["id"].as_str().unwrap();
+    let (s, v) = post_empty(&f, &format!("/api/v1/segments/{seg}/name-transfer")).await;
+    assert_eq!((s, code(&v)), (StatusCode::CONFLICT, "segment_not_route"), "{v}");
+    let (s, v) = get(&f, "/api/v1/segments/unbekannt/name-transfer").await;
+    assert_eq!((s, code(&v)), (StatusCode::NOT_FOUND, "segment_not_found"));
+}

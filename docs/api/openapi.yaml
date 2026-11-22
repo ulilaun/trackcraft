@@ -392,6 +392,27 @@ paths:
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/DeletionPreviewResponse'}}}}
         '404': {$ref: '#/components/responses/NotFound'}
+  /segments/{id}/name-transfer:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Segments]
+      operationId: getSegmentNameTransfer
+      summary: Vorschau – wie viele Aktivitäten Name und Ort der Strecke bekämen
+      description: 'Nur Strecken. Betrifft alle Aktivitäten mit gültigem Versuch im veröffentlichten Stand (RFC-0016 „Name übernehmen“).'
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/NameTransferResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    post:
+      tags: [Segments]
+      operationId: applySegmentNameTransfer
+      summary: Name und Ort der Strecke auf ihre Aktivitäten übernehmen
+      description: 'Setzt den Titel und, falls die Strecke einen Ort hat, den Ort; eigene Werte werden überschrieben. `changed_count` = geänderte Aktivitäten. Sicherungsrelevant.'
+      responses:
+        '200': {description: 'Übernommen', content: {application/json: {schema: {$ref: '#/components/schemas/NameTransferResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /segments/{id}/track:
     parameters:
       - {$ref: '#/components/parameters/Id'}
@@ -1182,6 +1203,18 @@ components:
           required: [osm_enabled]
           properties:
             osm_enabled: {type: boolean}
+    NameTransferResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [name, location, activity_count, changed_count]
+          properties:
+            name: {type: string}
+            location: {type: [string, 'null']}
+            activity_count: {type: integer, minimum: 0, description: 'Aktivitäten mit gültigem Versuch auf der Strecke'}
+            changed_count: {type: integer, minimum: 0, description: 'Davon mit anderem Titel oder Ort (Vorschau) bzw. geändert (POST)'}
     DeletionPreviewResponse:
       type: object
       required: [data]

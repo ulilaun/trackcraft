@@ -21,6 +21,7 @@ Eine **Strecke** ist ein Segment über eine ganze Tour, mit dem man wiederholt g
 - **Anzeige**: Segmente und Strecken stehen als eigene Einträge in der Kopfzeile und haben je eine eigene Liste (RFC-0006). Die Segmentseite zeigt die Art.
 - **Filter**: Die Aktivitätenliste filtert nach einer Strecke (`route_id`) und zeigt alle Aktivitäten mit mindestens einem gültigen Versuch darauf. Sortiert nach Zeit ist das der Streckenvergleich. Eine Auswahlliste der Strecken in der Aktivitätenliste gibt es nicht (wird lang, ohne Suche); der Filter entsteht über „Alle Fahrten“ auf der Streckenseite und steht dann als entfernbarer Filter in der Liste (Uli 12.11.2026).
 - **Ort**: Strecken (und Segmente) haben einen optionalen Ort als freien Text, weil Rundkurse meist am selben Ort beginnen und enden. Die Suche der Liste findet auch den Ort.
+- **Name übernehmen** (#23, Uli 22.11.2026): Die Streckenseite hat den Knopf „Name übernehmen“. Er setzt bei **allen** Aktivitäten mit gültigem Versuch auf der Strecke (veröffentlichter Stand) den Titel auf den Streckennamen und, wenn die Strecke einen Ort hat, auch den Ort; eigene Titel und vorhandene Orte werden überschrieben. Hat die Strecke keinen Ort, bleiben die Orte der Aktivitäten. Vorher nennt ein Dialog, wie viele Aktivitäten sich ändern (`GET /segments/{id}/name-transfer`), ausgeführt wird mit `POST` auf dieselbe Adresse. Für Segmente gibt es das nicht (`segment_not_route`).
 - Ein direkter Vergleich zweier Aktivitäten (Differenzen, Kurven übereinander) folgt in V2.
 
 ## Erstellen-Dialog (M3d)
