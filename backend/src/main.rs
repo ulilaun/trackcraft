@@ -49,6 +49,11 @@ enum Cmd {
         #[arg(long = "names", value_delimiter = ',')]
         names: Vec<String>,
     },
+    /// Demo mit erfundenen Daten (scripts/demo)
+    Demo {
+        #[command(subcommand)]
+        action: DemoAction,
+    },
     /// Windows: Dienst, Ereignisquelle, Firewallregel und CA-Vertrauen entfernen; Daten bleiben (Administrator)
     #[cfg(windows)]
     Uninstall,
@@ -62,6 +67,12 @@ enum Cmd {
     #[cfg(windows)]
     #[command(hide = true)]
     ServiceRun,
+}
+
+#[derive(Subcommand)]
+enum DemoAction {
+    /// Datenbank der Konfiguration als Demo-Datenbank kennzeichnen (nur dann verschiebt [demo] enabled die Daten)
+    Mark,
 }
 
 #[cfg(windows)]
@@ -105,6 +116,7 @@ fn main() -> ExitCode {
         Some(Cmd::Cert { new_ca, names }) => platform::windows::setup::cert_command(new_ca, names),
         #[cfg(target_os = "linux")]
         Some(Cmd::Cert { new_ca, names }) => platform::linux::setup::cert_command(new_ca, names),
+        Some(Cmd::Demo { action: DemoAction::Mark }) => commands::demo_mark(&config::config_path()),
         #[cfg(windows)]
         Some(Cmd::Uninstall) => platform::windows::setup::uninstall(),
         #[cfg(windows)]

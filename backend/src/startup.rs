@@ -65,6 +65,15 @@ pub async fn prepare(cfg: &Validated) -> anyhow::Result<Started> {
         tracing::info!(count = sports.defaults_applied, "Neue Vorgaben der Sportart-Zuordnung eingetragen");
     }
 
+    // Demo: Daten auf heute verschieben (nur Demo-Datenbank, sonst Abbruch)
+    if cfg.raw.demo.enabled {
+        let today = chrono::Utc::now().with_timezone(&cfg.timezone).date_naive();
+        match crate::demo::shift_to(&db, cfg.timezone, today).await? {
+            Some(s) => tracing::info!(days = s.days, activities = s.activities, last_day = %s.last_day, "Demo-Daten auf heute verschoben"),
+            None => tracing::info!("Demo-Daten sind aktuell"),
+        }
+    }
+
     // Unterbrochene Importe zurücknehmen, Staging aufräumen, Aufbewahrung anwenden (ADR-0011, C12).
     crate::import_job::recover(cfg, &db).await?;
     // Berechnungsstand prüfen, fehlende Hysteresewerte und Positionsangaben nachtragen (M2, RFC-0007).

@@ -113,9 +113,11 @@ def main():
         print("importiert", f.name)
     wait_jobs()
 
-    for name, start, end in [("Saison 2025", "2025-03-01", "2025-10-31"), ("Saison 2026", "2026-03-01", "2026-10-31")]:
-        s, v = call("POST", "/seasons", {"name": name, "start_date": start, "end_date": end})
-        print("Saison", name, s)
+    # Zwei Saisons März bis Oktober: Vorjahr und Jahr der letzten Aktivität
+    year = date.fromisoformat(max(days)).year
+    for y in (year - 1, year):
+        s, v = call("POST", "/seasons", {"name": f"Saison {y}", "start_date": f"{y}-03-01", "end_date": f"{y}-10-31"})
+        print("Saison", y, s)
 
     first = {k: v[0] for k, v in ids.items()}
     sec = track(first["sa_calobra"])
@@ -142,7 +144,7 @@ def seed_form_and_plan(days):
     """Profil und HF-Zonen (für Belastung und Form), ein Ziel und ein Plan mit erledigten und offenen Einheiten."""
     s, _ = call("PATCH", "/profile", {"nickname": "Alex", "birthday": "1984-06-12"})
     print("Profil", s)
-    s, v = call("POST", "/hr-zones", {"sport_class": None, "valid_from": "2025-01-01", "max_hr": 182, "resting_hr": 52})
+    s, v = call("POST", "/hr-zones", {"sport_class": None, "valid_from": min(days), "max_hr": 182, "resting_hr": 52})
     print("HF-Zonen", s, "" if s == 201 else v)
 
     today = date.today()

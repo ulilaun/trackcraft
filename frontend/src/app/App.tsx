@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { DemoBanner } from "../components/DemoBanner";
 import { FlashProvider } from "../components/Flash";
 import { Header } from "../components/Header";
 import { useApplyTheme } from "../hooks/useTheme";
@@ -26,6 +27,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <FlashProvider>
+          <DemoBanner />
           <Header />
           <main className="mx-auto max-w-[1400px] p-4">
             <Routes>

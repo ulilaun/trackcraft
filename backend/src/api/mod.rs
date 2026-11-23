@@ -180,6 +180,7 @@ async fn public_config(State(state): State<AppState>) -> Result<Json<serde_json:
             },
             "segments": { "minimum_length_m": c.segments.minimum_length_m, "route_edge_m": c.segments.route_edge_m },
             "sub_sport_catalog": catalog,
+            "demo": c.demo.enabled,
         }
     })))
 }

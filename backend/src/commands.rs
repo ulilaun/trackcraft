@@ -4,6 +4,21 @@ use std::path::Path;
 
 use crate::config;
 
+/// `demo mark`: Datenbank der Konfiguration als Demo-Datenbank kennzeichnen (CI, nach `seed_demo.py`, Dienst gestoppt).
+pub fn demo_mark(path: &Path) -> anyhow::Result<()> {
+    let cfg = config::load(path)?;
+    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
+    runtime.block_on(async {
+        let started = crate::startup::prepare(&cfg).await?;
+        let last = crate::demo::mark(&started.db, cfg.timezone).await?;
+        // Alles in die Hauptdatei, damit sie allein kopiert werden kann
+        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)").execute(&started.db.writer).await?;
+        started.db.close().await;
+        println!("Demo-Datenbank gekennzeichnet, letzte Aktivität {last}: {}", cfg.database_file().display());
+        Ok(())
+    })
+}
+
 /// Gibt das Prüfergebnis aus; `true`, wenn TrackCraft mit dieser Datei starten kann.
 pub fn check_config_report(path: &Path) -> bool {
     println!("Konfiguration: {}", path.display());

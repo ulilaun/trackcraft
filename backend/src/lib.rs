@@ -8,6 +8,7 @@ pub mod cert;
 pub mod commands;
 pub mod config;
 pub mod db;
+pub mod demo;
 pub mod domain;
 pub mod garmin;
 pub mod geo;
