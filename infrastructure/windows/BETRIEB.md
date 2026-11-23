@@ -1,6 +1,6 @@
 # TrackCraft unter Windows betreiben
 
-Gilt für das Windows-ZIP `trackcraft-<version>-windows-x86_64.zip` (RFC-0005, RFC-0015). TrackCraft läuft als Windows-Dienst `TrackCraft`, liefert die Oberfläche selbst aus und spricht nur HTTPS.
+Gilt für das Windows-ZIP `trackcraft-<version>-windows-x86_64.zip` (RFC-0005, RFC-0015). TrackCraft läuft als Windows-Dienst `TrackCraft`, liefert die Oberfläche selbst aus und spricht nur HTTPS. Zuletzt am 23.11.2026 auf Windows 11 durchgespielt: Neueinrichtung nach `uninstall` mit vorhandener Konfiguration, Migration alter Daten, Import, Update-Lauf.
 
 ## Voraussetzungen
 
