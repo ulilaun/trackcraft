@@ -22,7 +22,7 @@ activities_dir = 'C:\ProgramData\TrackCraft\data\activities'
 logs_dir       = 'C:\ProgramData\TrackCraft\data\logs'
 
 [backup]
-target_dir    = 'E:\TrackCraft-Sicherung'                     # USB-Laufwerk; Netzwerkfreigabe als UNC-Pfad, z. B. '\\ds214\backup\trackcraft'
+target_dir    = 'E:\TrackCraft-Sicherung'                     # USB-Laufwerk; Netzwerkfreigabe als UNC-Pfad, z. B. '\\nas\backup\trackcraft'
 migration_dir = 'C:\ProgramData\TrackCraft\data\backups'   # nur lokale Migrationssicherung, nur die letzte
 daily_time    = "03:00"
 

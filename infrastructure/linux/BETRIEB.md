@@ -78,6 +78,16 @@ Liegen neue Namen außerhalb der bisherigen CA, legt der Befehl eine neue CA an;
 
 ## Sicherungsziel
 
+> **Noch keine tägliche Sicherung:** TrackCraft legt bisher nur vor einer Schemamigration selbst eine Sicherung der Datenbank an (`/var/lib/trackcraft/backups`). Die tägliche Sicherung ins Sicherungsziel und die Wiederherstellung aus der Oberfläche kommen mit einer späteren Version. Bis dahin selbst sichern, z. B.:
+>
+> ```bash
+> sudo systemctl stop trackcraft
+> sudo tar -czf /mnt/trackcraft-sicherung/trackcraft-$(date +%F).tgz -C /var/lib/trackcraft database activities
+> sudo systemctl start trackcraft
+> ```
+>
+> Proxmox-Nutzer können stattdessen den ganzen Container sichern (vzdump, Modus „Stopp“ oder „Snapshot“).
+
 Eine NAS-Freigabe auf dem Proxmox-Host einhängen und per Bind-Mount in den Container geben, oder im Container direkt einhängen (z. B. CIFS in `/etc/fstab`). Den Pfad in `[backup] target_dir` eintragen und `setup.sh` erneut ausführen: Es macht den Ordner für den Dienst beschreibbar und trägt ihn in die systemd-Unit ein.
 
 ## Betrieb
@@ -112,7 +122,18 @@ Daten und Originaldateien sind plattformunabhängig, die Datenbank speichert nur
 
 ## Rollback
 
-Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann nichts. `setup.sh` aus dem aufbewahrten alten Paket ausführen; startet es wegen einer Migration nicht, wie unter Windows nach RFC-0015 vorgehen.
+Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann nichts. `sudo ./setup.sh` aus dem aufbewahrten alten Paket ausführen. Startet es nicht, weil schon migriert wurde, die Datenbank von vor der Migration zurückholen:
+
+```bash
+sudo systemctl stop trackcraft
+cd /var/lib/trackcraft
+sudo mkdir -p /root/nach-update && sudo mv database/trackcraft.db* /root/nach-update/
+sudo cp backups/trackcraft-vor-migration-v<alt>-v<neu>.db database/trackcraft.db
+sudo chown trackcraft:trackcraft database/trackcraft.db
+sudo systemctl start trackcraft
+```
+
+Änderungen seit dem Update fehlen danach; die Originaldateien in `activities` bleiben, wie sie sind.
 
 ## Deinstallieren
 
