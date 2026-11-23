@@ -69,16 +69,19 @@ export function ActivitySportIcon({
   subKey,
   catalog,
   size = 16,
+  plain = false,
   decorative = false,
 }: {
   sport: SportClass;
   subKey?: string | null;
   catalog?: SubSportCatalog;
   size?: number;
+  /** ohne Klassenfarbe, etwa weiß auf farbigem Kreis */
+  plain?: boolean;
   decorative?: boolean;
 }) {
   const e = subKey ? subSportEntry(catalog, sport, subKey) : undefined;
-  if (!e) return <SportIcon sport={sport} size={size} decorative={decorative} />;
+  if (!e) return <SportIcon sport={sport} size={size} plain={plain} decorative={decorative} />;
   const label = `${t(`sport.${sport}` as TextKey)} · ${subSportEntryLabel(e)}`;
-  return <Glyph id={subSportGlyph(sport, e)} size={size} className={sportColor(sport)} label={decorative ? undefined : label} />;
+  return <Glyph id={subSportGlyph(sport, e)} size={size} className={plain ? "" : sportColor(sport)} label={decorative ? undefined : label} />;
 }

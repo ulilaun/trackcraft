@@ -1,6 +1,5 @@
-// Dashboard nach RFC-0018: Woche und Monat aus GET /stats/dashboard, ohne React.
-import type { DashboardStatsResponse, PeriodBlock, PeriodSummary, SportClass } from "../../api/client";
-import { t } from "../../i18n";
+// Dashboard nach RFC-0018: Woche, Monat und Jahr aus GET /stats/dashboard, Woche mit Plan (E8), ohne React.
+import type { DashboardStatsResponse, PeriodBlock, PeriodSummary, PlannedUnit, SportClass } from "../../api/client";
 import { addDays } from "../../utils/format";
 import { SPORT_CLASSES, zeroBySport } from "../../utils/sports";
 
@@ -55,47 +54,50 @@ export function dayBars(block: PeriodBlock, kind: "week" | "month"): DayBar[] {
   return out;
 }
 
-/** Montag der ISO-Woche eines Tages. */
-function mondayOf(day: string): string {
-  const wd = new Date(`${day}T12:00:00Z`).getUTCDay();
-  return addDays(day, -((wd + 6) % 7));
+/** Ein Tag im Wochenstreifen: erledigte Minuten je Sportklasse und geplante Minuten aus dem Plan. */
+export interface WeekDay {
+  date: string;
+  /** „Mo 23“ */
+  label: string;
+  /** Erledigte Minuten je Sportklasse */
+  done: Record<SportClass, number>;
+  doneTotal: number;
+  /** Geplante Minuten (ohne ausgelassene Einheiten) */
+  planned: number;
+  plannedCount: number;
+  /** Symbol unter dem Balken: erste erledigte Sportklasse, sonst die der ersten geplanten Einheit */
+  sport: SportClass | null;
 }
 
-/** ISO-Kalenderwoche eines Tages (Donnerstag der Woche bestimmt das Jahr). */
-export function isoWeek(day: string): number {
-  const thursday = new Date(`${addDays(mondayOf(day), 3)}T12:00:00Z`);
-  const jan1 = Date.UTC(thursday.getUTCFullYear(), 0, 1, 12);
-  return Math.floor((thursday.getTime() - jan1) / 86_400_000 / 7) + 1;
-}
+/** Geplante Dauer einer Einheit: Vorgabe, sonst aus den Zonenminuten. */
+export const plannedMinutes = (u: PlannedUnit) => u.duration_min ?? u.load.minutes;
 
-const short = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}.`;
-
-/**
- * Ein Balken je ISO-Woche der Saison (RFC-0018): erste und letzte Woche nur mit den Tagen in der Saison,
- * Wochen ohne Aktivität ohne Balken.
- */
-export function weekBars(block: PeriodBlock): DayBar[] {
-  const out: DayBar[] = [];
-  for (let monday = mondayOf(block.from); monday <= block.to && out.length < 60; monday = addDays(monday, 7)) {
-    const from = monday < block.from ? block.from : monday;
-    const sunday = addDays(monday, 6);
-    const to = sunday > block.to ? block.to : sunday;
-    const week = isoWeek(monday);
+/** Sieben Tage der Woche mit Ist (aus `by_day`) und Plan; ausgelassene Einheiten zählen nicht. */
+export function weekDays(block: PeriodBlock, units: PlannedUnit[]): WeekDay[] {
+  const out: WeekDay[] = [];
+  for (let day = block.from, i = 0; i < 7; day = addDays(day, 1), i++) {
+    const done = zeroBySport();
+    for (const b of block.by_day.filter((x) => x.date === day)) done[b.sport_class] += b.total_time_ms / 60_000;
+    const plan = units.filter((u) => u.date === day && u.status !== "skipped");
+    const first = STACK_ORDER.find((c) => done[c] > 0);
     out.push({
-      date: monday,
-      label: String(week),
-      title: t("dashboard.weekTitle", { n: week, from: short(from), to: `${short(to)}${to.slice(0, 4)}` }),
-      ...zeroBySport(),
-      count: 0,
+      date: day,
+      label: `${WEEKDAYS[i]} ${Number(day.slice(8, 10))}`,
+      done,
+      doneTotal: STACK_ORDER.reduce((s, c) => s + done[c], 0),
+      planned: plan.reduce((s, u) => s + plannedMinutes(u), 0),
+      plannedCount: plan.length,
+      sport: first ?? plan[0]?.sport_class ?? null,
     });
   }
-  for (const b of block.by_day) {
-    const bar = out.find((d) => d.date === mondayOf(b.date));
-    if (!bar) continue;
-    bar[b.sport_class] += b.distance_m / 1000;
-    bar.count += b.count;
-  }
   return out;
+}
+
+/** Zeitraum der Woche kurz: „23.–29.11.“, über den Monatswechsel „30.11.–06.12.“ */
+export function weekRange(from: string, to: string): string {
+  const d = (x: string) => `${x.slice(8, 10)}.`;
+  const m = (x: string) => `${x.slice(5, 7)}.`;
+  return from.slice(5, 7) === to.slice(5, 7) ? `${d(from)}–${d(to)}${m(to)}` : `${d(from)}${m(from)}–${d(to)}${m(to)}`;
 }
 
 /** Sportklassen, die im Zeitraum vorkommen (für Stapel und Legende). */

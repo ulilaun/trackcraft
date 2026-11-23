@@ -725,10 +725,11 @@ pub async fn dashboard(cfg: &Validated, db: &Db, today: NaiveDate) -> anyhow::Re
     }
     .expect("Folgemonat");
     let month_to = next_month - chrono::Duration::days(1);
-    let seasons = crate::seasons::list(db).await?;
-    let season = crate::seasons::current_or_last(&seasons, today);
-    let from = season.map_or(week_from.min(month_from), |s| s.start.min(week_from).min(month_from));
-    let to = season.map_or(week_to.max(month_to), |s| s.end.max(week_to).max(month_to));
+    // Laufendes Kalenderjahr statt Saison (Uli 23.11.2026); umfasst Woche und Monat außer in der ersten Januarwoche
+    let year_from = NaiveDate::from_ymd_opt(today.year(), 1, 1).expect("1. Januar");
+    let year_to = NaiveDate::from_ymd_opt(today.year(), 12, 31).expect("31. Dezember");
+    let from = year_from.min(week_from);
+    let to = year_to.max(week_to);
 
     let sql = format!(
         "SELECT x.sport_class, x.start_time_ms, x.distance_m, x.total_time_ms, x.elevation FROM ({BASE}) x WHERE x.start_time_ms >= ? AND x.start_time_ms < ?"
@@ -756,12 +757,8 @@ pub async fn dashboard(cfg: &Validated, db: &Db, today: NaiveDate) -> anyhow::Re
     Ok(json!({
         "week": block(format!("{}-W{:02}", iso.year(), iso.week()), week_from, week_to, &items),
         "month": block(format!("{}-{:02}", month_from.year(), month_from.month()), month_from, month_to, &items),
-        // Laufende oder zuletzt beendete Saison, `null` ohne solche Saison (RFC-0018)
-        "season": season.map(|s| {
-            let mut b = block(s.name.clone(), s.start, s.end, &items);
-            b["season"] = s.to_json(today);
-            b
-        }),
+        // Summen des laufenden Kalenderjahres; die Seite zeigt nur die Summen
+        "year": block(today.year().to_string(), year_from, year_to, &items),
     }))
 }
 

@@ -1,5 +1,5 @@
-import type { PeriodBlock } from "../../api/client";
-import { classesIn, dayBars, isoWeek, monthTitle, totalOf, weekBars } from "./dashboardModel";
+import type { PeriodBlock, PlannedUnit } from "../../api/client";
+import { classesIn, dayBars, monthTitle, totalOf, weekDays, weekRange } from "./dashboardModel";
 
 const summary = (sport_class: PeriodBlock["summaries"][number]["sport_class"], count: number, distance_m: number) => ({
   period: "2026-W46",
@@ -54,24 +54,30 @@ describe("Dashboard-Modell", () => {
     expect(monthTitle("2026-11")).toBe("November 2026");
   });
 
-  it("Saison: ein Balken je ISO-Woche, angeschnittene Wochen nur mit Saisontagen", () => {
-    expect([isoWeek("2026-01-01"), isoWeek("2025-12-29"), isoWeek("2026-12-31"), isoWeek("2027-01-03")]).toEqual([1, 1, 53, 53]);
-    const season: PeriodBlock = {
-      period: "Herbst",
-      from: "2026-11-12",
-      to: "2026-11-24",
+  it("Woche: Ist je Sportklasse in Minuten, Plan ohne ausgelassene Einheiten", () => {
+    const week: PeriodBlock = {
+      period: "2026-W48",
+      from: "2026-11-23",
+      to: "2026-11-29",
       summaries: [],
       by_day: [
-        { date: "2026-11-12", sport_class: "cycling", count: 1, distance_m: 20_000, total_time_ms: 1 },
-        { date: "2026-11-15", sport_class: "cycling", count: 1, distance_m: 30_000, total_time_ms: 1 },
-        { date: "2026-11-16", sport_class: "running", count: 1, distance_m: 8_000, total_time_ms: 1 },
+        { date: "2026-11-24", sport_class: "cycling", count: 1, distance_m: 39_400, total_time_ms: 108 * 60_000 },
+        { date: "2026-11-26", sport_class: "running", count: 1, distance_m: 7_000, total_time_ms: 39 * 60_000 },
       ],
     };
-    const bars = weekBars(season);
-    expect(bars.map((b) => [b.label, b.title, b.cycling, b.running, b.count])).toEqual([
-      ["46", "KW 46 · 12.11.–15.11.2026", 50, 0, 2],
-      ["47", "KW 47 · 16.11.–22.11.2026", 0, 8, 1],
-      ["48", "KW 48 · 23.11.–24.11.2026", 0, 0, 0],
+    const unit = (date: string, sport_class: PlannedUnit["sport_class"], duration_min: number | null, status: PlannedUnit["status"] = "planned") =>
+      ({ date, sport_class, duration_min, status, load: { minutes: 75 } }) as PlannedUnit;
+    const days = weekDays(week, [unit("2026-11-24", "cycling", 105, "done"), unit("2026-11-27", "running", 50), unit("2026-11-28", "cycling", null), unit("2026-11-29", "cycling", 90, "skipped")]);
+    expect(days.map((d) => [d.label, d.doneTotal, d.planned, d.plannedCount, d.sport])).toEqual([
+      ["Mo 23", 0, 0, 0, null],
+      ["Di 24", 108, 105, 1, "cycling"],
+      ["Mi 25", 0, 0, 0, null],
+      ["Do 26", 39, 0, 0, "running"],
+      ["Fr 27", 0, 50, 1, "running"],
+      ["Sa 28", 0, 75, 1, "cycling"],
+      ["So 29", 0, 0, 0, null],
     ]);
+    expect(days[1]?.done.cycling).toBe(108);
+    expect([weekRange("2026-11-23", "2026-11-29"), weekRange("2026-11-30", "2026-12-06")]).toEqual(["23.–29.11.", "30.11.–06.12."]);
   });
 });
