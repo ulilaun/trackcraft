@@ -354,11 +354,19 @@ pub fn setup(args: SetupArgs) -> anyhow::Result<()> {
 fn wait_until_listening(port: u16) -> anyhow::Result<()> {
     let start = Instant::now();
     let mut told = false;
+    let restarts =
+        || output(Command::new("systemctl").args(["show", "-p", "NRestarts", "--value", SERVICE_NAME])).and_then(|n| n.parse::<u32>().ok());
+    // Erst nach RestartSec (5 s) kann ein automatischer Neustart dazukommen, der Wert direkt nach dem Start ist die Basis.
+    let restarts_before = restarts().unwrap_or(0);
     loop {
         if std::net::TcpStream::connect_timeout(&([127, 0, 0, 1], port).into(), Duration::from_secs(1)).is_ok() {
             return Ok(());
         }
-        if output(Command::new("systemctl").args(["is-failed", SERVICE_NAME])).as_deref() == Some("failed") {
+        // Restart=on-failure: Ein Startfehler (z. B. neueres Schema nach einem Rollback) endet nie in „failed“,
+        // systemd startet den Dienst alle paar Sekunden neu. Schon der erste Neustart zeigt den Fehler.
+        let failed = output(Command::new("systemctl").args(["is-failed", SERVICE_NAME])).as_deref() == Some("failed");
+        let restarting = restarts().is_some_and(|n| n > restarts_before);
+        if failed || restarting {
             bail!("Der Dienst ist beim Start abgebrochen. Ursache: journalctl -u {SERVICE_NAME} -n 50");
         }
         if start.elapsed() > START_TIMEOUT {

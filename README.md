@@ -2,9 +2,9 @@
 
 # TrackCraft
 
-**Deine Trainingsdaten auf deinem eigenen Rechner.** TrackCraft ist eine selbst gehostete Trainingsplattform für FIT- und GPX-Dateien: Aktivitäten importieren, auf der Karte ansehen, eigene Segmente und Strecken anlegen und die eigenen Bestzeiten über Jahre und Saisons verfolgen. Ohne Cloud, ohne Konto, im eigenen Heimnetz.
+**Deine Trainingsdaten auf deinem eigenen Rechner.** TrackCraft ist eine selbst gehostete Trainingsplattform für FIT- und GPX-Dateien: Aktivitäten importieren, auf der Karte ansehen, eigene Segmente und Strecken anlegen, Bestzeiten über Jahre und Saisons verfolgen, Belastung und Form beobachten und das Training bis zum nächsten Ziel planen. Ohne Cloud, ohne Konto, im eigenen Heimnetz.
 
-Stand: Version 0.6 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch.
+Stand: Version 0.8 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaet-dunkel.png">
@@ -15,7 +15,9 @@ Stand: Version 0.6 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumenta
 | :---: | :---: |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/segment-dunkel.png"><img src="docs/screenshots/segment-hell.png" alt="Segment Sa Calobra mit Karte, Höhenprofil und Bestzeiten"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/statistik-dunkel.png"><img src="docs/screenshots/statistik-hell.png" alt="Statistik mit Saisons, Monatsdistanz und Verteilung je Sportklasse"></picture> |
 | **Dashboard** | **Aktivitätenliste** |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dunkel.png"><img src="docs/screenshots/dashboard-hell.png" alt="Dashboard mit letzten Aktivitäten, Monat und Saison"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaeten-dunkel.png"><img src="docs/screenshots/aktivitaeten-hell.png" alt="Aktivitätenliste mit Filtern und Summen"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dunkel.png"><img src="docs/screenshots/dashboard-hell.png" alt="Dashboard mit letzten Aktivitäten, Woche, Monat und Jahr"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaeten-dunkel.png"><img src="docs/screenshots/aktivitaeten-hell.png" alt="Aktivitätenliste mit Filtern und Summen"></picture> |
+| **Form** | **Plan** |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/form-dunkel.png"><img src="docs/screenshots/form-hell.png" alt="Formkurve mit Fitness, Ermüdung und Form samt Vorschau"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/plan-dunkel.png"><img src="docs/screenshots/plan-hell.png" alt="Trainingsplan im Kalender mit erledigten und geplanten Einheiten und einem Ziel"></picture> |
 
 Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/demo/README.md)); eine Tablet-Ansicht liegt unter [docs/screenshots](docs/screenshots).
 
@@ -41,9 +43,19 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 - Erkennt Rundkurse und warnt, wenn eine neue Strecke einer vorhandenen gleicht.
 
 **Auswertung**
-- Dashboard mit den letzten Aktivitäten, Tagesbalken und laufender Saison.
+- Dashboard mit den letzten Aktivitäten samt Kartenvorschau, der laufenden Woche (erledigt gegen geplant), Monat und Jahr.
 - Statistikseite mit Summen und Verteilung je Sportklasse über frei wählbare Zeiträume.
-- **Saisons:** frei benannte Zeiträume (z. B. „Sommer 2026“), in der Oberfläche gepflegt, wirken auf Bestenlisten, Filter und Dashboard.
+- **Saisons:** frei benannte Zeiträume (z. B. „Sommer 2026“), in der Oberfläche gepflegt, wirken auf Bestenlisten, Filter und Statistik.
+
+**Belastung und Form**
+- Herzfrequenzzonen im Konto, allgemein oder je Sportklasse und mit Gültigkeitsdatum; die maximale HF wird aus dem Geburtstag vorgeschlagen.
+- Belastung je Aktivität aus der Herzfrequenz (TRIMP nach Banister) und Zeit in den Zonen; ohne Pulsdaten geschätzt und so gekennzeichnet.
+- Seite **Form** mit Fitness, Ermüdung und Form über die Zeit und einer Vorschau (Ruhe, gleichbleibend oder nach Plan); Modell wählbar, jede Einstellung mit Erklärung.
+
+**Planung**
+- Kalender mit geplanten Einheiten (Zielbelastung oder Minuten je Zone), Serien, Vorlagen und Verschieben per Drag-and-drop.
+- Ziele wie Wettkämpfe oder Touren im Kalender; die **Planungshilfe** schlägt die Einheiten bis zum Ziel vor (Minuten je Wochentag, Steigerung, Entlastungswochen).
+- Eine Aktivität lässt sich der geplanten Einheit des Tages zuordnen (TrackCraft schlägt sie vor); die Formvorschau rechnet den offenen Plan mit ein.
 
 **Betrieb**
 - Läuft als Windows-Dienst, als Linux-systemd-Dienst (z. B. in einem Proxmox-Container) oder mit Docker.
@@ -51,7 +63,7 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 - Bedienbar am PC, Tablet und Handy, helles und dunkles Design.
 - Eine Datenbank (SQLite) und die unveränderten Originaldateien; jede Kennzahl lässt sich aus den Originalen neu berechnen.
 
-**Noch nicht enthalten** (geplant bis v1.0): Sicherung und Wiederherstellung aus der Oberfläche, Export, Ausrüstung und Wartung. Später denkbar: Gesundheitsdaten, Raspberry Pi, MCP-Server.
+**Noch nicht enthalten** (geplant bis v1.0): tägliche Sicherung und Wiederherstellung aus der Oberfläche, Export. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
 
 ## Sicherheit: nur fürs Heimnetz
 
@@ -61,13 +73,13 @@ TrackCraft hat in V1 **kein Login**. Wer die Oberfläche erreicht, darf alles le
 
 Fertige Pakete gibt es unter [Releases](../../releases), jeweils mit `SHA256SUMS.txt`.
 
-| Plattform | Paket | Anleitung |
-| :--- | :--- | :--- |
-| Windows 11 (x86-64) | `trackcraft-<version>-windows-x86_64.zip`, Start über `setup.cmd` | [infrastructure/windows/BETRIEB.md](infrastructure/windows/BETRIEB.md) |
-| Linux mit systemd (x86-64, glibc ≥ 2.35) | `trackcraft-<version>-linux-x86_64.tar.gz`, Start über `setup.sh` | [infrastructure/linux/BETRIEB.md](infrastructure/linux/BETRIEB.md) |
-| Docker | Images `trackcraft-backend` und `trackcraft-frontend` (GHCR), `compose.yaml` | [infrastructure/docker/BETRIEB.md](infrastructure/docker/BETRIEB.md) |
+| Plattform | Voraussetzungen | Paket | Anleitung |
+| :--- | :--- | :--- | :--- |
+| Windows | Windows 11, x86-64, 2 GB freier Arbeitsspeicher | `trackcraft-<version>-windows-x86_64.zip`, Start über `setup.cmd` | [infrastructure/windows/BETRIEB.md](infrastructure/windows/BETRIEB.md) |
+| Linux | x86-64 mit systemd und glibc ≥ 2.35 (z. B. Debian 12/13, Ubuntu 22.04 und neuer), 1 GB freier Arbeitsspeicher | `trackcraft-<version>-linux-x86_64.tar.gz`, Start über `setup.sh` | [infrastructure/linux/BETRIEB.md](infrastructure/linux/BETRIEB.md) |
+| Docker | x86-64-Host mit Docker Engine und dem Compose-Plugin (`docker compose`), davor ein Reverse Proxy für HTTPS | `trackcraft-<version>-docker.zip` mit `compose.yaml`; Images `ghcr.io/ulilaun/trackcraft-backend` und `-frontend`, ohne Anmeldung ladbar | [infrastructure/docker/BETRIEB.md](infrastructure/docker/BETRIEB.md) |
 
-Das Setup fragt nach dem Namen des Rechners im Heimnetz (z. B. `trackcraft.home.arpa`), legt Zertifikate und Konfiguration an und startet den Dienst. Ein Update ist dasselbe Setup aus dem neueren Paket; die Datenbank wird dabei automatisch migriert.
+Unter Windows und Linux fragt das Setup nach dem Namen des Rechners im Heimnetz (z. B. `trackcraft.home.arpa`), legt Zertifikate und Konfiguration an und startet den Dienst. Ein Update ist dasselbe Setup aus dem neueren Paket; die Datenbank wird dabei automatisch migriert. Im Browser genügt eine aktuelle Version von Firefox, Chrome, Edge oder Safari.
 
 **Kartenkacheln:** Ohne eigene Einstellung lädt der Browser die Karten direkt von den Servern der OpenStreetMap Foundation (`tile.openstreetmap.org`). Das ist für gelegentliche private Nutzung gedacht und unterliegt deren [Nutzungsrichtlinie](https://operations.osmfoundation.org/policies/tiles/), die Namensnennung blendet TrackCraft ein. Wer viel lädt oder TrackCraft für mehrere Personen betreibt, trägt in der Konfiguration einen eigenen Kachelanbieter ein:
 
@@ -78,6 +90,10 @@ attribution = "© OpenStreetMap-Mitwirkende, Kacheln: Beispielanbieter"
 ```
 
 **Ortsvorschlag:** Findet TrackCraft keinen bekannten Ort in der Nähe des Starts, fragt der Server den Dienst Nominatim von OpenStreetMap (`nominatim.openstreetmap.org`) mit der auf gut 10 m gerundeten Startkoordinate. Das lässt sich unter Einstellungen → Orte abschalten; mit `[places] nominatim_url` geht auch eine eigene Nominatim-Instanz.
+
+## Fragen, Fehler und Beiträge
+
+TrackCraft ist ein Freizeitprojekt mit einem Betreuer. Fragen, Fehler und Ideen bitte als [Issue](../../issues) melden, gern mit Version (Seite System) und Plattform; Sicherheitslücken vertraulich wie in [SECURITY.md](SECURITY.md). Code-Beiträge bitte erst im Issue absprechen, Einzelheiten in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Entwicklung
 

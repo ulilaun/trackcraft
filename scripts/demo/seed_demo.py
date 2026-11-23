@@ -1,6 +1,7 @@
 """Eine leere TrackCraft-Instanz mit den Beispieldaten aus make_demo.py befüllen.
 
-Importiert alle GPX-Dateien, legt zwei Saisons, Segmente und Strecken an und wartet, bis die Auswertung fertig ist.
+Importiert alle GPX-Dateien, legt zwei Saisons, Segmente und Strecken, Profil mit HF-Zonen, ein Ziel und einen Plan an
+und wartet, bis die Auswertung fertig ist.
 Nur für eine Test-Instanz gedacht (selbst signiertes Zertifikat wird nicht geprüft).
 
 Aufruf:  python scripts/demo/seed_demo.py <gpx-ordner> [https://localhost:8443]
@@ -13,6 +14,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from datetime import date, timedelta
 from pathlib import Path
 
 BASE = sys.argv[2] if len(sys.argv) > 2 else "https://localhost:8443"
@@ -103,9 +105,11 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     files = sorted(Path(sys.argv[1]).glob("*.gpx"))
-    ids = {}
+    ids, days = {}, {}
     for f in files:
-        ids.setdefault(f.stem.split("-", 3)[3], []).append(upload(f))
+        aid = upload(f)
+        ids.setdefault(f.stem.split("-", 3)[3], []).append(aid)
+        days[f.stem[:10]] = aid
         print("importiert", f.name)
     wait_jobs()
 
@@ -129,7 +133,43 @@ def main():
     sec = track(first["formentor"])
     create(first["formentor"], (sec["index"][0], sec["index"][-1]), "Cap de Formentor", "cycling", kind="route", location="Port de Pollença")
     wait_jobs()
+    seed_form_and_plan(days)
+    wait_jobs()
     print("fertig:", sum(len(v) for v in ids.values()), "Aktivitäten")
+
+
+def seed_form_and_plan(days):
+    """Profil und HF-Zonen (für Belastung und Form), ein Ziel und ein Plan mit erledigten und offenen Einheiten."""
+    s, _ = call("PATCH", "/profile", {"nickname": "Alex", "birthday": "1984-06-12"})
+    print("Profil", s)
+    s, v = call("POST", "/hr-zones", {"sport_class": None, "valid_from": "2025-01-01", "max_hr": 182, "resting_hr": 52})
+    print("HF-Zonen", s, "" if s == 201 else v)
+
+    today = date.today()
+    s, v = call("POST", "/plan/goals", {
+        "date": (today + timedelta(days=48)).isoformat(), "sport_class": "cycling", "name": "Tramuntana-Runde",
+        "description": "Erfundenes Beispielziel: einmal quer durchs Gebirge.", "distance_m": 160000, "target_time_s": 6 * 3600 + 30 * 60})
+    print("Ziel", s, "" if s == 201 else v)
+    goal = v["data"]["id"]
+
+    # Erledigte Einheiten der letzten zehn Tage, je mit der Aktivität des Tages verknüpft
+    for day, aid in sorted(days.items()):
+        if (today - date.fromisoformat(day)).days > 10:
+            continue
+        a = call("GET", f"/activities/{aid}")[1]["data"]
+        minutes = max(a["total_time_ms"] // 60000, 1)
+        s, u = call("POST", "/plan/units", {"date": day, "sport_class": a["sport_class"], "title": a["title"],
+                                            "mode": "target", "duration_min": minutes, "target_load": round(minutes * 0.9),
+                                            "intensive_pct": 20})
+        if s == 201:
+            call("PUT", f"/plan/units/{u['data']['id']}/activity", {"activity_id": a["id"]})
+        print("Einheit erledigt", day, s)
+
+    # Offene Einheiten bis zum Ziel über die Planungshilfe
+    body = {"goal_id": goal, "sport_class": "cycling", "minutes": [0, 75, 60, 0, 90, 180, 60], "max_gain": 5,
+            "recovery_weeks": True, "intensity": "polarized"}
+    s, v = call("POST", "/plan/suggestion/apply", body)
+    print("Planungshilfe", s, v["data"] if s == 201 else v)
 
 
 if __name__ == "__main__":

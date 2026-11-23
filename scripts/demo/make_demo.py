@@ -40,7 +40,7 @@ KINDS = {
 
 # Wer auf Mallorca wohnt: das ganze Jahr alle paar Tage, im Sommer weniger Radfahren (Hitze), mehr Laufen
 FIRST_DAY = date(2025, 3, 1)
-LAST_DAY = date(2026, 11, 12)
+LAST_DAY = date(2026, 11, 22)
 RIDES = ["formentor", "lluc", "alcudia", "sa_calobra", "formentor", "alcudia", "lluc"]
 RUNS = ["hafenrunde", "hafenrunde", "boquer"]
 

@@ -1,6 +1,6 @@
 # TrackCraft unter Windows betreiben
 
-Gilt für das Windows-ZIP `trackcraft-<version>-windows-x86_64.zip` (RFC-0005, RFC-0015). TrackCraft läuft als Windows-Dienst `TrackCraft`, liefert die Oberfläche selbst aus und spricht nur HTTPS.
+Gilt für das Windows-ZIP `trackcraft-<version>-windows-x86_64.zip` (RFC-0005, RFC-0015). TrackCraft läuft als Windows-Dienst `TrackCraft`, liefert die Oberfläche selbst aus und spricht nur HTTPS. Zuletzt am 23.11.2026 auf Windows 11 durchgespielt: Neueinrichtung nach `uninstall` mit vorhandener Konfiguration, Migration alter Daten, Import, Update-Lauf.
 
 ## Voraussetzungen
 
@@ -19,11 +19,11 @@ Gilt für das Windows-ZIP `trackcraft-<version>-windows-x86_64.zip` (RFC-0005, R
 
    Der Wert muss mit der Zeile in `SHA256SUMS.txt` übereinstimmen.
 3. Rechtsklick auf das ZIP → Eigenschaften → „Zulassen“ ankreuzen. Sonst warnt SmartScreen beim Start, weil TrackCraft nicht signiert ist.
-4. Das ZIP entpacken, wo es liegt, z. B. im Download-Ordner.
+4. Das ZIP entpacken (Rechtsklick → „Alle extrahieren“), wo es liegt, z. B. im Download-Ordner. `setup.cmd` nicht direkt im geöffneten ZIP doppelklicken: Dann fehlen ihm die übrigen Dateien.
 
-### Ohne Release: lokal gebautes Paket
+### Für Entwickler: lokal gebautes Paket
 
-Zum Ausprobieren vor dem ersten Release baut das Skript ein gleich aufgebautes Paket aus dem Repository (Rust und Node nötig):
+Zum Ausprobieren eines eigenen Stands baut das Skript ein gleich aufgebautes Paket aus dem Repository (Rust und Node nötig):
 
 ```powershell
 .\scripts\package-windows.ps1 -Version 0.1.0-dev -Local
@@ -84,8 +84,12 @@ Wer ein eigenes Zertifikat nutzen will, trägt dessen Pfade in `[tls]` ein; Trac
 
 ## Sicherungsziel
 
+> **Noch keine tägliche Sicherung:** TrackCraft legt bisher nur vor einer Schemamigration selbst eine Sicherung der Datenbank an (`data\backups`). Die tägliche Sicherung ins Sicherungsziel und die Wiederherstellung aus der Oberfläche kommen mit einer späteren Version. Bis dahin selbst sichern: Dienst stoppen, `C:\ProgramData\TrackCraft\data\database` und `data\activities` als Administrator kopieren (z. B. mit `robocopy … /E`), Dienst starten.
+
+Das Ziel lässt sich trotzdem schon eintragen; `trackcraft.exe check-config` meldet, ob es erreichbar ist.
+
 - USB-Laufwerk oder zweite Platte: Pfad in `[backup] target_dir`, z. B. `'E:\TrackCraft-Sicherung'`. Ist der Ordner beim `setup` vorhanden, erhält der Dienst Schreibrecht.
-- Netzwerkfreigabe (z. B. auf der DS214): als UNC-Pfad `'\\ds214\backup\trackcraft'`, nie als Laufwerksbuchstabe. Der Dienst greift als Computerkonto zu; ein NAS ohne Domäne kennt dieses Konto nicht. Dann den Dienst unter einem lokalen Konto laufen lassen, das auf dem NAS mit gleichem Namen und Passwort Schreibrecht auf die Freigabe hat (Dienste → TrackCraft → Anmelden), und diesem Konto dieselben Rechte auf `C:\ProgramData\TrackCraft\data` und Lesen auf `config` geben.
+- Netzwerkfreigabe (z. B. auf einem NAS): als UNC-Pfad `'\\nas\backup\trackcraft'`, nie als Laufwerksbuchstabe. Der Dienst greift als Computerkonto zu; ein NAS ohne Domäne kennt dieses Konto nicht. Dann den Dienst unter einem lokalen Konto laufen lassen, das auf dem NAS mit gleichem Namen und Passwort Schreibrecht auf die Freigabe hat (Dienste → TrackCraft → Anmelden), und diesem Konto dieselben Rechte auf `C:\ProgramData\TrackCraft\data` und Lesen auf `config` geben.
 
 ## Betrieb
 
@@ -98,7 +102,7 @@ Wer ein eigenes Zertifikat nutzen will, trägt dessen Pfade in `[tls]` ein; Trac
 | `trackcraft.exe` | Start im Vordergrund zur Diagnose (vorher Dienst stoppen), Ende mit Strg+C |
 
 - Logs: `C:\ProgramData\TrackCraft\data\logs\app.<datum>.log`. Startfehler vor dem Log: Ereignisanzeige → Windows-Protokolle → Anwendung, Quelle `TrackCraft`.
-- TrackCraft ist nur erreichbar, wenn der PC läuft. Die Sicherung um 03:00 läuft nur bei eingeschaltetem PC, sonst einmal nach dem Start.
+- TrackCraft ist nur erreichbar, wenn der PC läuft.
 - Bei einem Absturz startet Windows den Dienst nach einer Minute neu, höchstens zweimal am Tag. Bei einem Konfigurationsfehler bleibt er gestoppt.
 
 ## Update
@@ -113,7 +117,13 @@ Wer ein eigenes Zertifikat nutzen will, trägt dessen Pfade in `[tls]` ein; Trac
 Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann nichts. Zurück geht es so:
 
 1. `setup.cmd` aus dem aufbewahrten alten ZIP ausführen; es ersetzt das Programm durch die alte Version.
-2. Startet sie nicht, weil schon migriert wurde: Dienst stoppen, `data\database` und `data\activities` beiseitelegen, Dienst starten und die Sicherung vor der Migration über die Seite Sicherung wiederherstellen (RFC-0012).
+2. Startet sie nicht, weil schon migriert wurde, die Datenbank von vor der Migration zurückholen (als Administrator):
+   1. `trackcraft.exe service stop`
+   2. In `C:\ProgramData\TrackCraft\data\database` die Dateien `trackcraft.db`, `trackcraft.db-wal` und `trackcraft.db-shm` in einen anderen Ordner verschieben.
+   3. `C:\ProgramData\TrackCraft\data\backups\trackcraft-vor-migration-v<alt>-v<neu>.db` als `trackcraft.db` nach `data\database` kopieren.
+   4. `trackcraft.exe service start`
+
+   Änderungen seit dem Update fehlen danach; die Originaldateien in `data\activities` bleiben, wie sie sind.
 
 ## Deinstallieren
 

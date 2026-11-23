@@ -30,6 +30,8 @@ const shots = [
   { name: "aktivitaet", url: `/aktivitaeten/${ride.id}`, viewport: desktop },
   { name: "segment", url: `/segmente/${calobra.id}`, viewport: desktop },
   { name: "statistik", url: "/statistik", viewport: desktop },
+  { name: "form", url: "/form", viewport: desktop },
+  { name: "plan", url: "/plan", viewport: desktop },
   { name: "tablet-aktivitaet", url: `/aktivitaeten/${ride.id}`, viewport: tablet, scale: 1 },
 ];
 

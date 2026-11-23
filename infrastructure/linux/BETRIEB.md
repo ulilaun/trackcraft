@@ -1,6 +1,6 @@
 # TrackCraft unter Linux betreiben
 
-Gilt für das Paket `trackcraft-<version>-linux-x86_64.tar.gz` (RFC-0005 „Linux“, RFC-0015). TrackCraft läuft als systemd-Dienst `trackcraft` unter einem eigenen Benutzer, liefert die Oberfläche selbst aus und spricht nur HTTPS, wie unter Windows. Erprobt auf Debian 13 in einem Proxmox-Container (LXC).
+Gilt für das Paket `trackcraft-<version>-linux-x86_64.tar.gz` (RFC-0005 „Linux“, RFC-0015). TrackCraft läuft als systemd-Dienst `trackcraft` unter einem eigenen Benutzer, liefert die Oberfläche selbst aus und spricht nur HTTPS, wie unter Windows. Erprobt auf Debian 13 in einem Proxmox-Container (LXC), zuletzt am 23.11.2026 auf einem frischen Container mit Installation, Import, Update, Sicherung und Rollback.
 
 ## Voraussetzungen
 
@@ -10,15 +10,22 @@ Gilt für das Paket `trackcraft-<version>-linux-x86_64.tar.gz` (RFC-0005 „Linu
 
 ### Proxmox-Container
 
-Unprivilegierter Container aus der Debian-Vorlage, 2 Kerne, 2 GB RAM, Platte nach Datenmenge (Programm etwa 50 MB, dazu Originaldateien und Datenbank). In der FRITZ!Box dem Container eine feste IP geben. `nesting` braucht TrackCraft nicht.
+Unprivilegierter Container aus der Debian-Vorlage, 2 Kerne, 2 GB RAM, Platte nach Datenmenge (Programm etwa 50 MB, dazu Originaldateien und Datenbank). Die Option `nesting` eingeschaltet lassen (Vorgabe in der Proxmox-Oberfläche): TrackCraft selbst braucht sie nicht, aber ohne sie schlagen in Debian 13 einige Systemdienste fehl (`systemctl is-system-running` meldet „degraded“). Im Router dem Container eine feste IP geben.
 
 ## 1. Herunterladen und prüfen
 
+Paket und `SHA256SUMS.txt` aus dem [GitHub Release](https://github.com/ulilaun/trackcraft/releases) laden, direkt auf dem Rechner z. B. mit `wget` (die Version anpassen):
+
 ```bash
+V=1.0.0
+wget https://github.com/ulilaun/trackcraft/releases/download/v$V/trackcraft-$V-linux-x86_64.tar.gz \
+     https://github.com/ulilaun/trackcraft/releases/download/v$V/SHA256SUMS.txt
 sha256sum -c --ignore-missing SHA256SUMS.txt
-tar -xzf trackcraft-1.0.0-linux-x86_64.tar.gz
-cd trackcraft-1.0.0-linux-x86_64
+tar -xzf trackcraft-$V-linux-x86_64.tar.gz
+cd trackcraft-$V-linux-x86_64
 ```
+
+`sha256sum` muss `OK` melden. Liegt noch eine `SHA256SUMS.txt` von früher im Ordner, lädt `wget` die neue als `SHA256SUMS.txt.1`; die alte vorher löschen.
 
 ## 2. Installieren
 
@@ -78,6 +85,16 @@ Liegen neue Namen außerhalb der bisherigen CA, legt der Befehl eine neue CA an;
 
 ## Sicherungsziel
 
+> **Noch keine tägliche Sicherung:** TrackCraft legt bisher nur vor einer Schemamigration selbst eine Sicherung der Datenbank an (`/var/lib/trackcraft/backups`). Die tägliche Sicherung ins Sicherungsziel und die Wiederherstellung aus der Oberfläche kommen mit einer späteren Version. Bis dahin selbst sichern, z. B.:
+>
+> ```bash
+> sudo systemctl stop trackcraft
+> sudo tar -czf /mnt/trackcraft-sicherung/trackcraft-$(date +%F).tgz -C /var/lib/trackcraft database activities
+> sudo systemctl start trackcraft
+> ```
+>
+> Proxmox-Nutzer können stattdessen den ganzen Container sichern (vzdump, Modus „Stopp“ oder „Snapshot“).
+
 Eine NAS-Freigabe auf dem Proxmox-Host einhängen und per Bind-Mount in den Container geben, oder im Container direkt einhängen (z. B. CIFS in `/etc/fstab`). Den Pfad in `[backup] target_dir` eintragen und `setup.sh` erneut ausführen: Es macht den Ordner für den Dienst beschreibbar und trägt ihn in die systemd-Unit ein.
 
 ## Betrieb
@@ -90,7 +107,7 @@ Eine NAS-Freigabe auf dem Proxmox-Host einhängen und per Bind-Mount in den Cont
 | `sudo -u trackcraft /opt/trackcraft/trackcraft check-config` | Konfiguration prüfen, ändert nichts |
 
 - Logs: `/var/lib/trackcraft/logs/app.<datum>.log` und das Journal.
-- Bei einem Absturz startet systemd den Dienst nach fünf Sekunden neu. Bei einem Konfigurationsfehler beendet er sich mit Meldung im Journal.
+- Bei einem Absturz oder Startfehler startet systemd den Dienst alle fünf Sekunden neu (`systemctl status` zeigt dann „activating (auto-restart)“); die Ursache steht im Journal.
 
 ## Umzug von Windows
 
@@ -112,7 +129,18 @@ Daten und Originaldateien sind plattformunabhängig, die Datenbank speichert nur
 
 ## Rollback
 
-Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann nichts. `setup.sh` aus dem aufbewahrten alten Paket ausführen; startet es wegen einer Migration nicht, wie unter Windows nach RFC-0015 vorgehen.
+Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann nichts. `sudo ./setup.sh` aus dem aufbewahrten alten Paket ausführen. Meldet es „Der Dienst ist beim Start abgebrochen“ und nennt `journalctl -u trackcraft` eine zu neue Schemaversion, wurde schon migriert; dann die Datenbank von vor der Migration zurückholen:
+
+```bash
+sudo systemctl stop trackcraft
+cd /var/lib/trackcraft
+sudo mkdir -p /root/nach-update && sudo mv database/trackcraft.db* /root/nach-update/
+sudo cp backups/trackcraft-vor-migration-v<alt>-v<neu>.db database/trackcraft.db
+sudo chown trackcraft:trackcraft database/trackcraft.db
+sudo systemctl start trackcraft
+```
+
+Änderungen seit dem Update fehlen danach; die Originaldateien in `activities` bleiben, wie sie sind.
 
 ## Deinstallieren
 
