@@ -487,6 +487,10 @@ fn apply_certificates(cfg: &Validated, layout: &Layout, new_ca: bool) -> anyhow:
         let _ = Command::new("certutil").args(["-delstore", "Root", &format!("TrackCraft Heimnetz-CA ({label})")]).output();
         run(Command::new("certutil").args(["-addstore", "-f", "Root"]).arg(&managed.ca_cert))?;
         println!("   neue TrackCraft-CA angelegt und in Windows als vertrauenswürdig eingetragen");
+    } else {
+        // Vorhandene CA immer wieder eintragen (ändert nichts, wenn sie schon drinsteht): `uninstall` entfernt sie aus
+        // Windows, die Dateien bleiben; eine Neueinrichtung danach fand sonst eine CA vor, der Windows nicht mehr vertraut.
+        run(Command::new("certutil").args(["-addstore", "-f", "Root"]).arg(&managed.ca_cert))?;
     }
     match out.server_issued {
         Some(reason) => println!("   Serverzertifikat ausgestellt ({reason}), gültig {} Tage", cert::SERVER_DAYS),
