@@ -125,3 +125,12 @@ body {
 .leaflet-container.tc-two-fingers {
   touch-action: none;
 }
+
+/* Mini-Karte im Dashboard-Feed: fest, Klick geht an die Kachel. */
+.tc-mini-map.leaflet-container {
+  cursor: pointer;
+}
+.tc-mini-map .leaflet-control-attribution {
+  font-size: 9px;
+  line-height: 1.3;
+}

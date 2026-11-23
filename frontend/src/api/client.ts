@@ -550,8 +550,8 @@ export interface PeriodBlock {
 }
 
 export interface DashboardStatsResponse {
-  /** `season`: laufende, sonst zuletzt beendete Saison, `null` ohne solche */
-  data: { week: PeriodBlock; month: PeriodBlock; season?: (PeriodBlock & { season: Season }) | null };
+  /** `year`: laufendes Kalenderjahr, die Seite zeigt nur die Summen */
+  data: { week: PeriodBlock; month: PeriodBlock; year: PeriodBlock };
 }
 
 // Benutzerprofil (OpenAPI Profile)

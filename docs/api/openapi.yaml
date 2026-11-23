@@ -2068,20 +2068,14 @@ components:
       properties:
         data:
           type: object
-          required: [week, month]
+          required: [week, month, year]
           properties:
             week: {$ref: '#/components/schemas/PeriodBlock'}
             month: {$ref: '#/components/schemas/PeriodBlock'}
-            season:
-              description: 'Laufende, sonst zuletzt beendete Saison; `period` ist ihr Name. `null` ohne solche Saison.'
-              oneOf:
-                - allOf:
-                    - {$ref: '#/components/schemas/PeriodBlock'}
-                    - type: object
-                      required: [season]
-                      properties:
-                        season: {$ref: '#/components/schemas/Season'}
-                - {type: 'null'}
+            year:
+              allOf:
+                - {$ref: '#/components/schemas/PeriodBlock'}
+              description: 'Laufendes Kalenderjahr (1.1. bis 31.12.); `period` ist die Jahreszahl.'
     LoadMethod:
       type: string
       enum: [samples, average, estimated]

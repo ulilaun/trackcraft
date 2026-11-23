@@ -1,25 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { apiGet, type Activity, type ActivityListResponse, type DashboardStatsResponse, type PeriodBlock } from "../../api/client";
+import {
+  apiGet,
+  type Activity,
+  type ActivityListResponse,
+  type DashboardStatsResponse,
+  type PeriodBlock,
+  type PlanResponse,
+  type SportClass,
+} from "../../api/client";
 import { Card } from "../../components/Card";
 import { Problem } from "../../components/Problem";
 import { ActivitySportIcon } from "../../components/SportIcon";
 import { useConfig, useSubSportLabel } from "../../hooks/useConfig";
 import { t } from "../../i18n";
-import { dateTime, duration, hoursMinutes, km, num, speed } from "../../utils/format";
+import { addDays, dateTime, duration, hoursMinutes, km, localDate, num, speed } from "../../utils/format";
 import type { DetailOrigin } from "../activities/ActivityDetailPage";
 import type { ImportHandoff } from "../import/ImportPage";
 import { DropZone } from "../import/parts";
-import { seasonRange } from "../seasons/seasonModel";
-import { classesIn, dayBars, monthTitle, totalOf, weekBars, type Dashboard } from "./dashboardModel";
+import { classesIn, dayBars, monthTitle, totalOf } from "./dashboardModel";
 import { DayBars } from "./DayBars";
+import { MiniMap } from "./MiniMap";
+import { WeekCard } from "./WeekCard";
 
-export const FEED_SIZE = 10;
+/** Weniger, dafür größere Einträge mit Karte (Uli 23.11.2026). */
+export const FEED_SIZE = 5;
 
-function Kpi({ label, value, unit }: { label: string; value: string; unit?: string }) {
+const BADGE: Record<SportClass, string> = {
+  cycling: "bg-cycling",
+  ebike: "bg-ebike",
+  running: "bg-running",
+  skiing: "bg-skiing",
+  swimming: "bg-swimming",
+  studio: "bg-studio",
+  unknown: "bg-unknown",
+};
+const TINT: Record<SportClass, string> = {
+  cycling: "bg-cycling/12",
+  ebike: "bg-ebike/12",
+  running: "bg-running/12",
+  skiing: "bg-skiing/12",
+  swimming: "bg-swimming/12",
+  studio: "bg-studio/12",
+  unknown: "bg-unknown/12",
+};
+
+function Kpi({ label, value, unit, className = "" }: { label: string; value: string; unit?: string; className?: string }) {
   return (
-    <div className="min-w-0">
+    <div className={`min-w-0 ${className}`}>
       <div className="text-xs text-muted">{label}</div>
       <div className="num text-lg font-semibold">
         {value}
@@ -29,38 +58,58 @@ function Kpi({ label, value, unit }: { label: string; value: string; unit?: stri
   );
 }
 
-/** Eine Aktivität im Feed: Kopf mit Icon, Titel, Untertyp, Ort, Datum und KPI-Strip (RFC-0018). */
-function FeedItem({ a, timeZone }: { a: Activity; timeZone?: string }) {
+/**
+ * Eine Aktivität im Feed als Kachel (RFC-0018, Uli 23.11.2026): links die feste Mini-Karte, ohne GPS das
+ * Sport-Symbol auf getönter Fläche; rechts Titel, Datum, Untertyp, Ort, Kennzahlen und ggf. die Plan-Einheit.
+ */
+function FeedItem({ a, timeZone, map, plan }: { a: Activity; timeZone?: string; map?: { tile_url: string; attribution: string }; plan?: string }) {
   const subLabel = useSubSportLabel();
   const catalog = useConfig().data?.data.sub_sport_catalog;
   const navigate = useNavigate();
   const running = a.sport_class === "running";
   const avg = speed(a.avg_speed_kmh, running);
   const origin: DetailOrigin = { from: "dashboard" };
+  const withMap = a.has_position && !!map;
   return (
     <li
-      className="cursor-pointer border-b border-line px-1 py-3 last:border-b-0 hover:bg-card-2"
+      className="grid cursor-pointer overflow-hidden rounded-xl border border-line bg-card transition hover:-translate-y-px hover:border-accent sm:grid-cols-[210px_minmax(0,1fr)]"
       onClick={() => void navigate(`/aktivitaeten/${a.id}`, { state: origin })}
     >
-      <div className="flex items-center gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card-2">
-          <ActivitySportIcon sport={a.sport_class} subKey={a.sub_sport} catalog={catalog} size={18} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <Link to={`/aktivitaeten/${a.id}`} state={origin} className="block truncate font-semibold hover:underline" onClick={(e) => e.stopPropagation()}>
+      <div className={`relative bg-card-2 ${withMap ? "min-h-40" : "min-h-18 sm:min-h-36"}`}>
+        {withMap ? (
+          <>
+            <MiniMap id={a.id} tileUrl={map.tile_url} attribution={map.attribution} />
+            <span className={`absolute left-2 top-2 z-[500] grid size-8 place-items-center rounded-full text-white shadow ${BADGE[a.sport_class]}`}>
+              <ActivitySportIcon sport={a.sport_class} subKey={a.sub_sport} catalog={catalog} size={17} plain decorative />
+            </span>
+          </>
+        ) : (
+          <div className={`absolute inset-0 grid place-items-center ${TINT[a.sport_class]}`}>
+            <ActivitySportIcon sport={a.sport_class} subKey={a.sub_sport} catalog={catalog} size={48} decorative />
+          </div>
+        )}
+      </div>
+      <div className="grid min-w-0 content-center gap-2.5 px-4 py-3">
+        <div className="min-w-0">
+          <Link to={`/aktivitaeten/${a.id}`} state={origin} className="block truncate text-base font-semibold hover:underline" onClick={(e) => e.stopPropagation()}>
             {a.title}
           </Link>
-          <div className="flex items-center gap-1.5 truncate text-xs text-muted">
-            <span className="truncate">{[dateTime(a.start_time, timeZone, true), subLabel(a.sport_class, a.sub_sport), a.location].filter(Boolean).join(" · ")}</span>
+          <div className="truncate text-xs text-muted">
+            {[dateTime(a.start_time, timeZone, true), subLabel(a.sport_class, a.sub_sport), a.location].filter(Boolean).join(" · ")}
           </div>
         </div>
-      </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 pl-12 sm:grid-cols-5">
-        <Kpi label={t("detail.kpi.distance")} value={km(a.distance_m)} unit="km" />
-        <Kpi label={t("detail.kpi.time")} value={duration(a.total_time_ms)} />
-        <Kpi label={t(running ? "detail.kpi.pace" : "detail.kpi.avg")} value={avg.value} unit={avg.unit} />
-        <Kpi label={t("detail.kpi.gain")} value={a.elevation_gain_m == null ? "–" : num(a.elevation_gain_m)} unit="m" />
-        <Kpi label={t("dashboard.hr")} value={a.avg_heart_rate_bpm == null ? "–" : String(a.avg_heart_rate_bpm)} unit="bpm" />
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <Kpi label={t("detail.kpi.distance")} value={km(a.distance_m)} unit="km" />
+          <Kpi label={t("detail.kpi.time")} value={duration(a.total_time_ms)} />
+          <Kpi label={t(running ? "detail.kpi.pace" : "detail.kpi.avg")} value={avg.value} unit={avg.unit} />
+          <Kpi label={t("detail.kpi.gain")} value={a.elevation_gain_m == null ? "–" : num(a.elevation_gain_m)} unit="m" className="hidden sm:block" />
+          <Kpi label={t("dashboard.hr")} value={a.avg_heart_rate_bpm == null ? "–" : String(a.avg_heart_rate_bpm)} unit="bpm" className="hidden sm:block" />
+        </div>
+        {plan && (
+          <div>
+            <span className="inline-flex rounded-full bg-good/15 px-2 py-0.5 text-[11px] text-good">{t("dashboard.planTag", { title: plan })}</span>
+          </div>
+        )}
       </div>
     </li>
   );
@@ -83,34 +132,21 @@ function MonthCard({ block }: { block: PeriodBlock }) {
   );
 }
 
-/** Laufende oder zuletzt beendete Saison: Kennzahlen und Distanz je ISO-Woche (RFC-0018). */
-function SeasonCard({ block }: { block: NonNullable<Dashboard["season"]> }) {
+/** Laufendes Kalenderjahr, nur Summen (Uli 23.11.2026, statt der Saison). */
+function YearCard({ block }: { block: PeriodBlock }) {
   const total = totalOf(block);
-  const s = block.season;
   return (
-    <Card>
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
-          <Link to={`/aktivitaeten?saison=${encodeURIComponent(s.id)}`} className="hover:text-text hover:underline">
-            {t("dashboard.season", { name: s.name })}
-          </Link>
-        </h2>
-        {s.state === "ended" && <span className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">{t("dashboard.seasonEnded")}</span>}
-        <span className="ml-auto font-mono text-xs text-muted">{seasonRange(s)}</span>
-      </div>
+    <Card title={t("dashboard.year", { year: block.period })}>
       <div className="grid grid-cols-3 gap-2">
         <Kpi label={t("dashboard.count")} value={num(total.count)} />
         <Kpi label={t("dashboard.time")} value={hoursMinutes(total.total_time_ms)} unit="h" />
         <Kpi label={t("dashboard.distance")} value={km(total.distance_m)} unit="km" />
       </div>
-      <div className="mt-3">
-        <DayBars bars={weekBars(block)} classes={classesIn(block)} />
-      </div>
     </Card>
   );
 }
 
-/** Startseite nach RFC-0018: Feed der letzten Aktivitäten, laufender Monat und Saison, Import-Zone. */
+/** Startseite nach RFC-0018: links Woche mit Plan und Feed, rechts laufender Monat, Jahr und Import-Zone. */
 export function DashboardPage() {
   const navigate = useNavigate();
   const config = useConfig();
@@ -127,30 +163,46 @@ export function DashboardPage() {
 
   const list = feed.data?.data ?? [];
   const total = feed.data?.meta.total ?? 0;
+  const week = stats.data?.data.week;
+  // Plan der Woche und, für die Plan-Marken im Feed, zurück bis zur ältesten gezeigten Aktivität (API: höchstens 400 Tage)
+  const last = list[list.length - 1];
+  const oldest = last ? localDate(new Date(last.start_time), cfg?.timezone) : undefined;
+  const planFrom = week ? [week.from, oldest ?? week.from, addDays(week.to, -399)].sort()[1] : undefined;
+  const plan = useQuery({
+    queryKey: ["plan", planFrom, week?.to],
+    queryFn: () => apiGet<PlanResponse>(`/plan?from=${planFrom}&to=${week?.to}`),
+    enabled: !!week && !!feed.data,
+  });
+  const units = plan.data?.data.units ?? [];
+  const planOf = new Map(units.flatMap((u) => (u.activity_id ? [[u.activity_id, u.title] as const] : [])));
+  const today = plan.data?.data.today ?? localDate(new Date(), cfg?.timezone);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-      <Card title={t("dashboard.feed")} className="lg:col-span-7">
-        {feed.error ? (
-          <Problem error={feed.error} />
-        ) : !feed.data ? (
-          <p className="text-muted">{t("state.loading")}</p>
-        ) : list.length === 0 ? (
-          <p className="text-muted">{t("dashboard.empty")}</p>
-        ) : (
-          <>
-            <ul>
-              {list.map((a) => (
-                <FeedItem key={a.id} a={a} timeZone={cfg?.timezone} />
-              ))}
-            </ul>
-            <Link to="/aktivitaeten" className="mt-3 flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
-              {t("dashboard.all", { n: num(total) })}
-              <ArrowRight size={14} />
-            </Link>
-          </>
-        )}
-      </Card>
+      <div className="grid content-start gap-4 lg:col-span-7">
+        {week && <WeekCard block={week} units={units.filter((u) => u.date >= week.from && u.date <= week.to)} today={today} />}
+        <Card title={t("dashboard.feed")}>
+          {feed.error ? (
+            <Problem error={feed.error} />
+          ) : !feed.data ? (
+            <p className="text-muted">{t("state.loading")}</p>
+          ) : list.length === 0 ? (
+            <p className="text-muted">{t("dashboard.empty")}</p>
+          ) : (
+            <>
+              <ul className="grid gap-3">
+                {list.map((a) => (
+                  <FeedItem key={a.id} a={a} timeZone={cfg?.timezone} map={cfg?.map} plan={planOf.get(a.id)} />
+                ))}
+              </ul>
+              <Link to="/aktivitaeten" className="mt-3 flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
+                {t("dashboard.all", { n: num(total) })}
+                <ArrowRight size={14} />
+              </Link>
+            </>
+          )}
+        </Card>
+      </div>
 
       <div className="grid content-start gap-4 lg:col-span-5">
         {stats.error ? (
@@ -163,9 +215,8 @@ export function DashboardPage() {
           </Card>
         ) : (
           <>
-            {/* Ohne „Diese Woche“, damit die Import-Ablage ohne Scrollen sichtbar bleibt (Uli 14.11.2026) */}
             <MonthCard block={stats.data.data.month} />
-            {stats.data.data.season && <SeasonCard block={stats.data.data.season} />}
+            <YearCard block={stats.data.data.year} />
           </>
         )}
         <DropZone compact maxMb={cfg?.import_limits.max_file_size_mb ?? 50} onFiles={toImport} />

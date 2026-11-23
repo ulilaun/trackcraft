@@ -351,33 +351,19 @@ async fn dashboard_week_and_month() {
     assert_eq!((by_day[0]["date"].as_str(), by_day[0]["sport_class"].as_str()), (Some("2026-07-01"), Some("cycling")));
     assert_eq!((by_day[1]["date"].as_str(), by_day[1]["sport_class"].as_str()), (Some("2026-07-02"), Some("running")));
 
-    assert_eq!(d["season"], Value::Null, "ohne Saison kein Block");
-
-    // Laufende Saison zählt ab ihrem Beginn; außerhalb jeder Saison die zuletzt beendete
-    let (s, v) =
-        with_body(&f, Method::POST, "/api/v1/seasons", json!({ "name": "Sommer", "start_date": "2026-06-28", "end_date": "2026-07-01" }))
-            .await;
-    assert_eq!(s, StatusCode::CREATED, "{v}");
-    let (s, _) =
-        with_body(&f, Method::POST, "/api/v1/seasons", json!({ "name": "Herbst", "start_date": "2026-09-01", "end_date": "2026-10-31" }))
-            .await;
-    assert_eq!(s, StatusCode::CREATED);
-    let on = activities::dashboard(&f.cfg, &f.db, NaiveDate::from_ymd_opt(2026, 7, 1).unwrap()).await.unwrap();
-    assert_eq!(on["season"]["season"]["state"], "current");
-    let d = activities::dashboard(&f.cfg, &f.db, today).await.unwrap();
-    let season = &d["season"];
+    // Jahr: alle drei Aktivitäten (28.06. bis 02.07.), unabhängig von Saisons
     assert_eq!(
-        (season["period"].as_str(), season["from"].as_str(), season["to"].as_str()),
-        (Some("Sommer"), Some("2026-06-28"), Some("2026-07-01"))
+        (d["year"]["period"].as_str(), d["year"]["from"].as_str(), d["year"]["to"].as_str()),
+        (Some("2026"), Some("2026-01-01"), Some("2026-12-31"))
     );
-    assert_eq!(season["season"]["state"], "ended");
-    assert_eq!(all(season)["count"], 2, "So 28.06. und Mi 01.07.");
-    assert_eq!(season["by_day"].as_array().unwrap().len(), 2);
+    assert_eq!(all(&d["year"])["count"], 3);
+    assert_eq!(all(&d["year"])["total_time_ms"], 1_190_000);
+    assert!(d.get("season").is_none(), "keine Saison mehr auf dem Dashboard");
 
     let (s, v) = get(&f, "/api/v1/stats/dashboard").await;
     assert_eq!(s, StatusCode::OK);
     assert!(v["data"]["week"]["summaries"].is_array());
-    assert!(v["data"].get("season").is_some());
+    assert!(v["data"]["year"]["summaries"].is_array());
     f.db.close().await;
 }
 

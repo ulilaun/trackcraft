@@ -33,14 +33,32 @@ const block = (period: string, from: string, to: string, count: number, distance
 });
 
 let feed: ReturnType<typeof activity>[] = [];
-let season: unknown = null;
+let units: unknown[] = [];
 const calls: string[] = [];
+
+const unit = (id: string, date: string, title: string, duration_min: number, extra: Record<string, unknown> = {}) => ({
+  id,
+  date,
+  sport_class: "cycling",
+  sub_sport: null,
+  title,
+  note: null,
+  mode: "target",
+  duration_min,
+  target_load: null,
+  intensive_pct: 0,
+  zone_minutes: null,
+  status: "planned",
+  activity_id: null,
+  load: { total: 0, aerobic: 0, anaerobic: 0, minutes: duration_min, method: "target" },
+  ...extra,
+});
 
 beforeEach(() => {
   calls.length = 0;
-  season = null;
+  units = [];
   feed = [
-    activity({ id: "r1", title: "Lauf am Main", sport_class: "running", sub_sport: null, location: "Frankfurt", avg_speed_kmh: 12 }),
+    activity({ id: "r1", title: "Lauf am Main", sport_class: "running", sub_sport: null, location: "Frankfurt", avg_speed_kmh: 12, has_position: false }),
     activity({ id: "a1", title: "Runde Wald", start_time: "2026-10-30T09:00:00.000Z" }),
   ];
   vi.stubGlobal(
@@ -53,11 +71,12 @@ beforeEach(() => {
           data: {
             week: block("2026-W45", "2026-11-02", "2026-11-08", 2, 50_000),
             month: block("2026-11", "2026-11-01", "2026-11-30", 3, 75_500),
-            season,
+            year: block("2026", "2026-01-01", "2026-12-31", 40, 1_234_000),
           },
         });
       }
-      return json(200, { data: feed, meta: { total: 57, limit: 10, offset: 0 } });
+      if (url.includes("/plan?")) return json(200, { data: { today: "2026-11-04", units, goal: null, zones_configured: true, assistant: null } });
+      return json(200, { data: feed, meta: { total: 57, limit: 5, offset: 0 } });
     }),
   );
 });
@@ -90,56 +109,60 @@ function setup() {
 }
 
 describe("Dashboard", () => {
-  it("Feed der letzten 10 mit KPI-Strip und Link zur Liste", async () => {
+  it("Feed der letzten 5 als Kacheln mit Kennzahlen, Mini-Karte nur mit GPS, Link zur Liste", async () => {
     setup();
     expect(await screen.findByText("Lauf am Main")).toBeInTheDocument();
-    expect(calls).toContain("/api/v1/activities?sort=-start_time&limit=10");
+    expect(calls).toContain("/api/v1/activities?sort=-start_time&limit=5");
     const run = screen.getByText("Lauf am Main").closest("li")!;
     expect(within(run).getByText(/01\.11\.2026 10:00 · Frankfurt/)).toBeInTheDocument();
     expect(within(run).getByText("Pace")).toBeInTheDocument();
     expect(within(run).getByText("5:00")).toBeInTheDocument();
+    expect(within(run).queryByTestId("mini-map")).not.toBeInTheDocument();
     const ride = screen.getByText("Runde Wald").closest("li")!;
+    expect(within(ride).getByTestId("mini-map")).toBeInTheDocument();
     expect(within(ride).getByText("25,0")).toBeInTheDocument();
     expect(within(ride).getByText("312")).toBeInTheDocument();
+    // ohne IntersectionObserver (jsdom) lädt keine Spur
+    expect(calls.some((c) => c.includes("/track"))).toBe(false);
     expect(screen.getByRole("link", { name: "Alle Aktivitäten (57)" })).toHaveAttribute("href", "/aktivitaeten");
   });
 
-  it("Diesen Monat mit Summen und Balken, kein Block „Diese Woche“", async () => {
+  it("Diese Woche: Ist von Plan, je Tag Balken mit geplanter Zeit, ausgelassene zählen nicht", async () => {
+    units = [
+      unit("u1", "2026-11-02", "Rad GA1", 60, { status: "done", activity_id: "x" }),
+      unit("u2", "2026-11-05", "Intervalle", 45),
+      unit("u3", "2026-11-07", "Lang", 180, { status: "skipped" }),
+    ];
     setup();
-    const month = (await screen.findByText("Diesen Monat · November 2026")).closest("section")!;
-    expect(screen.queryByText(/Diese Woche/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Balken 7 Tage, 1 mit Aktivität, cycling")).not.toBeInTheDocument();
-    expect(within(month).getByText("75,50")).toBeInTheDocument();
-    expect(within(month).getByText("Balken 30 Tage, 1 mit Aktivität, cycling")).toBeInTheDocument();
+    const week = (await screen.findByRole("list", { name: "Diese Woche" })).closest("section")!;
+    expect(calls).toContain("/api/v1/plan?from=2026-10-30&to=2026-11-08");
+    expect(within(week).getByText("02.–08.11.")).toBeInTheDocument();
+    expect(await within(week).findByText("von 2")).toBeInTheDocument();
+    expect(within(week).getByText("von 1:45 h")).toBeInTheDocument();
+    expect(within(week).getByText("3:00")).toBeInTheDocument();
+    expect(within(week).getAllByTestId("planned-bar")).toHaveLength(2);
+    expect(within(week).getByRole("listitem", { name: "Mo 2: 3:00 h erledigt, 1:00 h geplant" })).toBeInTheDocument();
+    expect(within(week).getByRole("listitem", { name: "Heute: 0:00 h erledigt, 0:00 h geplant" })).toBeInTheDocument();
   });
 
-  it("Saison: zuletzt beendete mit Hinweis, Balken je Woche, Link zur gefilterten Liste; ohne Saison kein Block", async () => {
-    const view = setup();
-    await screen.findByText("Diesen Monat · November 2026");
-    expect(screen.queryByText(/^Saison ·/)).not.toBeInTheDocument();
-    view.unmount();
-
-    season = {
-      ...block("Saison 2026", "2026-03-01", "2026-10-31", 40, 1_234_000),
-      season: {
-        id: "s26",
-        name: "Saison 2026",
-        start_date: "2026-03-01",
-        end_date: "2026-10-31",
-        state: "ended",
-        created_at: "2026-11-13T08:00:00.000Z",
-        updated_at: "2026-11-13T08:00:00.000Z",
-      },
-    };
+  it("Plan-Marke an Aktivitäten, die mit einer Einheit verknüpft sind", async () => {
+    units = [unit("u1", "2026-10-30", "Rad GA1", 60, { status: "done", activity_id: "a1" })];
     setup();
-    const link = await screen.findByRole("link", { name: "Saison · Saison 2026" });
-    expect(link).toHaveAttribute("href", "/aktivitaeten?saison=s26");
-    const card = link.closest("section")!;
-    expect(within(card).getByText("beendet")).toBeInTheDocument();
-    expect(within(card).getByText("01.03.2026 – 31.10.2026")).toBeInTheDocument();
-    expect(within(card).getByText("1.234,00")).toBeInTheDocument();
-    // KW 9 (Mo 23.02., nur So 01.03. in der Saison) bis KW 44 (26.10.–31.10.)
-    expect(within(card).getByText("Balken 36 Tage, 1 mit Aktivität, cycling")).toBeInTheDocument();
+    const ride = (await screen.findByText("Runde Wald")).closest("li")!;
+    expect(await within(ride).findByText("✓ Plan: Rad GA1")).toBeInTheDocument();
+    expect(within(screen.getByText("Lauf am Main").closest("li")!).queryByText(/Plan:/)).not.toBeInTheDocument();
+  });
+
+  it("rechts Monat mit Balken und Jahr nur mit Summen", async () => {
+    setup();
+    const month = (await screen.findByText("Diesen Monat · November 2026")).closest("section")!;
+    expect(within(month).getByText("75,50")).toBeInTheDocument();
+    expect(within(month).getByText("Balken 30 Tage, 1 mit Aktivität, cycling")).toBeInTheDocument();
+    const year = screen.getByText("Jahr 2026").closest("section")!;
+    expect(within(year).getByText("1.234,00")).toBeInTheDocument();
+    expect(within(year).getByText("40")).toBeInTheDocument();
+    expect(within(year).queryByText(/Balken/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Saison/)).not.toBeInTheDocument();
   });
 
   it("Klick auf eine Aktivität öffnet die Detailseite", async () => {
