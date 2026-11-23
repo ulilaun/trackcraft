@@ -14,7 +14,7 @@ use super::AppState;
 use super::error::ApiError;
 use super::import::parse_json;
 use crate::activities;
-use crate::plan::{self, Error, GoalInput, UnitInput};
+use crate::plan::{self, ApplyTemplateInput, Error, GoalInput, Scope, TemplateInput, UnitInput};
 use crate::plan_assist::{self, Input as SuggestionInput};
 
 fn error(e: Error) -> Response {
@@ -22,6 +22,8 @@ fn error(e: Error) -> Response {
         Error::NotFound => ApiError::PLANNED_UNIT_NOT_FOUND.into_response(),
         Error::ActivityNotFound => ApiError::ACTIVITY_NOT_FOUND.into_response(),
         Error::ActivityTaken => ApiError::ACTIVITY_ALREADY_PLANNED.into_response(),
+        Error::TemplateNotFound => ApiError::PLAN_TEMPLATE_NOT_FOUND.into_response(),
+        Error::TemplateExists => ApiError::PLAN_TEMPLATE_EXISTS.into_response(),
         Error::Validation { field, code, message } => ApiError::validation(field, code, message).into_response(),
         Error::Internal(e) => ApiError::from(e).into_response(),
     }
@@ -71,16 +73,38 @@ pub async fn get_one(State(state): State<AppState>, Path(id): Path<String>) -> R
     data(plan::get_one(&state.db, &id).await)
 }
 
-pub async fn update(State(state): State<AppState>, Path(id): Path<String>, body: Bytes) -> Response {
+/// `?scope=this|following` (Vorgabe `this`): bei Einheiten einer Serie auch die offenen danach.
+fn scope(params: &HashMap<String, String>) -> Result<Scope, ApiError> {
+    if let Some(k) = params.keys().find(|k| *k != "scope") {
+        return Err(ApiError::validation(k, "unknown_parameter", "Unknown query parameter"));
+    }
+    Scope::parse(params.get("scope").map(String::as_str))
+        .map_err(|_| ApiError::validation("scope", "invalid", "Scope must be this or following"))
+}
+
+pub async fn update(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+    body: Bytes,
+) -> Response {
+    let scope = match scope(&params) {
+        Ok(s) => s,
+        Err(e) => return e.into_response(),
+    };
     let input: UnitInput = match parse_json(&body) {
         Ok(i) => i,
         Err(e) => return e.into_response(),
     };
-    data(plan::update(&state.db, &id, &input).await)
+    data(plan::update(&state.db, &id, &input, scope).await)
 }
 
-pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match plan::delete(&state.db, &id).await {
+pub async fn delete(State(state): State<AppState>, Path(id): Path<String>, Query(params): Query<HashMap<String, String>>) -> Response {
+    let scope = match scope(&params) {
+        Ok(s) => s,
+        Err(e) => return e.into_response(),
+    };
+    match plan::delete(&state.db, &id, scope).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => error(e),
     }
@@ -153,6 +177,45 @@ pub async fn apply_suggestion(State(state): State<AppState>, body: Bytes) -> Res
     };
     let today = activities::today(&state.cfg);
     match plan_assist::apply(&state.cfg, &state.db, &input, today).await {
+        Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
+        Err(e) => error(e),
+    }
+}
+
+/// Wochenvorlagen nach Name.
+pub async fn templates(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    let today = activities::today(&state.cfg);
+    Ok(Json(json!({ "data": plan::templates(&state.db, today).await? })))
+}
+
+/// Woche als Vorlage speichern (auch beim Ersetzen 201 mit der Vorlage).
+pub async fn save_template(State(state): State<AppState>, body: Bytes) -> Response {
+    let input: TemplateInput = match parse_json(&body) {
+        Ok(i) => i,
+        Err(e) => return e.into_response(),
+    };
+    let today = activities::today(&state.cfg);
+    match plan::save_template(&state.db, &input, today).await {
+        Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
+        Err(e) => error(e),
+    }
+}
+
+pub async fn delete_template(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+    match plan::delete_template(&state.db, &id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(e) => error(e),
+    }
+}
+
+/// Vorlage auf Wochen anwenden; vorhandene Einheiten bleiben.
+pub async fn apply_template(State(state): State<AppState>, Path(id): Path<String>, body: Bytes) -> Response {
+    let input: ApplyTemplateInput = match parse_json(&body) {
+        Ok(i) => i,
+        Err(e) => return e.into_response(),
+    };
+    let today = activities::today(&state.cfg);
+    match plan::apply_template(&state.db, &id, &input, today).await {
         Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
         Err(e) => error(e),
     }

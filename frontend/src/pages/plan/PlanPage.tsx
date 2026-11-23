@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Flag, Plus, WandSparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, LayoutTemplate, Plus, Repeat, WandSparkles } from "lucide-react";
 import {
   apiDelete,
   apiGet,
@@ -24,6 +24,7 @@ import { FormChart, LoadChart } from "../form/FormPage";
 import { STATE_CLASS, chartPoints, formState, signed } from "../form/formModel";
 import { germanDate } from "../seasons/seasonModel";
 import { SuggestDialog } from "./SuggestDialog";
+import { ApplyTemplateDialog, SaveTemplateDialog } from "./TemplateDialogs";
 import { UnitDialog } from "./UnitDialog";
 import { WEEKS, defaultStart, hm, isoWeek, weekDays, weekMonotony } from "./planModel";
 
@@ -99,6 +100,8 @@ export function PlanPage() {
   const [dialog, setDialog] = useState<{ unit: PlannedUnit | null; date: string } | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [saveTemplate, setSaveTemplate] = useState<string | null>(null);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   const plan = useQuery({
     queryKey: ["plan", first, last],
@@ -175,6 +178,10 @@ export function PlanPage() {
             <WandSparkles size={14} />
             {t("plan.suggest.open")}
           </button>
+          <button type="button" className={small} onClick={() => setApplyOpen(true)}>
+            <LayoutTemplate size={14} />
+            {t("plan.template.applyOpen")}
+          </button>
           <button type="button" className={`${primaryButton} inline-flex items-center gap-1`} onClick={() => setDialog({ unit: null, date: today < first ? first : addDays(today, 1) })}>
             <Plus size={15} />
             {t("plan.unit.add")}
@@ -248,6 +255,7 @@ export function PlanPage() {
                             <SportIcon sport={u.sport_class} size={13} decorative />
                             <span className="truncate">{u.title}</span>
                             {u.suggested && <WandSparkles size={11} className="shrink-0 text-muted" aria-label={t("plan.suggest.marker")} />}
+                            {u.series_id && <Repeat size={11} className="shrink-0 text-muted" aria-label={t("plan.series.marker")} />}
                           </span>
                           <span className="num flex gap-1.5 text-[11px] text-muted">
                             <span>{hm(u.load.minutes)}</span>
@@ -294,6 +302,17 @@ export function PlanPage() {
                         <i key={k} style={{ width: `${(m / zoneSum) * 100}%`, background: ZONE_COLORS[k] }} />
                       ))}
                     </span>
+                  )}
+                  {weekUnits.length > 0 && (
+                    <button
+                      type="button"
+                      className="mt-1 inline-flex items-center gap-1 justify-self-start text-[11px] text-muted hover:text-accent"
+                      onClick={() => setSaveTemplate(days[0]!)}
+                      aria-label={t("plan.template.saveWeek", { n: isoWeek(days[0]!) })}
+                    >
+                      <LayoutTemplate size={12} aria-hidden />
+                      {t("plan.template.asTemplate")}
+                    </button>
                   )}
                 </div>
               </div>
@@ -354,6 +373,14 @@ export function PlanPage() {
         />
       )}
       {goalOpen && <GoalDialog goal={goal} today={today} onClose={() => setGoalOpen(false)} />}
+      {saveTemplate && (
+        <SaveTemplateDialog
+          weekStart={saveTemplate}
+          units={units.filter((u) => u.date >= saveTemplate && u.date <= addDays(saveTemplate, 6))}
+          onClose={() => setSaveTemplate(null)}
+        />
+      )}
+      {applyOpen && <ApplyTemplateDialog today={today} onClose={() => setApplyOpen(false)} />}
       {suggestOpen && goal && <SuggestDialog goal={goal} saved={plan.data?.data.assistant ?? null} onClose={() => setSuggestOpen(false)} />}
     </div>
   );

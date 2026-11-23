@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use chrono::NaiveDate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::{Row, SqliteConnection};
 
@@ -21,6 +21,9 @@ pub enum Error {
     ActivityNotFound,
     /// Die Aktivität ist schon mit einer anderen Einheit verknüpft.
     ActivityTaken,
+    TemplateNotFound,
+    /// Eine Vorlage mit diesem Namen gibt es schon (ohne `replace`).
+    TemplateExists,
     Validation {
         field: &'static str,
         code: &'static str,
@@ -40,7 +43,9 @@ fn invalid(field: &'static str, code: &'static str, message: &'static str) -> Er
 }
 
 const UNIT_COLUMNS: &str = "u.id, u.date, u.sport_class, u.sub_sport, u.title, u.note, u.mode, u.duration_min, u.target_load, \
-    u.intensive_pct, u.zone_minutes, u.status, u.activity_id, u.suggestion_id";
+    u.intensive_pct, u.zone_minutes, u.status, u.activity_id, u.suggestion_id, u.series_id, \
+    (SELECT count(*) FROM planned_units f WHERE u.series_id IS NOT NULL AND f.series_id = u.series_id AND f.date > u.date \
+     AND f.status = 'planned' AND f.activity_id IS NULL) AS series_following";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Unit {
@@ -55,6 +60,10 @@ pub struct Unit {
     pub activity_id: Option<String>,
     /// Kennung des Vorschlags der Planungshilfe (Stufe 2); `None` = feste Einheit
     pub suggestion_id: Option<String>,
+    /// Kennung der Serie (Wiederholen oder Wochenvorlage über mehrere Wochen)
+    pub series_id: Option<String>,
+    /// Offene Einheiten derselben Serie nach diesem Tag (nur gelesen)
+    pub series_following: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -114,6 +123,8 @@ impl Unit {
             "status": self.effective_status(),
             "activity_id": self.activity_id,
             "suggested": self.suggestion_id.is_some(),
+            "series_id": self.series_id,
+            "series_following": self.series_following,
             "load": {
                 "total": round1(c.trimp),
                 "aerobic": round1(c.aerobic),
@@ -153,6 +164,8 @@ fn unit_from_row(r: &sqlx::sqlite::SqliteRow) -> anyhow::Result<Unit> {
         status: r.get("status"),
         activity_id: r.get("activity_id"),
         suggestion_id: r.get("suggestion_id"),
+        series_id: r.get("series_id"),
+        series_following: r.get::<i64, _>("series_following") as u32,
     })
 }
 
@@ -284,7 +297,7 @@ pub async fn goal_date(db: &Db) -> anyhow::Result<Option<NaiveDate>> {
 // ---------------------------------------------------------------------------------------------------------
 // Schreiben
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct UnitInput {
     pub date: Option<String>,
@@ -301,6 +314,80 @@ pub struct UnitInput {
     pub zone_minutes: Option<Vec<u32>>,
     /// Nur `planned` oder `skipped`; „erledigt“ entsteht durch Verknüpfen.
     pub status: Option<String>,
+    /// Wiederholen: Kopien im Abstand von `every_weeks` Wochen bis `until` (eingeschlossen), neue Serie.
+    pub repeat: Option<Repeat>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Repeat {
+    pub every_weeks: u32,
+    pub until: String,
+}
+
+/// Höchstens so viele Einheiten entstehen beim Wiederholen (mit der ersten).
+pub const MAX_SERIES: usize = 26;
+
+/// Geltungsbereich beim Ändern und Löschen einer Einheit einer Serie.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope {
+    This,
+    /// Diese und die offenen Einheiten derselben Serie danach
+    Following,
+}
+
+impl Scope {
+    pub fn parse(s: Option<&str>) -> Result<Self, Error> {
+        match s {
+            None | Some("this") => Ok(Scope::This),
+            Some("following") => Ok(Scope::Following),
+            Some(_) => Err(invalid("scope", "invalid", "Scope must be this or following")),
+        }
+    }
+}
+
+/// Daten der Kopien beim Wiederholen ab `start` (ohne `start`).
+fn repeat_dates(start: NaiveDate, r: &Repeat) -> Result<Vec<NaiveDate>, Error> {
+    if !(1..=4).contains(&r.every_weeks) {
+        return Err(invalid("repeat.every_weeks", "out_of_range", "Repeat every 1 to 4 weeks"));
+    }
+    let until = parse_day("repeat.until", &r.until)?;
+    let step = 7 * r.every_weeks as u64;
+    let dates: Vec<NaiveDate> = (1..).map(|k| start + chrono::Days::new(k * step)).take_while(|d| *d <= until).take(MAX_SERIES).collect();
+    if dates.is_empty() {
+        return Err(invalid("repeat.until", "too_early", "Repeat must create at least one more unit"));
+    }
+    if dates.len() + 1 > MAX_SERIES {
+        return Err(invalid("repeat.until", "too_many", "A series has at most 26 units"));
+    }
+    Ok(dates)
+}
+
+/// Legt die Kopien einer Einheit an den Tagen `dates` an (offen, in der Serie von `u`).
+async fn insert_copies(conn: &mut SqliteConnection, u: &Unit, dates: &[NaiveDate], now: i64) -> Result<(), Error> {
+    for d in dates {
+        let c = Unit {
+            id: new_id(),
+            date: *d,
+            status: "planned".into(),
+            activity_id: None,
+            suggestion_id: None,
+            series_following: 0,
+            ..u.clone()
+        };
+        save(conn, &c, true, now).await?;
+    }
+    Ok(())
+}
+
+/// Offene Einheiten derselben Serie nach `after`.
+async fn following(db: &Db, series_id: &str, after: NaiveDate) -> anyhow::Result<Vec<Unit>> {
+    units_where(
+        db,
+        "u.series_id = ? AND u.date > ? AND u.status = 'planned' AND u.activity_id IS NULL",
+        &[series_id.to_string(), after.to_string()],
+    )
+    .await
 }
 
 fn parse_day(field: &'static str, s: &str) -> Result<NaiveDate, Error> {
@@ -408,10 +495,12 @@ pub(crate) async fn save(conn: &mut SqliteConnection, u: &Unit, insert: bool, no
     };
     let sql = if insert {
         "INSERT INTO planned_units (date, sport_class, sub_sport, title, note, mode, duration_min, target_load, intensive_pct, \
-         zone_minutes, status, updated_at_ms, created_at_ms, id, suggestion_id)          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12, ?13, ?14)"
+         zone_minutes, status, updated_at_ms, created_at_ms, id, series_id, suggestion_id) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12, ?13, ?14, ?15)"
     } else {
         "UPDATE planned_units SET date = ?1, sport_class = ?2, sub_sport = ?3, title = ?4, note = ?5, mode = ?6, duration_min = ?7, \
-         target_load = ?8, intensive_pct = ?9, zone_minutes = ?10, status = ?11, updated_at_ms = ?12, suggestion_id = NULL          WHERE id = ?13"
+         target_load = ?8, intensive_pct = ?9, zone_minutes = ?10, status = ?11, updated_at_ms = ?12, series_id = ?14, \
+         suggestion_id = NULL WHERE id = ?13"
     };
     let q = sqlx::query(sql)
         .bind(u.date.to_string())
@@ -426,7 +515,8 @@ pub(crate) async fn save(conn: &mut SqliteConnection, u: &Unit, insert: bool, no
         .bind(zones)
         .bind(&u.status)
         .bind(now)
-        .bind(&u.id);
+        .bind(&u.id)
+        .bind(u.series_id.as_deref());
     let q = if insert { q.bind(u.suggestion_id.as_deref()) } else { q };
     q.execute(&mut *conn).await?;
     bump_revision(conn, now).await?;
@@ -456,30 +546,75 @@ pub async fn create(db: &Db, i: &UnitInput) -> Result<Value, Error> {
         status: "planned".into(),
         activity_id: None,
         suggestion_id: None,
+        series_id: None,
+        series_following: 0,
     };
     let mut tx = db.writer.begin().await?;
     apply(&mut tx, &mut u, i).await?;
+    let copies = match &i.repeat {
+        Some(r) => {
+            u.series_id = Some(new_id());
+            repeat_dates(u.date, r)?
+        }
+        None => Vec::new(),
+    };
     save(&mut tx, &u, true, now).await?;
+    insert_copies(&mut tx, &u, &copies, now).await?;
     tx.commit().await?;
     get_one(db, &u.id).await
 }
 
-pub async fn update(db: &Db, id: &str, i: &UnitInput) -> Result<Value, Error> {
+/// Ändert eine Einheit. Mit `Scope::Following` gilt die Änderung auch für die offenen Einheiten der Serie danach:
+/// gesetzte Felder werden übernommen, ein neues Datum verschiebt sie um dieselbe Zahl Tage, der Status gilt nur hier.
+/// Mit `repeat` beginnt ab dieser Einheit eine neue Serie.
+pub async fn update(db: &Db, id: &str, i: &UnitInput, scope: Scope) -> Result<Value, Error> {
     let mut u = unit(db, id).await?.ok_or(Error::NotFound)?;
+    if i.repeat.is_some() && scope == Scope::Following {
+        return Err(invalid("repeat", "invalid", "Repeat cannot be combined with scope following"));
+    }
+    let old_date = u.date;
+    let followers = match (&u.series_id, scope) {
+        (Some(s), Scope::Following) => following(db, s, old_date).await?,
+        _ => Vec::new(),
+    };
     let now = chrono::Utc::now().timestamp_millis();
     let mut tx = db.writer.begin().await?;
     apply(&mut tx, &mut u, i).await?;
+    let copies = match &i.repeat {
+        Some(r) => {
+            u.series_id = Some(new_id());
+            repeat_dates(u.date, r)?
+        }
+        None => Vec::new(),
+    };
     save(&mut tx, &u, false, now).await?;
+    insert_copies(&mut tx, &u, &copies, now).await?;
+    let shift = (u.date - old_date).num_days();
+    let rest = UnitInput { date: None, status: None, repeat: None, ..i.clone() };
+    for mut f in followers {
+        apply(&mut tx, &mut f, &rest).await?;
+        f.date = f.date.checked_add_signed(chrono::Duration::days(shift)).ok_or(invalid("date", "out_of_range", "Date out of range"))?;
+        save(&mut tx, &f, false, now).await?;
+    }
     tx.commit().await?;
     get_one(db, id).await
 }
 
-pub async fn delete(db: &Db, id: &str) -> Result<(), Error> {
+/// Löscht eine Einheit, mit `Scope::Following` auch die offenen Einheiten der Serie danach.
+pub async fn delete(db: &Db, id: &str, scope: Scope) -> Result<(), Error> {
+    let u = unit(db, id).await?.ok_or(Error::NotFound)?;
+    let followers = match (&u.series_id, scope) {
+        (Some(s), Scope::Following) => following(db, s, u.date).await?,
+        _ => Vec::new(),
+    };
     let now = chrono::Utc::now().timestamp_millis();
     let mut tx = db.writer.begin().await?;
     let n = sqlx::query("DELETE FROM planned_units WHERE id = ?").bind(id).execute(&mut *tx).await?.rows_affected();
     if n == 0 {
         return Err(Error::NotFound);
+    }
+    for f in &followers {
+        sqlx::query("DELETE FROM planned_units WHERE id = ?").bind(&f.id).execute(&mut *tx).await?;
     }
     bump_revision(&mut tx, now).await?;
     tx.commit().await?;
@@ -626,4 +761,231 @@ pub async fn decline(db: &Db, id: &str, activity_id: &str) -> Result<(), Error> 
     bump_revision(&mut tx, now).await?;
     tx.commit().await?;
     Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Wochenvorlagen
+
+/// Höchstens so viele Wochen belegt eine Vorlage auf einmal (Uli 23.11.2026).
+pub const MAX_TEMPLATE_WEEKS: u32 = 12;
+
+/// Eine Einheit einer Vorlage: Wochentag (0 = Montag) und alles außer Datum und Status.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TemplateUnit {
+    weekday: u32,
+    sport_class: String,
+    sub_sport: Option<String>,
+    title: String,
+    note: Option<String>,
+    mode: String,
+    duration_min: Option<u32>,
+    target_load: Option<f64>,
+    intensive_pct: u32,
+    zone_minutes: Option<[u32; ZONES]>,
+}
+
+impl TemplateUnit {
+    fn from_unit(u: &Unit) -> Self {
+        let (mode, duration_min, target_load, intensive_pct, zone_minutes) = match &u.mode {
+            Mode::Target { minutes, load, intensive_pct } => ("target", Some(*minutes), Some(*load), *intensive_pct, None),
+            Mode::Zones(z) => ("zones", None, None, 0, Some(*z)),
+        };
+        Self {
+            weekday: chrono::Datelike::weekday(&u.date).num_days_from_monday(),
+            sport_class: u.sport_class.clone(),
+            sub_sport: u.sub_sport.clone(),
+            title: u.title.clone(),
+            note: u.note.clone(),
+            mode: mode.into(),
+            duration_min,
+            target_load,
+            intensive_pct,
+            zone_minutes,
+        }
+    }
+
+    fn to_unit(&self, date: NaiveDate) -> Unit {
+        let mode = match (self.mode.as_str(), self.zone_minutes) {
+            ("zones", Some(z)) => Mode::Zones(z),
+            _ => Mode::Target {
+                minutes: self.duration_min.unwrap_or(60),
+                load: self.target_load.unwrap_or(0.0),
+                intensive_pct: self.intensive_pct,
+            },
+        };
+        Unit {
+            id: new_id(),
+            date,
+            sport_class: self.sport_class.clone(),
+            sub_sport: self.sub_sport.clone(),
+            title: self.title.clone(),
+            note: self.note.clone(),
+            mode,
+            status: "planned".into(),
+            activity_id: None,
+            suggestion_id: None,
+            series_id: None,
+            series_following: 0,
+        }
+    }
+}
+
+fn monday(field: &'static str, s: &str) -> Result<NaiveDate, Error> {
+    let d = parse_day(field, s)?;
+    if chrono::Datelike::weekday(&d) != chrono::Weekday::Mon {
+        return Err(invalid(field, "not_monday", "Week must start on a Monday"));
+    }
+    Ok(d)
+}
+
+/// Alle Vorlagen nach Name, je Einheit mit Belastung (Zonensatz von `today`), dazu Dauer und Belastung der Woche.
+pub async fn templates(db: &Db, today: NaiveDate) -> anyhow::Result<Value> {
+    let rows =
+        sqlx::query("SELECT id, name, units, updated_at_ms FROM plan_templates ORDER BY name COLLATE NOCASE").fetch_all(&db.reader).await?;
+    let sets = load::zone_sets(db).await?;
+    let s = load::settings(db).await?;
+    let mut out = Vec::with_capacity(rows.len());
+    for r in &rows {
+        let units: Vec<TemplateUnit> = serde_json::from_str(&r.get::<String, _>("units"))?;
+        let (mut minutes, mut total) = (0u32, 0.0);
+        let mut list = Vec::with_capacity(units.len());
+        for t in &units {
+            let u = t.to_unit(today);
+            let mut v = u.to_json(&sets, &s);
+            minutes += u.minutes();
+            total += v["load"]["total"].as_f64().unwrap_or(0.0);
+            if let Some(o) = v.as_object_mut() {
+                for k in ["id", "date", "status", "activity_id", "suggested", "series_id", "series_following"] {
+                    o.remove(k);
+                }
+            }
+            v["weekday"] = json!(t.weekday);
+            list.push(v);
+        }
+        out.push(json!({
+            "id": r.get::<String, _>("id"),
+            "name": r.get::<String, _>("name"),
+            "units": list,
+            "minutes": minutes,
+            "load": round1(total),
+            "updated_at": crate::import_job::timestamp(r.get("updated_at_ms")),
+        }));
+    }
+    Ok(Value::Array(out))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TemplateInput {
+    pub name: String,
+    /// Montag der Woche, deren Einheiten die Vorlage bilden
+    pub week_start: String,
+    /// Eine Vorlage mit demselben Namen ersetzen
+    #[serde(default)]
+    pub replace: bool,
+}
+
+/// Speichert die Einheiten einer Kalenderwoche (jeder Status) als Vorlage.
+pub async fn save_template(db: &Db, i: &TemplateInput, today: NaiveDate) -> Result<Value, Error> {
+    let name = i.name.trim();
+    if name.is_empty() || name.chars().count() > 80 {
+        return Err(invalid("name", "invalid", "Name must have 1 to 80 characters"));
+    }
+    let from = monday("week_start", &i.week_start)?;
+    let to = from + chrono::Days::new(6);
+    let units = units_where(db, "u.date BETWEEN ? AND ?", &[from.to_string(), to.to_string()]).await?;
+    if units.is_empty() {
+        return Err(invalid("week_start", "empty", "The week has no planned units"));
+    }
+    let json_units = serde_json::to_string(&units.iter().map(TemplateUnit::from_unit).collect::<Vec<_>>())?;
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    let existing: Option<String> =
+        sqlx::query_scalar("SELECT id FROM plan_templates WHERE name = ? COLLATE NOCASE").bind(name).fetch_optional(&mut *tx).await?;
+    let id = match existing {
+        Some(_) if !i.replace => return Err(Error::TemplateExists),
+        Some(id) => {
+            sqlx::query("UPDATE plan_templates SET name = ?, units = ?, updated_at_ms = ? WHERE id = ?")
+                .bind(name)
+                .bind(&json_units)
+                .bind(now)
+                .bind(&id)
+                .execute(&mut *tx)
+                .await?;
+            id
+        }
+        None => {
+            let id = new_id();
+            sqlx::query("INSERT INTO plan_templates (id, name, units, created_at_ms, updated_at_ms) VALUES (?, ?, ?, ?, ?)")
+                .bind(&id)
+                .bind(name)
+                .bind(&json_units)
+                .bind(now)
+                .bind(now)
+                .execute(&mut *tx)
+                .await?;
+            id
+        }
+    };
+    bump_revision(&mut tx, now).await?;
+    tx.commit().await?;
+    let all = templates(db, today).await?;
+    Ok(all.as_array().and_then(|a| a.iter().find(|t| t["id"] == id.as_str()).cloned()).unwrap_or(Value::Null))
+}
+
+pub async fn delete_template(db: &Db, id: &str) -> Result<(), Error> {
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    let n = sqlx::query("DELETE FROM plan_templates WHERE id = ?").bind(id).execute(&mut *tx).await?.rows_affected();
+    if n == 0 {
+        return Err(Error::TemplateNotFound);
+    }
+    bump_revision(&mut tx, now).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ApplyTemplateInput {
+    /// Montag der ersten Woche
+    pub week_start: String,
+    pub weeks: u32,
+}
+
+/// Wendet eine Vorlage auf `weeks` Wochen an: vorhandene Einheiten bleiben, Tage vor heute entfallen. Jede Einheit der
+/// Vorlage wird über die Wochen zu einer Serie (ab zwei Terminen). Ein inzwischen gelöschter Untertyp entfällt.
+pub async fn apply_template(db: &Db, id: &str, i: &ApplyTemplateInput, today: NaiveDate) -> Result<Value, Error> {
+    let from = monday("week_start", &i.week_start)?;
+    if !(1..=MAX_TEMPLATE_WEEKS).contains(&i.weeks) {
+        return Err(invalid("weeks", "out_of_range", "Weeks must be 1 to 12"));
+    }
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT units FROM plan_templates WHERE id = ?").bind(id).fetch_optional(&db.reader).await?;
+    let units: Vec<TemplateUnit> = serde_json::from_str(&raw.ok_or(Error::TemplateNotFound)?)?;
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    let (mut created, mut skipped) = (0u32, 0u32);
+    for t in &units {
+        let dates: Vec<NaiveDate> = (0..i.weeks).map(|w| from + chrono::Days::new((w * 7 + t.weekday) as u64)).collect();
+        let open: Vec<NaiveDate> = dates.iter().copied().filter(|d| *d >= today).collect();
+        skipped += (dates.len() - open.len()) as u32;
+        let series = (open.len() >= 2).then(new_id);
+        for d in open {
+            let mut u = t.to_unit(d);
+            u.series_id = series.clone();
+            if let Some(k) = &u.sub_sport
+                && !sports::sub_exists(&mut tx, &u.sport_class, k).await?
+            {
+                u.sub_sport = None;
+            }
+            save(&mut tx, &u, true, now).await?;
+            created += 1;
+        }
+    }
+    if created == 0 {
+        return Err(invalid("week_start", "past", "All days of the chosen weeks are in the past"));
+    }
+    tx.commit().await?;
+    Ok(json!({ "created": created, "skipped": skipped }))
 }

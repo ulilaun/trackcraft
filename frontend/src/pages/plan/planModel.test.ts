@@ -1,6 +1,22 @@
 import { describe, expect, it } from "vitest";
 import type { HrZoneSet } from "../../api/client";
-import { applicableSet, defaultStart, formOf, isoWeek, parseDuration, previewLoad, unitInput, unitProblem, weekDays, weekMonotony, zoneMid } from "./planModel";
+import {
+  applicableSet,
+  changedInput,
+  defaultStart,
+  formOf,
+  isoWeek,
+  parseDuration,
+  previewLoad,
+  repeatProblem,
+  seriesDates,
+  templateDates,
+  unitInput,
+  unitProblem,
+  weekDays,
+  weekMonotony,
+  zoneMid,
+} from "./planModel";
 
 const set = (over: Partial<HrZoneSet> = {}): HrZoneSet => ({
   id: "z",
@@ -92,5 +108,30 @@ describe("Plan: Formular und Belastung wie im Backend", () => {
     expect(applicableSet([general, cycling], "cycling", "2025-05-01")?.id).toBe("g");
     expect(applicableSet([general, cycling], "running", "2020-05-01")?.id).toBe("g");
     expect(applicableSet([], "running", "2020-05-01")).toBeNull();
+  });
+});
+
+describe("Serien und Vorlagen", () => {
+  it("Termine einer Serie und Grenzen", () => {
+    expect(seriesDates("2026-11-24", 2, "2026-12-22")).toEqual(["2026-11-24", "2026-12-08", "2026-12-22"]);
+    expect(repeatProblem(seriesDates("2026-11-24", 1, "2026-11-30"))).toBe("repeatNone");
+    expect(seriesDates("2026-11-24", 1, "2027-06-30")).toHaveLength(27);
+    expect(repeatProblem(seriesDates("2026-11-24", 1, "2027-06-30"))).toBe("repeatMany");
+    expect(repeatProblem(seriesDates("2026-11-24", 1, "2027-05-18"))).toBeNull();
+  });
+
+  it("Nur geänderte Felder, Belastung als Ganzes", () => {
+    const before = unitInput(formOf(null, "2026-11-24"), false);
+    expect(changedInput(before, unitInput({ ...formOf(null, "2026-11-24"), title: "Neu" }, false))).toEqual({ title: "Neu" });
+    const zones = { ...formOf(null, "2026-11-24"), zones: ["10", "60", "0", "0", "0"] };
+    expect(changedInput(before, unitInput(zones, false))).toEqual({ mode: "zones", zone_minutes: [10, 60, 0, 0, 0] });
+  });
+
+  it("Tage einer Vorlage ab heute", () => {
+    expect(templateDates([1, 5], "2026-11-23", 2, "2026-11-25")).toEqual([
+      { date: "2026-11-28", week: 0 },
+      { date: "2026-12-01", week: 1 },
+      { date: "2026-12-05", week: 1 },
+    ]);
   });
 });

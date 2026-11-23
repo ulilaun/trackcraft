@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import type { FormResponse, PlannedUnit, SuggestionResponse } from "../../api/client";
+import type { FormResponse, PlanTemplate, PlannedUnit, SuggestionResponse } from "../../api/client";
 import { FlashProvider } from "../../components/Flash";
 import { activity, config, json } from "../activities/testData";
 import { PlanPage } from "./PlanPage";
@@ -117,6 +117,18 @@ const suggestion: SuggestionResponse = {
   },
 };
 
+const template: PlanTemplate = {
+  id: "t1",
+  name: "Grundwoche",
+  units: [
+    { ...unit({ title: "Intervalle" }), weekday: 1 },
+    { ...unit({ title: "Lange Ausfahrt", load: { total: 200, aerobic: 200, anaerobic: 0, minutes: 150, method: "zones" } }), weekday: 5 },
+  ],
+  minutes: 225,
+  load: 345,
+  updated_at: "2026-11-20T10:00:00.000Z",
+};
+
 let units: PlannedUnit[];
 let writes: { method: string; url: string; body: unknown }[];
 
@@ -136,9 +148,12 @@ beforeEach(() => {
         if (url.endsWith("/plan/suggestion")) return json(200, suggestion);
         if (url.endsWith("/plan/suggestion/apply")) return json(201, { data: { created: 2, replaced: 3, suggestion_id: "s1" } });
         if (url.endsWith("/plan/goal")) return json(200, { data: body });
+        if (url.endsWith("/plan/templates/t1/apply")) return json(201, { data: { created: 8, skipped: 0 } });
+        if (url.endsWith("/plan/templates")) return json(201, { data: template });
         return json(method === "POST" ? 201 : 200, { data: unit({ ...(body as object) }) });
       }
       if (url.endsWith("/config")) return json(200, config);
+      if (url.endsWith("/plan/templates")) return json(200, { data: [template] });
       if (url.startsWith("/api/v1/plan?"))
         return json(200, {
           data: { today: "2026-11-23", units, goal: form.data.plan.goal, zones_configured: true, assistant: { sport_class: "running", minutes: [0, 45, 0, 45, 0, 90, 60], max_gain: 4, recovery_weeks: false, intensity: "polarized" } },
@@ -284,5 +299,78 @@ describe("Seite Plan", () => {
       }),
     );
     expect(await screen.findByText("2 Einheiten übernommen.")).toBeInTheDocument();
+  });
+});
+
+describe("Plan: Serien und Wochenvorlagen", () => {
+  it("Neue Einheit wöchentlich wiederholen", async () => {
+    setup();
+    const cal = await screen.findByTestId("plan-calendar");
+    fireEvent.click(within(cal).getByRole("button", { name: "Einheit am 27.11.2026 anlegen" }));
+    const dialog = screen.getByRole("dialog", { name: "Neue Einheit" });
+    fireEvent.change(within(dialog).getByLabelText("Titel"), { target: { value: "Grundlage" } });
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Jede Woche" }));
+    // Vorgabe: 8 Wochen später
+    expect(within(dialog).getByLabelText("bis einschließlich")).toHaveValue("2027-01-22");
+    expect(within(dialog).getByTestId("plan-repeat-count")).toHaveTextContent("ergibt 9 Einheiten (27.11.2026 bis 22.01.2027)");
+    fireEvent.change(within(dialog).getByLabelText("bis einschließlich"), { target: { value: "2026-11-30" } });
+    expect(within(dialog).getByTestId("plan-repeat-count")).toHaveTextContent("keine Wiederholung");
+    expect(within(dialog).getByRole("button", { name: "Speichern" })).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("bis einschließlich"), { target: { value: "2026-12-11" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(writes[0]).toMatchObject({ method: "POST", url: "/api/v1/plan/units", body: { title: "Grundlage", repeat: { every_weeks: 1, until: "2026-12-11" } } }));
+    expect(await screen.findByText("3 Einheiten gespeichert")).toBeInTheDocument();
+  });
+
+  it("Einheit einer Serie: diese und folgende ändern und löschen", async () => {
+    units = [unit({ series_id: "s1", series_following: 3 })];
+    setup();
+    fireEvent.click(await screen.findByRole("button", { name: /Intervalle 4×8/ }));
+    expect(screen.getByLabelText("Teil einer Serie")).toBeInTheDocument();
+    let dialog = screen.getByRole("dialog", { name: "Geplante Einheit" });
+    expect(within(dialog).getByTestId("plan-series-scope")).toHaveTextContent("noch 3 offene Einheiten danach");
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Diese und folgende" }));
+    // Wiederholen ist dann aus
+    expect(within(dialog).queryByRole("radio", { name: "Jede Woche" })).toBeNull();
+    fireEvent.change(within(dialog).getByLabelText("Titel"), { target: { value: "Intervalle 5×6" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(writes[0]).toEqual({ method: "PATCH", url: "/api/v1/plan/units/u1?scope=following", body: { title: "Intervalle 5×6" } }));
+
+    fireEvent.click(await screen.findByRole("button", { name: /Intervalle 4×8/ }));
+    dialog = screen.getByRole("dialog", { name: "Geplante Einheit" });
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Diese und folgende" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Löschen" }));
+    await waitFor(() => expect(writes[1]).toEqual({ method: "DELETE", url: "/api/v1/plan/units/u1?scope=following", body: undefined }));
+  });
+
+  it("Woche als Vorlage speichern", async () => {
+    setup();
+    await screen.findByText("Intervalle 4×8");
+    fireEvent.click(screen.getByRole("button", { name: "KW 48 als Vorlage speichern" }));
+    const dialog = screen.getByRole("dialog", { name: "KW 48 als Vorlage speichern" });
+    expect(within(dialog).getByText("Intervalle 4×8")).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "grundwoche" } });
+    expect(await within(dialog).findByText(/gibt es schon/)).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Aufbauwoche" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Vorlage speichern" }));
+    await waitFor(() =>
+      expect(writes[0]).toEqual({ method: "POST", url: "/api/v1/plan/templates", body: { name: "Aufbauwoche", week_start: "2026-11-23", replace: false } }),
+    );
+  });
+
+  it("Vorlage auf mehrere Wochen anwenden", async () => {
+    setup();
+    await screen.findByText("Intervalle 4×8");
+    fireEvent.click(screen.getByRole("button", { name: "Vorlage anwenden" }));
+    const dialog = screen.getByRole("dialog", { name: "Vorlage anwenden" });
+    expect(await within(dialog).findByText("Lange Ausfahrt")).toBeInTheDocument();
+    expect(within(dialog).getByText("2 Einheiten · 3:45 h · Belastung 345")).toBeInTheDocument();
+    expect(within(dialog).getByTestId("plan-template-weeks").children).toHaveLength(4);
+    fireEvent.change(within(dialog).getByLabelText("Wochen"), { target: { value: "13" } });
+    expect(within(dialog).getByText("1 bis 12 Wochen.")).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText("Wochen"), { target: { value: "3" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "6 Einheiten anlegen" }));
+    await waitFor(() => expect(writes[0]).toEqual({ method: "POST", url: "/api/v1/plan/templates/t1/apply", body: { week_start: "2026-11-30", weeks: 3 } }));
+    expect(await screen.findByText("8 Einheiten angelegt")).toBeInTheDocument();
   });
 });

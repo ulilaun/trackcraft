@@ -915,6 +915,10 @@ export interface PlannedUnit {
   activity_id: string | null;
   /** Aus einem Vorschlag der Planungshilfe und seitdem unverändert */
   suggested?: boolean;
+  /** Serie (Wiederholen oder Wochenvorlage über mehrere Wochen) */
+  series_id?: string | null;
+  /** Offene Einheiten derselben Serie nach diesem Tag */
+  series_following?: number;
   load: { total: number; aerobic: number; anaerobic: number; minutes: number; method: "target" | "zones" | "estimated" };
   /** Nur bei verknüpften Einheiten: Ist-Werte für den Vergleich */
   actual?: {
@@ -979,6 +983,28 @@ export interface SuggestionResponse {
 
 export interface SuggestionApplyResponse {
   data: { created: number; replaced: number; suggestion_id: string };
+}
+
+/** Eine Einheit einer Wochenvorlage (Wochentag 0 = Montag), Belastung mit dem heutigen Zonensatz. */
+export type PlanTemplateUnit = Omit<PlannedUnit, "id" | "date" | "status" | "activity_id" | "suggested" | "series_id" | "series_following" | "actual"> & {
+  weekday: number;
+};
+
+export interface PlanTemplate {
+  id: string;
+  name: string;
+  units: PlanTemplateUnit[];
+  minutes: number;
+  load: number;
+  updated_at: string;
+}
+
+export interface PlanTemplatesResponse {
+  data: PlanTemplate[];
+}
+
+export interface PlanTemplateApplyResponse {
+  data: { created: number; skipped: number };
 }
 
 export interface PlannedUnitResponse {

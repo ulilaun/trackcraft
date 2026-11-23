@@ -1,14 +1,15 @@
 import { useState } from "react";
+import { Repeat } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiPatch, apiPost, type HrZoneSet, type LoadSettings, type PlannedUnit, type PlannedUnitResponse, type SubSportCatalog } from "../../api/client";
 import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
 import { t, type TextKey } from "../../i18n";
-import { num } from "../../utils/format";
+import { addDays, num } from "../../utils/format";
 import { SPORT_CLASSES } from "../../utils/sports";
 import { germanDate } from "../seasons/seasonModel";
-import { applicableSet, formOf, hm, previewLoad, unitInput, unitProblem, type UnitForm } from "./planModel";
+import { MAX_SERIES, applicableSet, changedInput, formOf, hm, previewLoad, repeatProblem, seriesDates, unitInput, unitProblem, type UnitForm } from "./planModel";
 
 const input = "w-full rounded-lg border border-line bg-card-2 px-2 py-1.5 text-sm text-text disabled:opacity-60";
 const pill = (on: boolean) =>
@@ -34,12 +35,19 @@ export function UnitDialog({
 }) {
   const [form, setForm] = useState<UnitForm>(() => formOf(unit, date));
   const [copyTo, setCopyTo] = useState<string | null>(null);
+  // Wiederholen: 0 = nein, sonst alle N Wochen bis `until`
+  const [repeat, setRepeat] = useState(0);
+  const [until, setUntil] = useState(() => addDays(unit?.date ?? date, 56));
+  const inSeries = !!unit?.series_id && (unit.series_following ?? 0) > 0;
+  const [scope, setScope] = useState<"this" | "following">("this");
   const queryClient = useQueryClient();
   const flash = useFlash();
   const set = (patch: Partial<UnitForm>) => setForm((f) => ({ ...f, ...patch }));
   const zoneSet = applicableSet(zoneSets, form.sportClass, form.date);
   const preview = previewLoad(form, zoneSet, settings);
-  const problem = unitProblem(form);
+  const dates = repeat ? seriesDates(form.date, repeat, until) : [];
+  const problem = unitProblem(form) ?? (repeat ? repeatProblem(dates) : null);
+  const query = scope === "following" ? "?scope=following" : "";
   const done = unit?.status === "done";
   const subs = catalog?.[form.sportClass] ?? [];
 
@@ -48,18 +56,20 @@ export function UnitDialog({
     void queryClient.invalidateQueries({ queryKey: ["form"] });
   };
   const save = useMutation({
-    mutationFn: () =>
-      unit
-        ? apiPatch<PlannedUnitResponse>(`/plan/units/${unit.id}`, unitInput(form, !done))
-        : apiPost<PlannedUnitResponse>("/plan/units", unitInput(form, false)),
+    mutationFn: () => {
+      const body: Record<string, unknown> =
+        unit && scope === "following" ? changedInput(unitInput(formOf(unit, unit.date), !done), unitInput(form, !done)) : unitInput(form, !!unit && !done);
+      if (repeat) body.repeat = { every_weeks: repeat, until };
+      return unit ? apiPatch<PlannedUnitResponse>(`/plan/units/${unit.id}${query}`, body) : apiPost<PlannedUnitResponse>("/plan/units", body);
+    },
     onSuccess: () => {
       refresh();
-      flash(t("plan.saved"));
+      flash(repeat ? t("plan.repeat.saved", { n: dates.length }) : t("plan.saved"));
       onClose();
     },
   });
   const remove = useMutation({
-    mutationFn: () => apiDelete(`/plan/units/${unit!.id}`),
+    mutationFn: () => apiDelete(`/plan/units/${unit!.id}${query}`),
     onSuccess: () => {
       refresh();
       flash(t("plan.deleted"));
@@ -104,6 +114,32 @@ export function UnitDialog({
       }
     >
       <div className="grid gap-3 text-sm">
+        {inSeries && (
+          <div className="grid gap-1 rounded-lg border border-line bg-card-2 p-2" data-testid="plan-series-scope">
+            <span className="flex items-center gap-1.5 text-xs text-muted">
+              <Repeat size={13} aria-hidden />
+              {unit!.series_following === 1 ? t("plan.series.infoOne") : t("plan.series.info", { n: unit!.series_following ?? 0 })}
+            </span>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("plan.series.scope")}>
+              {(["this", "following"] as const).map((sc) => (
+                <button
+                  key={sc}
+                  type="button"
+                  role="radio"
+                  aria-checked={scope === sc}
+                  className={pill(scope === sc)}
+                  onClick={() => {
+                    setScope(sc);
+                    if (sc === "following") setRepeat(0);
+                  }}
+                >
+                  {t(`plan.series.${sc}` as TextKey)}
+                </button>
+              ))}
+            </div>
+            {scope === "following" && <span className="text-xs text-muted">{t("plan.series.followingHint")}</span>}
+          </div>
+        )}
         {copyTo != null && (
           <div className="flex flex-wrap items-end gap-2 rounded-lg border border-accent/50 bg-card-2 p-2">
             <label className="grid gap-1">
@@ -234,12 +270,40 @@ export function UnitDialog({
             </span>
           </div>
         )}
-        {problem && problem !== "title" && <p className="text-xs text-danger">{t(`plan.problem.${problem}` as TextKey)}</p>}
+        {problem && problem !== "title" && problem !== "repeatNone" && problem !== "repeatMany" && <p className="text-xs text-danger">{t(`plan.problem.${problem}` as TextKey)}</p>}
 
         <label className="grid gap-1">
           <span className="text-xs font-medium text-muted">{t("plan.field.note")}</span>
           <textarea className={`${input} min-h-16`} rows={2} value={form.note} disabled={busy} onChange={(e) => set({ note: e.target.value })} />
         </label>
+
+        {scope === "this" && (
+          <div className="grid gap-1">
+            <span className="text-xs font-medium text-muted">{t(unit ? "plan.repeat.fromHere" : "plan.repeat.title")}</span>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("plan.repeat.title")}>
+              {[0, 1, 2, 3, 4].map((w) => (
+                <button key={w} type="button" role="radio" aria-checked={repeat === w} className={pill(repeat === w)} onClick={() => setRepeat(w)}>
+                  {w === 0 ? t("plan.repeat.none") : w === 1 ? t("plan.repeat.weekly") : t("plan.repeat.every", { n: w })}
+                </button>
+              ))}
+            </div>
+            {repeat > 0 && (
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium text-muted">{t("plan.repeat.until")}</span>
+                  <input type="date" className={input} value={until} disabled={busy} onChange={(e) => setUntil(e.target.value)} />
+                </label>
+                <span className={`pb-2 text-xs ${problem === "repeatNone" || problem === "repeatMany" ? "text-danger" : "text-muted"}`} data-testid="plan-repeat-count">
+                  {problem === "repeatNone"
+                    ? t("plan.problem.repeatNone")
+                    : problem === "repeatMany"
+                      ? t("plan.problem.repeatMany", { n: MAX_SERIES })
+                      : t("plan.repeat.count", { n: dates.length, from: germanDate(dates[0]!), to: germanDate(dates.at(-1)!) })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {unit && !done && (
           <div className="grid gap-1">
