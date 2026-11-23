@@ -148,6 +148,8 @@ def seed_form_and_plan(days):
     print("HF-Zonen", s, "" if s == 201 else v)
 
     today = date.today()
+    if date.fromisoformat(max(days)) != today - timedelta(days=1):
+        print("Hinweis: die letzte Aktivität war nicht gestern; Ziel und Plan rechnen trotzdem vom heutigen Tag aus")
     s, v = call("POST", "/plan/goals", {
         "date": (today + timedelta(days=48)).isoformat(), "sport_class": "cycling", "name": "Tramuntana-Runde",
         "description": "Erfundenes Beispielziel: einmal quer durchs Gebirge.", "distance_m": 160000, "target_time_s": 6 * 3600 + 30 * 60})

@@ -1,11 +1,14 @@
 """Demo-Datenbank bauen (Release, Issue #41): Beispieldaten erzeugen, in eine frische Instanz importieren, kennzeichnen
 und als ZIP packen.
 
-Aufruf:  python scripts/demo/build_demo_db.py <trackcraft-programm> <ziel.zip> [letzter_tag]
+Aufruf:  python scripts/demo/build_demo_db.py <trackcraft-programm> <ziel.zip>
 
 Das ZIP enthält `database/trackcraft.db` (Demo-Kennzeichen gesetzt, ohne WAL-Datei) und `activities/` (Originaldateien).
 Entpackt in einen leeren Datenordner und mit `[demo] enabled = true` gestartet, verschiebt TrackCraft die Daten so,
 dass die letzte Aktivität gestern war. Dauer etwa 15 Minuten (Segmentauswertung).
+
+Die Beispieldaten enden immer gestern: Ziel und Planungshilfe von `seed_demo.py` rechnen vom heutigen Tag aus, und nur so
+passen Plan und Aktivitäten nach der Verschiebung zusammen.
 """
 
 import os
@@ -50,11 +53,10 @@ def run(cmd, **kw):
 
 
 def main():
-    if len(sys.argv) not in (3, 4):
+    if len(sys.argv) != 3:
         sys.exit(__doc__)
     exe = Path(sys.argv[1]).resolve()
     out = Path(sys.argv[2]).resolve()
-    last_day = sys.argv[3:]
 
     with tempfile.TemporaryDirectory(prefix="trackcraft-demo-") as tmp:
         root = Path(tmp)
@@ -86,7 +88,7 @@ migration_dir = {toml_path(data / "backups")}
         env = dict(os.environ, TRACKCRAFT_CONFIG=str(config))
 
         gpx = root / "gpx"
-        run([sys.executable, HERE / "make_demo.py", gpx, *last_day], stdout=subprocess.DEVNULL)
+        run([sys.executable, HERE / "make_demo.py", gpx], stdout=subprocess.DEVNULL)
 
         proc = subprocess.Popen([exe], env=env)
         try:
