@@ -995,6 +995,19 @@ export interface SuggestionApplyResponse {
   data: { created: number };
 }
 
+/** Einheiten-Vorlage: Einheit ohne Datum und Status unter einem Namen; Belastung mit dem heutigen Zonensatz. */
+export type PlanTemplate = Omit<PlannedUnit, "date" | "status" | "activity_id" | "series_id" | "series_following" | "actual"> & {
+  name: string;
+};
+
+export interface PlanTemplatesResponse {
+  data: PlanTemplate[];
+}
+
+export interface PlanTemplateResponse {
+  data: PlanTemplate;
+}
+
 export interface PlannedUnitResponse {
   data: PlannedUnit;
 }

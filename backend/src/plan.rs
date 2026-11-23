@@ -22,6 +22,9 @@ pub enum Error {
     ActivityNotFound,
     /// Die Aktivität ist schon mit einer anderen Einheit verknüpft.
     ActivityTaken,
+    TemplateNotFound,
+    /// Eine Vorlage mit diesem Namen gibt es schon (ohne Groß/Klein).
+    TemplateExists,
     Validation {
         field: &'static str,
         code: &'static str,
@@ -897,6 +900,240 @@ pub async fn decline(db: &Db, id: &str, activity_id: &str) -> Result<(), Error> 
         .bind(activity_id)
         .execute(&mut *tx)
         .await?;
+    bump_revision(&mut tx, now).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Einheiten-Vorlagen
+
+/// Eine Einheit ohne Datum und Status unter einem eindeutigen Namen (ohne Groß/Klein).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Template {
+    pub id: String,
+    pub name: String,
+    /// Felder der Einheit; das Datum ist nur der Tag, mit dessen Zonensatz die Belastung gerechnet wird
+    pub unit: Unit,
+}
+
+impl Template {
+    pub fn to_json(&self, sets: &[ZoneSet], s: &Settings) -> Value {
+        let mut v = self.unit.to_json(sets, s);
+        if let Some(o) = v.as_object_mut() {
+            for k in ["date", "status", "activity_id", "series_id", "series_following"] {
+                o.remove(k);
+            }
+        }
+        v["id"] = json!(self.id);
+        v["name"] = json!(self.name);
+        v
+    }
+}
+
+const TEMPLATE_COLUMNS: &str =
+    "id, name, sport_class, sub_sport, title, note, mode, duration_min, target_load, intensive_pct, zone_minutes";
+
+fn template_from_row(r: &sqlx::sqlite::SqliteRow, day: NaiveDate) -> anyhow::Result<Template> {
+    let mode: String = r.get("mode");
+    let mode = if mode == "zones" {
+        Mode::Zones(serde_json::from_str(&r.get::<String, _>("zone_minutes"))?)
+    } else {
+        Mode::Target {
+            minutes: r.get::<i64, _>("duration_min") as u32,
+            load: r.get("target_load"),
+            intensive_pct: r.get::<i64, _>("intensive_pct") as u32,
+        }
+    };
+    Ok(Template {
+        id: r.get("id"),
+        name: r.get("name"),
+        unit: Unit {
+            id: String::new(),
+            date: day,
+            sport_class: r.get("sport_class"),
+            sub_sport: r.get("sub_sport"),
+            title: r.get("title"),
+            note: r.get("note"),
+            mode,
+            status: "planned".into(),
+            activity_id: None,
+            series_id: None,
+            series_following: 0,
+        },
+    })
+}
+
+async fn template(db: &Db, id: &str, day: NaiveDate) -> Result<Template, Error> {
+    let sql = format!("SELECT {TEMPLATE_COLUMNS} FROM plan_unit_templates WHERE id = ?");
+    let r = sqlx::query(sqlx::AssertSqlSafe(sql)).bind(id).fetch_optional(&db.reader).await?.ok_or(Error::TemplateNotFound)?;
+    Ok(template_from_row(&r, day)?)
+}
+
+/// Alle Vorlagen nach Name, Belastung mit dem Zonensatz von `today`.
+pub async fn templates(db: &Db, today: NaiveDate) -> anyhow::Result<Value> {
+    let sql = format!("SELECT {TEMPLATE_COLUMNS} FROM plan_unit_templates ORDER BY name COLLATE NOCASE");
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql)).fetch_all(&db.reader).await?;
+    let sets = load::zone_sets(db).await?;
+    let s = load::settings(db).await?;
+    let mut out = Vec::with_capacity(rows.len());
+    for r in &rows {
+        out.push(template_from_row(r, today)?.to_json(&sets, &s));
+    }
+    Ok(Value::Array(out))
+}
+
+#[derive(Debug, Default, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TemplateInput {
+    pub name: Option<String>,
+    pub sport_class: Option<String>,
+    #[serde(default, deserialize_with = "nullable")]
+    pub sub_sport: Option<Option<String>>,
+    pub title: Option<String>,
+    #[serde(default, deserialize_with = "nullable")]
+    pub note: Option<Option<String>>,
+    pub mode: Option<String>,
+    pub duration_min: Option<u32>,
+    pub target_load: Option<f64>,
+    pub intensive_pct: Option<u32>,
+    pub zone_minutes: Option<Vec<u32>>,
+}
+
+impl TemplateInput {
+    fn unit_input(&self) -> UnitInput {
+        UnitInput {
+            sport_class: self.sport_class.clone(),
+            sub_sport: self.sub_sport.clone(),
+            title: self.title.clone(),
+            note: self.note.clone(),
+            mode: self.mode.clone(),
+            duration_min: self.duration_min,
+            target_load: self.target_load,
+            intensive_pct: self.intensive_pct,
+            zone_minutes: self.zone_minutes.clone(),
+            ..UnitInput::default()
+        }
+    }
+}
+
+fn template_name(n: &str) -> Result<String, Error> {
+    let n = n.trim();
+    if n.is_empty() || n.chars().count() > 80 {
+        return Err(invalid("name", "invalid", "Name must have 1 to 80 characters"));
+    }
+    Ok(n.to_string())
+}
+
+async fn save_template(conn: &mut SqliteConnection, t: &Template, insert: bool, now: i64) -> Result<(), Error> {
+    let other: Option<String> = sqlx::query_scalar("SELECT id FROM plan_unit_templates WHERE name = ? COLLATE NOCASE AND id <> ?")
+        .bind(&t.name)
+        .bind(&t.id)
+        .fetch_optional(&mut *conn)
+        .await?;
+    if other.is_some() {
+        return Err(Error::TemplateExists);
+    }
+    let u = &t.unit;
+    let (mode, dur, load, pct, zones) = match &u.mode {
+        Mode::Target { minutes, load, intensive_pct } => ("target", Some(*minutes as i64), Some(*load), *intensive_pct as i64, None),
+        Mode::Zones(z) => ("zones", None, None, 0, Some(serde_json::to_string(z)?)),
+    };
+    let sql = if insert {
+        "INSERT INTO plan_unit_templates (name, sport_class, sub_sport, title, note, mode, duration_min, target_load, intensive_pct, \
+         zone_minutes, updated_at_ms, created_at_ms, id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12)"
+    } else {
+        "UPDATE plan_unit_templates SET name = ?1, sport_class = ?2, sub_sport = ?3, title = ?4, note = ?5, mode = ?6, duration_min = ?7, \
+         target_load = ?8, intensive_pct = ?9, zone_minutes = ?10, updated_at_ms = ?11 WHERE id = ?12"
+    };
+    let n = sqlx::query(sql)
+        .bind(&t.name)
+        .bind(&u.sport_class)
+        .bind(&u.sub_sport)
+        .bind(&u.title)
+        .bind(&u.note)
+        .bind(mode)
+        .bind(dur)
+        .bind(load)
+        .bind(pct)
+        .bind(zones)
+        .bind(now)
+        .bind(&t.id)
+        .execute(&mut *conn)
+        .await?
+        .rows_affected();
+    if n == 0 {
+        return Err(Error::TemplateNotFound);
+    }
+    bump_revision(conn, now).await?;
+    Ok(())
+}
+
+async fn template_json(db: &Db, t: &Template) -> anyhow::Result<Value> {
+    let sets = load::zone_sets(db).await?;
+    let s = load::settings(db).await?;
+    Ok(t.to_json(&sets, &s))
+}
+
+/// Vorlage anlegen; Name, Sportklasse, Titel und Art der Belastung sind Pflicht.
+pub async fn create_template(db: &Db, i: &TemplateInput, today: NaiveDate) -> Result<Value, Error> {
+    for (missing, f, m) in [
+        (i.name.is_none(), "name", "Name is required"),
+        (i.sport_class.is_none(), "sport_class", "Sport class is required"),
+        (i.title.is_none(), "title", "Title is required"),
+        (i.mode.is_none(), "mode", "Mode is required"),
+    ] {
+        if missing {
+            return Err(invalid(f, "required", m));
+        }
+    }
+    let mut t = Template {
+        id: new_id(),
+        name: template_name(i.name.as_deref().unwrap_or_default())?,
+        unit: Unit {
+            id: String::new(),
+            date: today,
+            sport_class: String::new(),
+            sub_sport: None,
+            title: String::new(),
+            note: None,
+            mode: Mode::Zones([0; ZONES]),
+            status: "planned".into(),
+            activity_id: None,
+            series_id: None,
+            series_following: 0,
+        },
+    };
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    apply(&mut tx, &mut t.unit, &i.unit_input()).await?;
+    save_template(&mut tx, &t, true, now).await?;
+    tx.commit().await?;
+    Ok(template_json(db, &t).await?)
+}
+
+/// Vorlage ändern (auch umbenennen); nur gesetzte Felder.
+pub async fn update_template(db: &Db, id: &str, i: &TemplateInput, today: NaiveDate) -> Result<Value, Error> {
+    let mut t = template(db, id, today).await?;
+    if let Some(n) = &i.name {
+        t.name = template_name(n)?;
+    }
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    apply(&mut tx, &mut t.unit, &i.unit_input()).await?;
+    save_template(&mut tx, &t, false, now).await?;
+    tx.commit().await?;
+    Ok(template_json(db, &t).await?)
+}
+
+/// Vorlage löschen; Einheiten im Kalender bleiben.
+pub async fn delete_template(db: &Db, id: &str) -> Result<(), Error> {
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = db.writer.begin().await?;
+    let n = sqlx::query("DELETE FROM plan_unit_templates WHERE id = ?").bind(id).execute(&mut *tx).await?.rows_affected();
+    if n == 0 {
+        return Err(Error::TemplateNotFound);
+    }
     bump_revision(&mut tx, now).await?;
     tx.commit().await?;
     Ok(())

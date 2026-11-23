@@ -480,3 +480,62 @@ async fn migration_18_moves_goal_to_table() {
     assert_eq!(units, 1);
     db.close().await;
 }
+
+#[tokio::test]
+async fn unit_templates_crud() {
+    let f = fixture().await;
+    let body = json!({
+        "name": " 4×8 Z4 ", "sport_class": "cycling", "title": "Intervalle 4×8", "mode": "zones",
+        "zone_minutes": [15, 20, 0, 32, 0], "note": "Kadenz hoch"
+    });
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/templates", Some(body)).await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let t = &v["data"];
+    let id = t["id"].as_str().unwrap().to_string();
+    assert_eq!(
+        (t["name"].as_str(), t["title"].as_str(), t["load"]["minutes"].as_u64()),
+        (Some("4×8 Z4"), Some("Intervalle 4×8"), Some(67))
+    );
+    assert_eq!(t["load"]["method"], "estimated");
+    assert!(t.get("date").is_none() && t.get("status").is_none());
+
+    // Name eindeutig ohne Groß/Klein; Pflichtfelder; Prüfungen wie bei Einheiten
+    let lang =
+        json!({ "name": "4×8 z4", "sport_class": "cycling", "title": "Lang", "mode": "target", "duration_min": 180, "target_load": 150 });
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/templates", Some(lang.clone())).await;
+    assert_eq!((s, v["error"]["code"].as_str()), (StatusCode::CONFLICT, Some("plan_template_exists")));
+    let (s, v) =
+        send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "X", "sport_class": "cycling", "mode": "zones" }))).await;
+    assert_eq!((s, field_of(&v)), (StatusCode::BAD_REQUEST, Some("title")));
+    let mut bad = lang.clone();
+    bad["name"] = json!("Lange Einheit");
+    bad["target_load"] = json!(5000);
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/templates", Some(bad)).await;
+    assert_eq!((s, field_of(&v)), (StatusCode::BAD_REQUEST, Some("target_load")));
+    let mut ok = lang.clone();
+    ok["name"] = json!("Lange Einheit");
+    let (s, _) = send(&f, Method::POST, "/api/v1/plan/templates", Some(ok)).await;
+    assert_eq!(s, StatusCode::CREATED);
+    let names: Vec<String> =
+        get(&f, "/api/v1/plan/templates").await.as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
+    assert_eq!(names, vec!["4×8 Z4", "Lange Einheit"]);
+
+    // Umbenennen und ändern; Umbenennen auf einen vorhandenen Namen geht nicht
+    let path = format!("/api/v1/plan/templates/{id}");
+    let (s, v) =
+        send(&f, Method::PATCH, &path, Some(json!({ "name": "Intervalle kurz", "zone_minutes": [15, 20, 0, 24, 0], "note": null }))).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(
+        (v["data"]["name"].as_str(), v["data"]["load"]["minutes"].as_u64(), v["data"]["note"].clone()),
+        (Some("Intervalle kurz"), Some(59), Value::Null)
+    );
+    let (s, v) = send(&f, Method::PATCH, &path, Some(json!({ "name": "lange einheit" }))).await;
+    assert_eq!((s, v["error"]["code"].as_str()), (StatusCode::CONFLICT, Some("plan_template_exists")));
+
+    // Löschen
+    let (s, _) = send(&f, Method::DELETE, &path, None).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (s, v) = send(&f, Method::PATCH, &path, Some(json!({ "name": "Y" }))).await;
+    assert_eq!((s, v["error"]["code"].as_str()), (StatusCode::NOT_FOUND, Some("plan_template_not_found")));
+    assert_eq!(get(&f, "/api/v1/plan/templates").await.as_array().unwrap().len(), 1);
+}

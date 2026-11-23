@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import type { FormResponse, PlanGoal, PlannedUnit, SuggestionResponse } from "../../api/client";
+import type { FormResponse, PlanGoal, PlanTemplate, PlannedUnit, SuggestionResponse } from "../../api/client";
 import { FlashProvider } from "../../components/Flash";
 import { activity, config, json } from "../activities/testData";
 import { PlanPage } from "./PlanPage";
@@ -127,6 +127,21 @@ const suggestion: SuggestionResponse = {
   },
 };
 
+const template: PlanTemplate = {
+  id: "t1",
+  name: "Lange Einheit 3 h",
+  sport_class: "cycling",
+  sub_sport: null,
+  title: "Lange Ausfahrt",
+  note: "Verpflegung testen",
+  mode: "target",
+  duration_min: 180,
+  target_load: 150,
+  intensive_pct: 0,
+  zone_minutes: null,
+  load: { total: 150, aerobic: 150, anaerobic: 0, minutes: 180, method: "target" },
+};
+
 let units: PlannedUnit[];
 let writes: { method: string; url: string; body: unknown }[];
 
@@ -145,10 +160,12 @@ beforeEach(() => {
         if (method === "DELETE") return new Response(null, { status: 204 });
         if (url.endsWith("/plan/suggestion")) return json(200, suggestion);
         if (url.endsWith("/plan/suggestion/apply")) return json(201, { data: { created: 2 } });
+        if (url.includes("/plan/templates")) return json(method === "POST" ? 201 : 200, { data: { ...template, id: "t2", ...(body as object) } });
         if (url.includes("/plan/goals")) return json(method === "POST" ? 201 : 200, { data: { ...goal, id: method === "POST" ? "g2" : goal.id, ...(body as object) } });
         return json(method === "POST" ? 201 : 200, { data: unit({ ...(body as object) }) });
       }
       if (url.endsWith("/config")) return json(200, config);
+      if (url.endsWith("/plan/templates")) return json(200, { data: [template] });
       if (url.startsWith("/api/v1/plan?"))
         return json(200, {
           data: { today: "2026-11-23", units, goals: form.data.plan.goals, zones_configured: true, assistant: { sport_class: "running", minutes: [0, 45, 0, 45, 0, 90, 60], max_gain: 4, recovery_weeks: false, intensity: "polarized" } },
@@ -339,6 +356,66 @@ describe("Seite Plan", () => {
       }),
     );
     expect(await screen.findByText("2 Einheiten übernommen.")).toBeInTheDocument();
+  });
+});
+
+describe("Plan: Einheiten-Vorlagen", () => {
+  it("Neue Einheit aus Vorlage füllen, im Kalender und als Vorlage speichern", async () => {
+    setup();
+    const cal = await screen.findByTestId("plan-calendar");
+    fireEvent.click(within(cal).getByRole("button", { name: "Einheit am 27.11.2026 anlegen" }));
+    const dialog = screen.getByRole("dialog", { name: "Neue Einheit" });
+    fireEvent.change(await within(dialog).findByLabelText("Aus Vorlage"), { target: { value: "t1" } });
+    expect(within(dialog).getByLabelText("Titel")).toHaveValue("Lange Ausfahrt");
+    expect(within(dialog).getByLabelText("Datum")).toHaveValue("2026-11-27");
+    expect(within(dialog).getByRole("radio", { name: "Zielbelastung" })).toHaveAttribute("aria-checked", "true");
+    // Danach lässt sich alles ändern
+    fireEvent.change(within(dialog).getByLabelText("Titel"), { target: { value: "Lange Ausfahrt Hügel" } });
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Im Kalender und als Vorlage" }));
+    // Name der Vorlage folgt dem Titel, bis man ihn ändert
+    expect(within(dialog).getByLabelText("Name der Vorlage")).toHaveValue("Lange Ausfahrt Hügel");
+    fireEvent.change(within(dialog).getByLabelText("Name der Vorlage"), { target: { value: "Hügel 3 h" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    const fields = { sport_class: "cycling", sub_sport: null, title: "Lange Ausfahrt Hügel", note: "Verpflegung testen", mode: "target", duration_min: 180, target_load: 150, intensive_pct: 0 };
+    await waitFor(() =>
+      expect(writes).toEqual([
+        { method: "POST", url: "/api/v1/plan/templates", body: { name: "Hügel 3 h", ...fields } },
+        { method: "POST", url: "/api/v1/plan/units", body: { date: "2026-11-27", ...fields } },
+      ]),
+    );
+  });
+
+  it("Nur als Vorlage: ohne Datum und Wiederholen", async () => {
+    setup();
+    await screen.findByTestId("plan-calendar");
+    fireEvent.click(screen.getByRole("button", { name: "Einheit" }));
+    const dialog = screen.getByRole("dialog", { name: "Neue Einheit" });
+    fireEvent.change(within(dialog).getByLabelText("Titel"), { target: { value: "Intervalle 4×8" } });
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Nur als Vorlage" }));
+    expect(within(dialog).queryByLabelText("Datum")).toBeNull();
+    expect(within(dialog).queryByRole("radio", { name: "Jede Woche" })).toBeNull();
+    fireEvent.change(within(dialog).getByLabelText("Name der Vorlage"), { target: { value: " " } });
+    expect(within(dialog).getByRole("button", { name: "Speichern" })).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("Name der Vorlage"), { target: { value: "4×8 Z4" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Speichern" }));
+    await waitFor(() =>
+      expect(writes).toEqual([
+        {
+          method: "POST",
+          url: "/api/v1/plan/templates",
+          body: { name: "4×8 Z4", sport_class: "cycling", sub_sport: null, title: "Intervalle 4×8", note: null, mode: "zones", zone_minutes: [0, 60, 0, 0, 0] },
+        },
+      ]),
+    );
+    expect(await screen.findByText("Vorlage „4×8 Z4“ gespeichert")).toBeInTheDocument();
+  });
+
+  it("Bestehende Einheit hat keine Vorlagen-Auswahl", async () => {
+    setup();
+    fireEvent.click(await screen.findByRole("button", { name: /Intervalle 4×8/ }));
+    const dialog = screen.getByRole("dialog", { name: "Geplante Einheit" });
+    expect(within(dialog).queryByLabelText("Aus Vorlage")).toBeNull();
+    expect(within(dialog).queryByTestId("plan-save-target")).toBeNull();
   });
 });
 

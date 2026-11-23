@@ -363,6 +363,43 @@ paths:
       responses:
         '204': {description: 'Gelöscht'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /plan/templates:
+    get:
+      tags: [Plan]
+      operationId: listPlanTemplates
+      summary: Einheiten-Vorlagen nach Name, Belastung mit dem Zonensatz von heute
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/PlanTemplate'}}}}}}}
+    post:
+      tags: [Plan]
+      operationId: createPlanTemplate
+      summary: Einheiten-Vorlage anlegen (name, sport_class, title, mode Pflicht)
+      description: 'Felder wie eine Einheit ohne Datum, Status und Wiederholen. Name eindeutig ohne Groß/Klein, sonst 409 `plan_template_exists`. Sicherungsrelevant.'
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanTemplateInput'}}}}
+      responses:
+        '201': {description: 'Angelegt', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanTemplate'}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /plan/templates/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    patch:
+      tags: [Plan]
+      operationId: updatePlanTemplate
+      summary: Einheiten-Vorlage ändern oder umbenennen (nur gesetzte Felder)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanTemplateInput'}}}}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanTemplate'}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Plan]
+      operationId: deletePlanTemplate
+      summary: Einheiten-Vorlage löschen (Einheiten im Kalender bleiben)
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /plan/suggestion:
     post:
       tags: [Plan]
@@ -1473,6 +1510,38 @@ components:
             goals: {type: array, items: {$ref: '#/components/schemas/PlanGoal'}, description: 'Alle Ziele nach Datum'}
             zones_configured: {type: boolean}
             assistant: {oneOf: [{$ref: '#/components/schemas/SuggestionInput'}, {type: 'null'}], description: 'Zuletzt übernommene Eingaben der Planungshilfe'}
+    PlanTemplateInput:
+      type: object
+      additionalProperties: false
+      description: 'Wie PlannedUnitInput ohne date, status und repeat, dazu name'
+      properties:
+        name: {type: string, minLength: 1, maxLength: 80}
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
+        sub_sport: {type: [string, 'null']}
+        title: {type: string, minLength: 1, maxLength: 120}
+        note: {type: [string, 'null']}
+        mode: {type: string, enum: [target, zones]}
+        duration_min: {type: integer, minimum: 1, maximum: 1440}
+        target_load: {type: number, minimum: 0, maximum: 1000}
+        intensive_pct: {type: integer, minimum: 0, maximum: 100}
+        zone_minutes: {type: array, minItems: 5, maxItems: 5, items: {type: integer, minimum: 0}}
+    PlanTemplate:
+      type: object
+      description: 'Einheiten-Vorlage: Felder wie PlannedUnit ohne date, status, activity_id und Serie, dazu name'
+      required: [id, name, sport_class, title, mode, load]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        sport_class: {type: string}
+        sub_sport: {type: [string, 'null']}
+        title: {type: string}
+        note: {type: [string, 'null']}
+        mode: {type: string, enum: [target, zones]}
+        duration_min: {type: [integer, 'null']}
+        target_load: {type: [number, 'null']}
+        intensive_pct: {type: integer}
+        zone_minutes: {type: [array, 'null'], items: {type: integer}}
+        load: {type: object, description: 'Wie bei PlannedUnit, mit dem Zonensatz von heute'}
     SuggestionInput:
       type: object
       additionalProperties: false
