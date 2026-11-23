@@ -235,20 +235,37 @@ describe("Seite Form", () => {
     expect(patches[0]).toMatchObject({ fitness_days: 42, fatigue_days: 10, estimate_per_hour: { studio: 30, cycling: 50 } });
   });
 
-  it("Vorlage SportTracks-ähnlich setzt 21/12 und Gewicht 0,75; eigene Werte heben die Vorlage auf (#24)", async () => {
+  it("Vorlage Reaktionsschnell setzt 21/12 und Gewicht 0,75; eigene Werte heben die Vorlage auf (#24)", async () => {
     setup();
     await screen.findByText("Frisch");
     fireEvent.click(screen.getByRole("button", { name: /Einstellungen der Formkurve/ }));
     const presets = await screen.findByRole("radiogroup", { name: "Vorlage" });
-    expect(within(presets).getByRole("radio", { name: "Standard" })).toHaveAttribute("aria-checked", "true");
-    fireEvent.click(within(presets).getByRole("radio", { name: "SportTracks-ähnlich" }));
-    expect(within(presets).getByRole("radio", { name: "SportTracks-ähnlich" })).toHaveAttribute("aria-checked", "true");
+    expect(within(presets).getByRole("radio", { name: "Klassisch" })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(within(presets).getByRole("radio", { name: "Reaktionsschnell" }));
+    expect(within(presets).getByRole("radio", { name: "Reaktionsschnell" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByLabelText("Fitness, Zeitkonstante (Tage)")).toHaveValue("21");
     expect(screen.getByLabelText("Ermüdung, Zeitkonstante (Tage)")).toHaveValue("12");
     expect(screen.getByLabelText("Gewicht der Ermüdung")).toHaveValue("0,75");
     fireEvent.click(screen.getByRole("button", { name: "Speichern" }));
     await waitFor(() => expect(patches).toHaveLength(1));
     expect(patches[0]).toMatchObject({ curve_model: "standard", fitness_days: 21, fatigue_days: 12, fatigue_weight: 0.75 });
+  });
+
+  it("ⓘ öffnet je Abschnitt ein Erklärfenster; Escape schließt nur das Erklärfenster", async () => {
+    setup();
+    await screen.findByText("Frisch");
+    fireEvent.click(screen.getByRole("button", { name: /Einstellungen der Formkurve/ }));
+    await screen.findByRole("radiogroup", { name: "Vorlage" });
+    for (const title of ["Vorlagen", "Modell, Zeitkonstanten und Gewicht", "Monotonie (Foster)", "Schätzung ohne Herzfrequenz"]) {
+      expect(screen.getByRole("button", { name: `Erklärung: ${title}` })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Erklärung: Modell, Zeitkonstanten und Gewicht" }));
+    const help = screen.getByRole("dialog", { name: "Modell, Zeitkonstanten und Gewicht" });
+    expect(help).toHaveTextContent("Ruhetags-Bonus");
+    expect(help).toHaveTextContent("Form = Fitness − Gewicht × Ermüdung");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Modell, Zeitkonstanten und Gewicht" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Einstellungen der Formkurve" })).toBeInTheDocument();
   });
 
   it("Gewicht der Ermüdung: Komma, Bereich 0,25 bis 3", async () => {
