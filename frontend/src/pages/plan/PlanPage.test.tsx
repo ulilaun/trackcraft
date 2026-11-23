@@ -419,6 +419,56 @@ describe("Plan: Einheiten-Vorlagen", () => {
   });
 });
 
+/** Zieht ein Element auf einen Tag des Kalenders (HTML5 Drag & Drop wie im Browser). */
+function drag(el: HTMLElement, day: string) {
+  const target = document.querySelector<HTMLElement>(`[data-day="${day}"]`)!;
+  const dataTransfer = { setData: vi.fn(), getData: vi.fn(), effectAllowed: "", dropEffect: "" };
+  fireEvent.dragStart(el, { dataTransfer });
+  fireEvent.dragOver(target, { dataTransfer });
+  fireEvent.drop(target, { dataTransfer });
+  fireEvent.dragEnd(el, { dataTransfer });
+}
+
+describe("Plan: Verschieben per Drag & Drop", () => {
+  it("Einheit auf einen anderen Tag ziehen", async () => {
+    setup();
+    const el = await screen.findByRole("button", { name: /Intervalle 4×8/ });
+    expect(el).toHaveAttribute("draggable", "true");
+    // Auf denselben Tag: nichts
+    drag(el, "2026-11-25");
+    drag(el, "2026-11-27");
+    await waitFor(() => expect(writes).toEqual([{ method: "PATCH", url: "/api/v1/plan/units/u1", body: { date: "2026-11-27" } }]));
+    expect(await screen.findByText("Auf 27.11.2026 verschoben")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("Erledigte Einheit bleibt an ihrem Tag", async () => {
+    setup();
+    const cal = await screen.findByTestId("plan-calendar");
+    const done = await within(cal).findByRole("button", { name: /Lange Runde/ });
+    expect(done).toHaveAttribute("draggable", "false");
+    drag(done, "2026-11-22");
+    expect(writes).toEqual([]);
+  });
+
+  it("Serie: fragt nur diese oder diese und folgende", async () => {
+    units = [unit({ series_id: "s1", series_following: 3 })];
+    setup();
+    drag(await screen.findByRole("button", { name: /Intervalle 4×8/ }), "2026-11-26");
+    let dialog = screen.getByRole("dialog", { name: "Einheit verschieben" });
+    expect(dialog).toHaveTextContent("„Intervalle 4×8“ vom 25.11.2026 auf den 26.11.2026 verschieben?");
+    expect(dialog).toHaveTextContent("noch 3 offene Einheiten danach");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Diese und folgende" }));
+    await waitFor(() => expect(writes).toEqual([{ method: "PATCH", url: "/api/v1/plan/units/u1?scope=following", body: { date: "2026-11-26" } }]));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    drag(await screen.findByRole("button", { name: /Intervalle 4×8/ }), "2026-11-28");
+    dialog = screen.getByRole("dialog", { name: "Einheit verschieben" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Nur diese" }));
+    await waitFor(() => expect(writes[1]).toEqual({ method: "PATCH", url: "/api/v1/plan/units/u1", body: { date: "2026-11-28" } }));
+  });
+});
+
 describe("Plan: Serien", () => {
   it("Neue Einheit wöchentlich wiederholen", async () => {
     setup();

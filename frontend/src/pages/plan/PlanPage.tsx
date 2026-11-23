@@ -25,6 +25,7 @@ import { GoalDialog } from "./GoalDialog";
 import { goalFacts, nextGoal } from "./goalModel";
 import { SuggestDialog } from "./SuggestDialog";
 import { UnitDialog } from "./UnitDialog";
+import { canMove, useMoveUnit } from "./useMoveUnit";
 import { WEEKS, defaultStart, hm, isoWeek, weekDays, weekMonotony } from "./planModel";
 
 const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -51,6 +52,14 @@ export function PlanPage() {
   const [dialog, setDialog] = useState<{ unit: PlannedUnit | null; date: string } | null>(null);
   const [goalDialog, setGoalDialog] = useState<{ goal: PlanGoal | null; date?: string } | null>(null);
   const [suggestGoal, setSuggestGoal] = useState<PlanGoal | null>(null);
+  // Drag & Drop (Desktop): gezogene Einheit und Tag unter dem Zeiger
+  const [dragged, setDragged] = useState<PlannedUnit | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const mover = useMoveUnit();
+  const endDrag = () => {
+    setDragged(null);
+    setOver(null);
+  };
 
   const plan = useQuery({
     queryKey: ["plan", first, last],
@@ -174,7 +183,22 @@ export function PlanPage() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") setDialog({ unit: null, date: d });
                       }}
-                      className={`relative grid min-h-10 cursor-pointer lg:min-h-24 content-start gap-1 p-1.5 hover:bg-card-2 ${d < today ? "bg-card/80" : "bg-card"} ${d === today ? "ring-2 ring-inset ring-accent" : ""}`}
+                      onDragOver={(e) => {
+                        if (!dragged) return;
+                        e.preventDefault();
+                        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+                        if (over !== d) setOver(d);
+                      }}
+                      onDragLeave={(e) => {
+                        if (over === d && !e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null);
+                      }}
+                      onDrop={(e) => {
+                        if (!dragged) return;
+                        e.preventDefault();
+                        mover.move(dragged, d);
+                        endDrag();
+                      }}
+                      className={`relative grid min-h-10 cursor-pointer lg:min-h-24 content-start gap-1 p-1.5 hover:bg-card-2 ${d < today ? "bg-card/80" : "bg-card"} ${d === today ? "ring-2 ring-inset ring-accent" : ""} ${over === d && dragged && dragged.date !== d ? "bg-accent/15 outline-2 outline-dashed -outline-offset-2 outline-accent" : ""}`}
                     >
                       <span className="text-[11px] text-muted">
                         <span className="lg:hidden">{WEEKDAYS[i]} </span>
@@ -185,8 +209,18 @@ export function PlanPage() {
                           key={u.id}
                           type="button"
                           data-unit={u.id}
+                          draggable={canMove(u)}
+                          onDragStart={(e) => {
+                            if (e.dataTransfer) {
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData("text/plain", u.id);
+                            }
+                            setDragged(u);
+                          }}
+                          onDragEnd={endDrag}
                           onClick={() => setDialog({ unit: u, date: u.date })}
-                          className={`grid gap-0.5 rounded-md border border-l-[3px] border-line bg-card-2 px-1.5 py-1 text-left text-xs ${BORDER[u.status]}`}
+                          title={canMove(u) ? t("plan.move.hint") : undefined}
+                          className={`grid gap-0.5 rounded-md border border-l-[3px] border-line bg-card-2 px-1.5 py-1 text-left text-xs ${BORDER[u.status]} ${canMove(u) ? "lg:cursor-grab" : ""} ${dragged?.id === u.id ? "opacity-40" : ""}`}
                         >
                           <span className="flex items-center gap-1 truncate font-semibold">
                             <SportIcon sport={u.sport_class} size={13} decorative />
@@ -257,6 +291,7 @@ export function PlanPage() {
             );
           })}
         </div>
+        {mover.error && <Problem error={mover.error} />}
         <p className="mt-2 text-xs text-muted">{t("plan.legend")}</p>
       </Card>
 
@@ -300,6 +335,7 @@ export function PlanPage() {
         </p>
       </Card>
 
+      {mover.dialog}
       {dialog && (
         <UnitDialog
           unit={dialog.unit}
