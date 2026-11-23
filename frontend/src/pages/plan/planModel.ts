@@ -178,3 +178,48 @@ export function previewLoad(f: UnitForm, set: HrZoneSet | null, s: Pick<LoadSett
   });
   return { total: aerobic + anaerobic, aerobic, anaerobic, minutes, method: "zones" };
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Wiederholen und Wochenvorlagen (E8)
+
+/** Höchstens so viele Einheiten hat eine Serie (mit der ersten). */
+export const MAX_SERIES = 26;
+/** Höchstens so viele Wochen belegt eine Vorlage auf einmal. */
+export const MAX_TEMPLATE_WEEKS = 12;
+
+/** Daten einer Serie ab `date` (mit `date`) im Abstand von `everyWeeks` Wochen bis `until`, höchstens 27 zum Prüfen. */
+export function seriesDates(date: string, everyWeeks: number, until: string): string[] {
+  const out: string[] = [];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{4}-\d{2}-\d{2}$/.test(until) || everyWeeks < 1) return out;
+  for (let d = date; d <= until && out.length <= MAX_SERIES; d = addDays(d, everyWeeks * 7)) out.push(d);
+  return out;
+}
+
+/** Problem beim Wiederholen: nur eine Einheit oder mehr als 26. */
+export function repeatProblem(dates: string[]): "repeatNone" | "repeatMany" | null {
+  if (dates.length < 2) return "repeatNone";
+  if (dates.length > MAX_SERIES) return "repeatMany";
+  return null;
+}
+
+/** Nur die geänderten Felder (für „diese und folgende“); eine geänderte Belastung schickt alle Belastungsfelder. */
+export function changedInput(before: ReturnType<typeof unitInput>, after: ReturnType<typeof unitInput>): Record<string, unknown> {
+  const b = before as Record<string, unknown>;
+  const a = after as Record<string, unknown>;
+  const loadKeys = ["mode", "duration_min", "target_load", "intensive_pct", "zone_minutes"];
+  const same = (k: string) => JSON.stringify(a[k]) === JSON.stringify(b[k]);
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(a)) if (!loadKeys.includes(k) && !same(k)) out[k] = a[k];
+  if (loadKeys.some((k) => !same(k))) for (const k of loadKeys) if (k in a) out[k] = a[k];
+  return out;
+}
+
+/** Tage, an denen eine Vorlage ab `weekStart` über `weeks` Wochen Einheiten anlegt (ab heute). */
+export function templateDates(weekdays: number[], weekStart: string, weeks: number, today: string): { date: string; week: number }[] {
+  const out: { date: string; week: number }[] = [];
+  for (let w = 0; w < weeks; w++) for (const wd of weekdays) {
+    const d = addDays(weekStart, w * 7 + wd);
+    if (d >= today) out.push({ date: d, week: w });
+  }
+  return out;
+}

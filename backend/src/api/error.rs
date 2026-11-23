@@ -57,6 +57,9 @@ impl ApiError {
     pub const PLANNED_UNIT_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "planned_unit_not_found", "Planned unit not found");
     pub const ACTIVITY_ALREADY_PLANNED: Self =
         Self::new(StatusCode::CONFLICT, "activity_already_planned", "Activity is already linked to another planned unit");
+    pub const PLAN_TEMPLATE_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "plan_template_not_found", "Plan template not found");
+    pub const PLAN_TEMPLATE_EXISTS: Self =
+        Self::new(StatusCode::CONFLICT, "plan_template_exists", "A plan template with this name already exists");
     pub const SEGMENT_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "segment_not_found", "Segment not found");
     pub const JOB_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "job_not_found", "Job not found");
     pub const JOB_NOT_RETRYABLE: Self = Self::new(StatusCode::CONFLICT, "job_not_retryable", "Job has not failed");

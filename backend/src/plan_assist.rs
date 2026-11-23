@@ -311,6 +311,8 @@ fn make_unit(ctx: &Context, input: &Input, slot: &Slot, phase: Phase, f: f64) ->
         status: "planned".into(),
         activity_id: None,
         suggestion_id: None,
+        series_id: None,
+        series_following: 0,
     })
 }
 
@@ -801,6 +803,8 @@ mod tests {
             status: "planned".into(),
             activity_id: None,
             suggestion_id: None,
+            series_id: None,
+            series_following: 0,
         };
         let c = ctx(today, goal, vec![fixed], &z, &s);
         let r = suggest(&c, &input()).unwrap();

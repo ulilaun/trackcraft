@@ -271,6 +271,12 @@ paths:
       tags: [Plan]
       operationId: updatePlannedUnit
       summary: Einheit ändern (nur genannte Felder; status planned oder skipped)
+      description: >-
+        Mit `scope=following` gelten die genannten Felder auch für die offenen Einheiten derselben Serie danach; ein neues
+        Datum verschiebt sie um dieselbe Zahl Tage, `status` gilt nur für diese Einheit. `repeat` beginnt ab dieser Einheit
+        eine neue Serie (nicht zusammen mit `scope=following`).
+      parameters:
+      - {name: scope, in: query, required: false, schema: {type: string, enum: [this, following], default: this}, description: 'following = auch die offenen Einheiten derselben Serie nach diesem Tag'}
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitInput'}}}}
       responses:
         '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitResponse'}}}}
@@ -279,7 +285,9 @@ paths:
     delete:
       tags: [Plan]
       operationId: deletePlannedUnit
-      summary: Einheit löschen
+      summary: Einheit löschen (mit `scope=following` auch die offenen Einheiten der Serie danach)
+      parameters:
+      - {name: scope, in: query, required: false, schema: {type: string, enum: [this, following], default: this}, description: 'following = auch die offenen Einheiten derselben Serie nach diesem Tag'}
       responses:
         '204': {description: 'Gelöscht'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -328,6 +336,69 @@ paths:
       summary: Zieltermin entfernen
       responses:
         '204': {description: 'Entfernt'}
+  /plan/templates:
+    get:
+      tags: [Plan]
+      operationId: listPlanTemplates
+      summary: Wochenvorlagen nach Name, je Einheit mit Belastung (Zonensatz von heute)
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/PlanTemplate'}}}}}}}
+    post:
+      tags: [Plan]
+      operationId: savePlanTemplate
+      summary: Einheiten einer Kalenderwoche als Vorlage speichern
+      description: 'Name eindeutig ohne Groß/Klein; mit `replace` wird eine vorhandene Vorlage gleichen Namens ersetzt, sonst 409. Sicherungsrelevant.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, week_start]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 80}
+                week_start: {type: string, format: date, description: 'Montag der Woche'}
+                replace: {type: boolean, default: false}
+      responses:
+        '201': {description: 'Gespeichert', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanTemplate'}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /plan/templates/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    delete:
+      tags: [Plan]
+      operationId: deletePlanTemplate
+      summary: Vorlage löschen (angelegte Einheiten bleiben)
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /plan/templates/{id}/apply:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    post:
+      tags: [Plan]
+      operationId: applyPlanTemplate
+      summary: Vorlage auf 1 bis 12 Wochen anwenden
+      description: 'Vorhandene Einheiten bleiben, Tage vor heute entfallen (`skipped`). Jede Einheit der Vorlage wird über die Wochen zu einer Serie (ab zwei Terminen).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [week_start, weeks]
+              properties:
+                week_start: {type: string, format: date, description: 'Montag der ersten Woche'}
+                weeks: {type: integer, minimum: 1, maximum: 12}
+      responses:
+        '201':
+          description: Angelegt
+          content: {application/json: {schema: {type: object, properties: {data: {type: object, properties: {created: {type: integer}, skipped: {type: integer}}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /plan/suggestion:
     post:
       tags: [Plan]
@@ -1367,6 +1438,14 @@ components:
         intensive_pct: {type: integer, minimum: 0, maximum: 100}
         zone_minutes: {type: array, minItems: 5, maxItems: 5, items: {type: integer, minimum: 0}, description: 'Summe 1 bis 1440'}
         status: {type: string, enum: [planned, skipped]}
+        repeat:
+          type: object
+          additionalProperties: false
+          required: [every_weeks, until]
+          description: 'Wiederholen: Kopien im Abstand von every_weeks Wochen bis until (eingeschlossen), neue Serie, höchstens 26 Einheiten mit der ersten'
+          properties:
+            every_weeks: {type: integer, minimum: 1, maximum: 4}
+            until: {type: string, format: date}
     PlannedUnit:
       type: object
       required: [id, date, sport_class, title, mode, status, load]
@@ -1385,6 +1464,8 @@ components:
         status: {type: string, enum: [planned, skipped, done], description: 'done = mit einer Aktivität verknüpft'}
         activity_id: {type: [string, 'null']}
         suggested: {type: boolean, description: 'Aus einem Vorschlag der Planungshilfe und seitdem unverändert; jede Änderung macht die Einheit fest'}
+        series_id: {type: [string, 'null'], description: 'Serie (Wiederholen oder Wochenvorlage über mehrere Wochen)'}
+        series_following: {type: integer, description: 'Offene Einheiten derselben Serie nach diesem Tag'}
         load:
           type: object
           properties:
@@ -1412,6 +1493,18 @@ components:
             goal: {oneOf: [{$ref: '#/components/schemas/PlanGoal'}, {type: 'null'}]}
             zones_configured: {type: boolean}
             assistant: {oneOf: [{$ref: '#/components/schemas/SuggestionInput'}, {type: 'null'}], description: 'Zuletzt übernommene Eingaben der Planungshilfe'}
+    PlanTemplate:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
+        units:
+          type: array
+          description: 'Einheiten wie PlannedUnit ohne id, date, status, Verknüpfung und Serie, dazu weekday (0 = Montag)'
+          items: {type: object, properties: {weekday: {type: integer, minimum: 0, maximum: 6}}}
+        minutes: {type: integer}
+        load: {type: number}
+        updated_at: {type: string, format: date-time}
     SuggestionInput:
       type: object
       additionalProperties: false

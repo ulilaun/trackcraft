@@ -341,3 +341,184 @@ async fn suggestion_preview_apply_and_replace() {
     );
     assert_eq!(list["assistant"]["intensity"], "base");
 }
+
+/// Einheiten im Zeitraum, nach Datum.
+async fn units_between(f: &Fixture, from: chrono::NaiveDate, to: chrono::NaiveDate) -> Vec<Value> {
+    get(f, &format!("/api/v1/plan?from={from}&to={to}")).await["units"].as_array().unwrap().clone()
+}
+
+fn field_of(v: &Value) -> Option<&str> {
+    v["error"]["details"]["fields"][0]["field"].as_str()
+}
+
+#[tokio::test]
+async fn repeat_series_and_change_following() {
+    let f = fixture().await;
+    let today: chrono::NaiveDate = get(&f, "/api/v1/plan").await["today"].as_str().unwrap().parse().unwrap();
+    let day = |n: i64| today + chrono::Duration::days(n);
+
+    // Wiederholen: jede Woche bis +28 Tage = 5 Einheiten
+    let mut body = unit_body(&day(1).to_string(), "Grundlage");
+    body["repeat"] = json!({ "every_weeks": 1, "until": day(29).to_string() });
+    let id = new_unit(&f, body).await;
+    let all = units_between(&f, day(0), day(60)).await;
+    assert_eq!(all.len(), 5);
+    let series = all[0]["series_id"].as_str().unwrap().to_string();
+    assert!(all.iter().all(|u| u["series_id"] == series.as_str()));
+    assert_eq!(all.iter().map(|u| u["series_following"].as_u64().unwrap()).collect::<Vec<_>>(), [4, 3, 2, 1, 0]);
+
+    // Grenzen: keine Wiederholung, mehr als 26, Abstand
+    for (rep, field) in [
+        (json!({ "every_weeks": 1, "until": day(3).to_string() }), "repeat.until"),
+        (json!({ "every_weeks": 1, "until": day(7 * 26 + 1).to_string() }), "repeat.until"),
+        (json!({ "every_weeks": 5, "until": day(60).to_string() }), "repeat.every_weeks"),
+    ] {
+        let mut b = unit_body(&day(1).to_string(), "X");
+        b["repeat"] = rep;
+        let (s, v) = send(&f, Method::POST, "/api/v1/plan/units", Some(b)).await;
+        assert_eq!((s, field_of(&v)), (StatusCode::BAD_REQUEST, Some(field)), "{v}");
+    }
+    // Alle 2 Wochen, 26 Einheiten sind erlaubt; danach die ganze Serie löschen
+    let mut b = unit_body(&day(2).to_string(), "Zweiwöchentlich");
+    b["repeat"] = json!({ "every_weeks": 2, "until": day(2 + 14 * 25).to_string() });
+    let long = new_unit(&f, b).await;
+    assert_eq!(units_between(&f, day(0), day(400)).await.len(), 5 + 26);
+    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/units/{long}?scope=following"), None).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    assert_eq!(units_between(&f, day(0), day(400)).await.len(), 5, "ganze Serie gelöscht");
+
+    // Die dritte als ausgelassen markieren: bleibt bei „diese und folgende“ unverändert
+    let third = all[2]["id"].as_str().unwrap();
+    let (s, _) = send(&f, Method::PATCH, &format!("/api/v1/plan/units/{third}"), Some(json!({ "status": "skipped" }))).await;
+    assert_eq!(s, StatusCode::OK);
+
+    // Zweite ändern, diese und folgende: Titel und +1 Tag, Status nur hier
+    let second = all[1]["id"].as_str().unwrap();
+    let (s, v) = send(
+        &f,
+        Method::PATCH,
+        &format!("/api/v1/plan/units/{second}?scope=following"),
+        Some(json!({ "title": "Grundlage lang", "date": day(9).to_string(), "status": "skipped" })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    let all = units_between(&f, day(0), day(60)).await;
+    let row = |n: i64| {
+        let u = all.iter().find(|u| u["date"] == day(n).to_string().as_str()).unwrap_or_else(|| panic!("kein Tag {n}"));
+        (u["title"].as_str().unwrap().to_string(), u["status"].as_str().unwrap().to_string())
+    };
+    assert_eq!(row(1).0, "Grundlage");
+    assert_eq!(row(9), ("Grundlage lang".into(), "skipped".into()));
+    assert_eq!(row(15), ("Grundlage".into(), "skipped".into()), "ausgelassene bleibt");
+    assert_eq!(row(23), ("Grundlage lang".into(), "planned".into()));
+    assert_eq!(row(30).0, "Grundlage lang");
+
+    // Löschen ab day 23: löscht day 23 und 30, nicht die ausgelassene davor
+    let fourth = all.iter().find(|u| u["date"] == day(23).to_string().as_str()).unwrap()["id"].as_str().unwrap().to_string();
+    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/units/{fourth}?scope=following"), None).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    assert_eq!(units_between(&f, day(0), day(60)).await.len(), 3);
+
+    // Ungültiger Geltungsbereich, Wiederholen mit „folgende“
+    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/units/{id}?scope=all"), None).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = send(
+        &f,
+        Method::PATCH,
+        &format!("/api/v1/plan/units/{id}?scope=following"),
+        Some(json!({ "repeat": { "every_weeks": 1, "until": day(50).to_string() } })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+
+    // Wiederholen ab einer vorhandenen Einheit: neue Serie mit 3 Kopien
+    let (s, v) = send(
+        &f,
+        Method::PATCH,
+        &format!("/api/v1/plan/units/{id}"),
+        Some(json!({ "repeat": { "every_weeks": 2, "until": day(43).to_string() } })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_ne!(v["data"]["series_id"].as_str(), Some(series.as_str()));
+    assert_eq!(v["data"]["series_following"], 3);
+}
+
+#[tokio::test]
+async fn week_templates_save_apply_delete() {
+    use chrono::Datelike;
+    let f = fixture().await;
+    let today: chrono::NaiveDate = get(&f, "/api/v1/plan").await["today"].as_str().unwrap().parse().unwrap();
+    let monday = today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64) + chrono::Duration::days(7);
+    let d = |n: i64| monday + chrono::Duration::days(n);
+    let apply = |tid: &str| format!("/api/v1/plan/templates/{tid}/apply");
+
+    // Woche mit zwei Einheiten (Di, Sa); die Samstags-Einheit als Zielbelastung
+    new_unit(&f, unit_body(&d(1).to_string(), "Intervalle")).await;
+    new_unit(
+        &f,
+        json!({ "date": d(5).to_string(), "sport_class": "running", "title": "Lauf", "mode": "target",
+                "duration_min": 50, "target_load": 60, "intensive_pct": 10 }),
+    )
+    .await;
+
+    let (s, v) =
+        send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "Grundwoche", "week_start": d(0).to_string() }))).await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let t = &v["data"];
+    assert_eq!(t["units"].as_array().unwrap().iter().map(|u| u["weekday"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 5]);
+    assert_eq!(t["minutes"], 120);
+    let tid = t["id"].as_str().unwrap().to_string();
+
+    // Name schon vergeben (ohne Groß/Klein), mit replace ersetzt
+    let (s, _) =
+        send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "grundwoche", "week_start": d(0).to_string() }))).await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    let (s, v) = send(
+        &f,
+        Method::POST,
+        "/api/v1/plan/templates",
+        Some(json!({ "name": "Grundwoche", "week_start": d(0).to_string(), "replace": true })),
+    )
+    .await;
+    assert_eq!((s, v["data"]["id"].as_str()), (StatusCode::CREATED, Some(tid.as_str())));
+    // Kein Montag, leere Woche
+    let (s, _) = send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "X", "week_start": d(1).to_string() }))).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "X", "week_start": d(14).to_string() }))).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert_eq!(get(&f, "/api/v1/plan/templates").await.as_array().unwrap().len(), 1);
+
+    // Anwenden auf 3 Wochen ab der Woche danach: 6 neue Einheiten, je Vorlagen-Einheit eine Serie
+    let (s, v) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(7).to_string(), "weeks": 3 }))).await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    assert_eq!((v["data"]["created"].as_u64(), v["data"]["skipped"].as_u64()), (Some(6), Some(0)));
+    let applied = units_between(&f, d(7), d(27)).await;
+    assert_eq!(applied.len(), 6);
+    let runs: Vec<&Value> = applied.iter().filter(|u| u["sport_class"] == "running").collect();
+    assert_eq!(runs.len(), 3);
+    assert!(runs.iter().all(|u| u["series_id"] == runs[0]["series_id"] && u["mode"] == "target" && u["intensive_pct"] == 10));
+    assert!(runs[0]["series_id"].is_string());
+    assert_eq!(runs[0]["date"], d(12).to_string().as_str());
+
+    // Auf die eigene Woche angewendet: vorhandene bleiben, Vorlage kommt dazu (eine Woche = keine Serie)
+    let (s, _) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(0).to_string(), "weeks": 1 }))).await;
+    assert_eq!(s, StatusCode::CREATED);
+    let week = units_between(&f, d(0), d(6)).await;
+    assert_eq!(week.len(), 4);
+    assert!(week.iter().all(|u| u["series_id"].is_null()));
+
+    // Grenzen: Wochen, Vergangenheit, unbekannte Vorlage
+    let (s, _) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(0).to_string(), "weeks": 13 }))).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, v) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(-28).to_string(), "weeks": 1 }))).await;
+    assert_eq!((s, v["error"]["details"]["fields"][0]["code"].as_str()), (StatusCode::BAD_REQUEST, Some("past")), "{v}");
+    let (s, _) = send(&f, Method::POST, &apply("nope"), Some(json!({ "week_start": d(0).to_string(), "weeks": 1 }))).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+
+    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/templates/{tid}"), None).await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/templates/{tid}"), None).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    assert_eq!(units_between(&f, d(0), d(27)).await.len(), 10, "Einheiten bleiben nach dem Löschen der Vorlage");
+}
