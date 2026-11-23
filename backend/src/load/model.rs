@@ -233,6 +233,25 @@ pub struct DayValue {
     pub strain: Option<f64>,
 }
 
+/// Monotonie und Strain (Foster) für bis zu sieben Tageswerte; fehlende Tage zählen als 0.
+pub fn foster(values: impl IntoIterator<Item = f64>) -> (Option<f64>, Option<f64>) {
+    let v: Vec<f64> = values.into_iter().take(WINDOW).collect();
+    let n = v.len() as f64;
+    let sum: f64 = v.iter().sum();
+    if sum <= 0.0 {
+        return (None, None);
+    }
+    // Wie Foster: Mittel über 7 Tage, fehlende Tage zählen als 0
+    let mean = sum / WINDOW as f64;
+    let var = (v.iter().map(|x| (x - mean).powi(2)).sum::<f64>() + (WINDOW as f64 - n) * mean * mean) / WINDOW as f64;
+    let sd = var.sqrt();
+    if sd < 1e-9 {
+        return (None, None);
+    }
+    let m = mean / sd;
+    (Some(m), Some(sum * m))
+}
+
 fn decay(days: f64) -> f64 {
     1.0 - (-1.0 / days).exp()
 }
@@ -260,20 +279,12 @@ impl Curve {
 
     /// Monotonie und Strain der letzten sieben Tage einschließlich heute.
     fn foster(&self) -> (Option<f64>, Option<f64>) {
-        let n = self.window.len() as f64;
-        let sum: f64 = self.window.iter().sum();
-        if sum <= 0.0 {
-            return (None, None);
-        }
-        // Wie Foster: Mittel über 7 Tage, fehlende Tage am Anfang zählen als 0
-        let mean = sum / WINDOW as f64;
-        let var = (self.window.iter().map(|v| (v - mean).powi(2)).sum::<f64>() + (WINDOW as f64 - n) * mean * mean) / WINDOW as f64;
-        let sd = var.sqrt();
-        if sd < 1e-9 {
-            return (None, None);
-        }
-        let m = mean / sd;
-        (Some(m), Some(sum * m))
+        foster(self.window.iter().copied())
+    }
+
+    /// Fitness nach dem zuletzt gerechneten Tag.
+    pub fn fitness(&self) -> f64 {
+        self.fitness
     }
 
     pub fn step(&mut self, date: NaiveDate, load: DayLoad) -> DayValue {

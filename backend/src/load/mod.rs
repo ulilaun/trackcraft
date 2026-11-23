@@ -757,7 +757,7 @@ fn opt1(v: Option<f64>) -> Value {
     v.map(|x| json!((x * 100.0).round() / 100.0)).unwrap_or(Value::Null)
 }
 
-fn day_json(d: &DayValue, with_parts: bool) -> Value {
+pub(crate) fn day_json(d: &DayValue, with_parts: bool) -> Value {
     let mut v = json!({
         "date": d.date.to_string(),
         "load": round1(d.load.total),
@@ -775,6 +775,15 @@ fn day_json(d: &DayValue, with_parts: bool) -> Value {
         v["estimated"] = json!(round1(d.load.estimated));
     }
     v
+}
+
+/// Zustand der Formkurve nach dem Tag `today` mit den Einstellungen (für die Planungshilfe, E8 Stufe 2).
+pub async fn curve_at(cfg: &Validated, db: &Db, today: NaiveDate) -> anyhow::Result<(model::Curve, Settings)> {
+    let s = settings(db).await?;
+    let loads = day_loads(cfg, db).await?;
+    let start = loads.keys().next().copied().unwrap_or(today).min(today);
+    let (_, curve) = model::series(&loads, start, today, s.curve());
+    Ok((curve, s))
 }
 
 pub struct FormQuery {

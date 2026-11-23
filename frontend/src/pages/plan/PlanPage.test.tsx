@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import type { FormResponse, PlannedUnit } from "../../api/client";
+import type { FormResponse, PlannedUnit, SuggestionResponse } from "../../api/client";
 import { FlashProvider } from "../../components/Flash";
 import { activity, config, json } from "../activities/testData";
 import { PlanPage } from "./PlanPage";
@@ -84,6 +84,39 @@ const form: FormResponse = {
   },
 };
 
+const suggestion: SuggestionResponse = {
+  data: {
+    today: "2026-11-23",
+    goal_date: "2026-12-13",
+    units: [
+      { ...unit({ id: "", date: "2026-11-24", title: "Grundlage", zone_minutes: [10, 50, 0, 0, 0], load: { total: 60, aerobic: 60, anaerobic: 0, minutes: 60, method: "zones" } }), suggested: false, phase: "build" },
+      { ...unit({ id: "", date: "2026-12-08", title: "Intervalle 2×6 min" }), suggested: false, phase: "taper" },
+    ],
+    fixed_units: 1,
+    replaces: 3,
+    blocks: [
+      { phase: "build", from: "2026-11-24", to: "2026-12-02", factor: 1 },
+      { phase: "taper", from: "2026-12-03", to: "2026-12-12", factor: 0.5 },
+    ],
+    weeks: [
+      { start: "2026-11-23", phase: "build", load: 380, monotony: 1.4, low_zone_pct: 82, units: 1 },
+      { start: "2026-12-07", phase: "taper", load: 145, monotony: 2.3, low_zone_pct: 60, units: 1 },
+    ],
+    summary: {
+      taper_days: 10,
+      fitness_today: 55,
+      fitness_at_goal: 61.2,
+      form_at_goal: 14.3,
+      form_state: "fresh",
+      avg_gain: 3.9,
+      max_gain: 5,
+      limited_by_time: true,
+      planned_load: 205,
+    },
+    forecast: form.data.forecast.days,
+  },
+};
+
 let units: PlannedUnit[];
 let writes: { method: string; url: string; body: unknown }[];
 
@@ -100,11 +133,16 @@ beforeEach(() => {
         const body = init?.body ? JSON.parse(String(init.body)) : undefined;
         writes.push({ method, url, body });
         if (method === "DELETE") return new Response(null, { status: 204 });
+        if (url.endsWith("/plan/suggestion")) return json(200, suggestion);
+        if (url.endsWith("/plan/suggestion/apply")) return json(201, { data: { created: 2, replaced: 3, suggestion_id: "s1" } });
         if (url.endsWith("/plan/goal")) return json(200, { data: body });
         return json(method === "POST" ? 201 : 200, { data: unit({ ...(body as object) }) });
       }
       if (url.endsWith("/config")) return json(200, config);
-      if (url.startsWith("/api/v1/plan?")) return json(200, { data: { today: "2026-11-23", units, goal: form.data.plan.goal, zones_configured: true } });
+      if (url.startsWith("/api/v1/plan?"))
+        return json(200, {
+          data: { today: "2026-11-23", units, goal: form.data.plan.goal, zones_configured: true, assistant: { sport_class: "running", minutes: [0, 45, 0, 45, 0, 90, 60], max_gain: 4, recovery_weeks: false, intensity: "polarized" } },
+        });
       if (url.startsWith("/api/v1/activities?"))
         return json(200, {
           data: [
@@ -205,5 +243,46 @@ describe("Seite Plan", () => {
     fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Rundfahrt" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Speichern" }));
     await waitFor(() => expect(writes).toEqual([{ method: "PUT", url: "/api/v1/plan/goal", body: { date: "2026-12-13", name: "Rundfahrt" } }]));
+  });
+
+  it("Planungshilfe: Vorschau mit gemerkten Eingaben, dann übernehmen", async () => {
+    setup();
+    await within(await screen.findByTestId("plan-calendar")).findByText("Intervalle 4×8");
+    fireEvent.click(screen.getByRole("button", { name: /Plan vorschlagen/ }));
+    const dialog = screen.getByRole("dialog", { name: "Plan vorschlagen" });
+    // Gemerkte Eingaben vorbelegt
+    expect(within(dialog).getByLabelText("Sportklasse")).toHaveValue("running");
+    expect(within(dialog).getByLabelText("Minuten am Sa")).toHaveValue("90");
+    expect(within(dialog).getByText(/^zusammen 4(,0)? h je Woche$/)).toBeInTheDocument();
+    const preview = within(dialog).getByTestId("suggest-preview");
+    expect(await within(preview).findByText("+14")).toBeInTheDocument();
+    expect(within(preview).getByText("55 → 61")).toBeInTheDocument();
+    expect(within(preview).getByText("10 Tage")).toBeInTheDocument();
+    expect(within(preview).getByText("dazu 1 feste")).toBeInTheDocument();
+    expect(within(preview).getByText(/durch die verfügbare Zeit begrenzt \(Ø 3,9 je Woche statt höchstens 5\)/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Ersetzt 3 offene Einheiten des letzten Vorschlags.")).toBeInTheDocument();
+    // Monotonie über 2 rot markiert
+    expect(within(within(preview).getByTestId("suggest-weeks")).getByText("50")).toHaveClass("text-danger");
+    const firstPreview = writes.find((w) => w.url === "/api/v1/plan/suggestion");
+    expect(firstPreview?.body).toEqual({ sport_class: "running", max_gain: 4, recovery_weeks: false, intensity: "polarized", minutes: [0, 45, 0, 45, 0, 90, 60] });
+
+    // Ungültige Minuten: Meldung, kein Übernehmen
+    fireEvent.change(within(dialog).getByLabelText("Minuten am Mo"), { target: { value: "abc" } });
+    expect(within(dialog).getByText("Minuten je Tag als ganze Zahl von 0 bis 600.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "2 Einheiten übernehmen" })).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("Minuten am Mo"), { target: { value: "30" } });
+    const apply = within(dialog).getByRole("button", { name: "2 Einheiten übernehmen" });
+    await waitFor(() => expect(apply).toBeEnabled());
+    fireEvent.click(apply);
+    await waitFor(() =>
+      expect(writes.find((w) => w.url === "/api/v1/plan/suggestion/apply")?.body).toEqual({
+        sport_class: "running",
+        max_gain: 4,
+        recovery_weeks: false,
+        intensity: "polarized",
+        minutes: [30, 45, 0, 45, 0, 90, 60],
+      }),
+    );
+    expect(await screen.findByText("2 Einheiten übernommen.")).toBeInTheDocument();
   });
 });

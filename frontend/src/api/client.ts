@@ -913,6 +913,8 @@ export interface PlannedUnit {
   /** „done“ = mit einer Aktivität verknüpft */
   status: PlannedStatus;
   activity_id: string | null;
+  /** Aus einem Vorschlag der Planungshilfe und seitdem unverändert */
+  suggested?: boolean;
   load: { total: number; aerobic: number; anaerobic: number; minutes: number; method: "target" | "zones" | "estimated" };
   /** Nur bei verknüpften Einheiten: Ist-Werte für den Vergleich */
   actual?: {
@@ -928,7 +930,55 @@ export interface PlannedUnit {
 }
 
 export interface PlanResponse {
-  data: { today: string; units: PlannedUnit[]; goal: PlanGoal | null; zones_configured: boolean };
+  data: {
+    today: string;
+    units: PlannedUnit[];
+    goal: PlanGoal | null;
+    zones_configured: boolean;
+    /** Zuletzt übernommene Eingaben der Planungshilfe */
+    assistant: SuggestionInput | null;
+  };
+}
+
+/** Eingaben der Planungshilfe (E8 Stufe 2) */
+export interface SuggestionInput {
+  sport_class: SportClass;
+  /** Höchstens so viele Minuten je Wochentag, Montag zuerst */
+  minutes: number[];
+  max_gain: number;
+  recovery_weeks: boolean;
+  intensity: "polarized" | "base";
+}
+
+export type PlanPhase = "build" | "recovery" | "taper";
+
+export interface SuggestionResponse {
+  data: {
+    today: string;
+    goal_date: string;
+    units: (PlannedUnit & { phase: PlanPhase })[];
+    fixed_units: number;
+    /** Offene Einheiten eines früheren Vorschlags, die beim Übernehmen ersetzt werden */
+    replaces: number;
+    blocks: { phase: PlanPhase; from: string; to: string; factor: number }[];
+    weeks: { start: string; phase: PlanPhase | null; load: number; monotony: number | null; low_zone_pct: number | null; units: number }[];
+    summary: {
+      taper_days: number;
+      fitness_today: number;
+      fitness_at_goal: number;
+      form_at_goal: number;
+      form_state: string;
+      avg_gain: number | null;
+      max_gain: number;
+      limited_by_time: boolean;
+      planned_load: number;
+    };
+    forecast: FormForecastDay[];
+  };
+}
+
+export interface SuggestionApplyResponse {
+  data: { created: number; replaced: number; suggestion_id: string };
 }
 
 export interface PlannedUnitResponse {

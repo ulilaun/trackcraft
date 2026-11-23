@@ -20,6 +20,7 @@ pub mod localtime;
 pub mod logging;
 pub mod places;
 pub mod plan;
+pub mod plan_assist;
 pub mod platform;
 pub mod profile;
 pub mod seasons;

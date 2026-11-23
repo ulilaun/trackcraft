@@ -15,6 +15,7 @@ use super::error::ApiError;
 use super::import::parse_json;
 use crate::activities;
 use crate::plan::{self, Error, GoalInput, UnitInput};
+use crate::plan_assist::{self, Input as SuggestionInput};
 
 fn error(e: Error) -> Response {
     match e {
@@ -132,4 +133,27 @@ pub async fn delete_goal(State(state): State<AppState>) -> Response {
 /// Für die Aktivitätsseite: verknüpfte Einheit und Vorschläge.
 pub async fn for_activity(State(state): State<AppState>, Path(id): Path<String>) -> Response {
     data(plan::for_activity(&state.cfg, &state.db, &id).await)
+}
+
+/// Planungshilfe (Stufe 2): Vorschlag bis zum Ziel berechnen, ohne zu speichern.
+pub async fn suggestion(State(state): State<AppState>, body: Bytes) -> Response {
+    let input: SuggestionInput = match parse_json(&body) {
+        Ok(i) => i,
+        Err(e) => return e.into_response(),
+    };
+    let today = activities::today(&state.cfg);
+    data(plan_assist::preview(&state.cfg, &state.db, &input, today).await)
+}
+
+/// Planungshilfe: Vorschlag neu berechnen und als Einheiten anlegen; ersetzt offene Einheiten eines früheren Vorschlags.
+pub async fn apply_suggestion(State(state): State<AppState>, body: Bytes) -> Response {
+    let input: SuggestionInput = match parse_json(&body) {
+        Ok(i) => i,
+        Err(e) => return e.into_response(),
+    };
+    let today = activities::today(&state.cfg);
+    match plan_assist::apply(&state.cfg, &state.db, &input, today).await {
+        Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
+        Err(e) => error(e),
+    }
 }

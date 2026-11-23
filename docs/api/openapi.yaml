@@ -328,6 +328,31 @@ paths:
       summary: Zieltermin entfernen
       responses:
         '204': {description: 'Entfernt'}
+  /plan/suggestion:
+    post:
+      tags: [Plan]
+      operationId: previewPlanSuggestion
+      summary: Planungshilfe – Vorschlag bis zum Ziel berechnen (speichert nichts)
+      description: >-
+        E8 Stufe 2 (RFC-0009 „Planungshilfe“). Braucht ein Ziel mindestens 8 Tage voraus. Feste offene Einheiten (selbst
+        angelegt oder geändert) bleiben und zählen mit; offene, unveränderte Einheiten eines früheren Vorschlags würden ersetzt
+        (`replaces`).
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SuggestionInput'}}}}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SuggestionResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /plan/suggestion/apply:
+    post:
+      tags: [Plan]
+      operationId: applyPlanSuggestion
+      summary: Planungshilfe – Vorschlag neu berechnen und als Einheiten anlegen
+      description: 'Ersetzt offene, unveränderte Einheiten eines früheren Vorschlags und merkt sich die Eingaben (`assistant` in GET /plan). Sicherungsrelevant.'
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SuggestionInput'}}}}
+      responses:
+        '201':
+          description: Angelegt
+          content: {application/json: {schema: {type: object, properties: {data: {type: object, properties: {created: {type: integer}, replaced: {type: integer}, suggestion_id: {type: string}}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
   /activities/{id}/efforts:
     parameters:
       - {$ref: '#/components/parameters/Id'}
@@ -1359,6 +1384,7 @@ components:
         zone_minutes: {type: [array, 'null'], items: {type: integer}}
         status: {type: string, enum: [planned, skipped, done], description: 'done = mit einer Aktivität verknüpft'}
         activity_id: {type: [string, 'null']}
+        suggested: {type: boolean, description: 'Aus einem Vorschlag der Planungshilfe und seitdem unverändert; jede Änderung macht die Einheit fest'}
         load:
           type: object
           properties:
@@ -1385,6 +1411,52 @@ components:
             units: {type: array, items: {$ref: '#/components/schemas/PlannedUnit'}}
             goal: {oneOf: [{$ref: '#/components/schemas/PlanGoal'}, {type: 'null'}]}
             zones_configured: {type: boolean}
+            assistant: {oneOf: [{$ref: '#/components/schemas/SuggestionInput'}, {type: 'null'}], description: 'Zuletzt übernommene Eingaben der Planungshilfe'}
+    SuggestionInput:
+      type: object
+      additionalProperties: false
+      required: [sport_class, minutes, max_gain, recovery_weeks, intensity]
+      properties:
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
+        minutes: {type: array, minItems: 7, maxItems: 7, items: {type: integer, minimum: 0, maximum: 600}, description: 'Höchstens so viele Minuten je Wochentag, Montag zuerst; unter 30 = Ruhetag; mindestens ein Tag ab 30'}
+        max_gain: {type: integer, minimum: 3, maximum: 7, description: 'Höchster Fitnessanstieg je Woche'}
+        recovery_weeks: {type: boolean, description: 'Jede vierte Woche Entlastung (3:1)'}
+        intensity: {type: string, enum: [polarized, base]}
+    SuggestionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          properties:
+            today: {type: string, format: date}
+            goal_date: {type: string, format: date}
+            units:
+              type: array
+              description: 'Vorgeschlagene Einheiten (noch ohne id), je mit `phase`'
+              items: {allOf: [{$ref: '#/components/schemas/PlannedUnit'}, {type: object, properties: {phase: {type: string, enum: [build, recovery, taper]}}}]}
+            fixed_units: {type: integer, description: 'Feste offene Einheiten bis zum Ziel'}
+            replaces: {type: integer, description: 'Offene Einheiten eines früheren Vorschlags, die beim Übernehmen ersetzt werden'}
+            blocks:
+              type: array
+              items: {type: object, properties: {phase: {type: string, enum: [build, recovery, taper]}, from: {type: string, format: date}, to: {type: string, format: date}, factor: {type: number, description: 'Anteil der verfügbaren Zeit (Tapering: zu Beginn)'}}}
+            weeks:
+              type: array
+              description: 'Kalenderwochen ab der Woche von morgen bis vor das Ziel'
+              items: {type: object, properties: {start: {type: string, format: date}, phase: {type: [string, 'null']}, load: {type: number}, monotony: {type: [number, 'null']}, low_zone_pct: {type: [number, 'null']}, units: {type: integer}}}
+            summary:
+              type: object
+              properties:
+                taper_days: {type: integer}
+                fitness_today: {type: number}
+                fitness_at_goal: {type: number}
+                form_at_goal: {type: number}
+                form_state: {type: string, enum: [rested, fresh, neutral, building, overload]}
+                avg_gain: {type: [number, 'null'], description: 'Mittlerer Fitnessanstieg je Woche bis zum Tapering'}
+                max_gain: {type: integer}
+                limited_by_time: {type: boolean}
+                planned_load: {type: number}
+            forecast: {type: array, description: 'Formkurve ab morgen bis Ziel + 3 Tage mit festen und vorgeschlagenen Einheiten', items: {type: object}}
     ActivityPlanResponse:
       type: object
       required: [data]
