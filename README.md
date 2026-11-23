@@ -77,7 +77,7 @@ Fertige Pakete gibt es unter [Releases](../../releases), jeweils mit `SHA256SUMS
 | :--- | :--- | :--- | :--- |
 | Windows | Windows 11, x86-64, 2 GB freier Arbeitsspeicher | `trackcraft-<version>-windows-x86_64.zip`, Start über `setup.cmd` | [infrastructure/windows/BETRIEB.md](infrastructure/windows/BETRIEB.md) |
 | Linux | x86-64 mit systemd und glibc ≥ 2.35 (z. B. Debian 12/13, Ubuntu 22.04 und neuer), 1 GB freier Arbeitsspeicher | `trackcraft-<version>-linux-x86_64.tar.gz`, Start über `setup.sh` | [infrastructure/linux/BETRIEB.md](infrastructure/linux/BETRIEB.md) |
-| Docker | x86-64-Host mit Docker Engine und Compose v2, davor ein Reverse Proxy für HTTPS | `trackcraft-<version>-docker.zip` mit `compose.yaml`; Images `ghcr.io/ulilaun/trackcraft-backend` und `-frontend`, ohne Anmeldung ladbar | [infrastructure/docker/BETRIEB.md](infrastructure/docker/BETRIEB.md) |
+| Docker | x86-64-Host mit Docker Engine und dem Compose-Plugin (`docker compose`), davor ein Reverse Proxy für HTTPS | `trackcraft-<version>-docker.zip` mit `compose.yaml`; Images `ghcr.io/ulilaun/trackcraft-backend` und `-frontend`, ohne Anmeldung ladbar | [infrastructure/docker/BETRIEB.md](infrastructure/docker/BETRIEB.md) |
 
 Unter Windows und Linux fragt das Setup nach dem Namen des Rechners im Heimnetz (z. B. `trackcraft.home.arpa`), legt Zertifikate und Konfiguration an und startet den Dienst. Ein Update ist dasselbe Setup aus dem neueren Paket; die Datenbank wird dabei automatisch migriert. Im Browser genügt eine aktuelle Version von Firefox, Chrome, Edge oder Safari.
 

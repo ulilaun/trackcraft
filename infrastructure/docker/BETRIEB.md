@@ -1,6 +1,6 @@
 # TrackCraft mit Docker betreiben
 
-Zweite Plattform nach RFC-0005: x86-64-Host mit Docker Engine und Docker Compose v2, z. B. ein Mini-PC mit Linux oder eine Synology mit Container Manager. Anders als unter Windows und Linux macht TrackCraft im Container **kein eigenes HTTPS**: Davor gehört ein Reverse Proxy, der HTTPS für den Namen im Heimnetz anbietet (Abschnitt „Reverse Proxy“).
+Zweite Plattform nach RFC-0005: x86-64-Host mit Docker Engine und dem Compose-Plugin (Befehl `docker compose`, nicht das alte `docker-compose`), z. B. ein Mini-PC mit Linux oder eine Synology mit Container Manager. Erprobt auf Debian 13 mit Docker 29 aus dem offiziellen Docker-Paketarchiv, in einem Proxmox-Container mit `nesting` und `keyctl`. Anders als unter Windows und Linux macht TrackCraft im Container **kein eigenes HTTPS**: Davor gehört ein Reverse Proxy, der HTTPS für den Namen im Heimnetz anbietet (Abschnitt „Reverse Proxy“).
 
 Zwei Container: `trackcraft-backend` (Programm, Daten) und `trackcraft-frontend` (Nginx mit der Oberfläche, leitet `/api` ans Backend). Die Images liegen öffentlich unter `ghcr.io/ulilaun/trackcraft-backend` und `ghcr.io/ulilaun/trackcraft-frontend`; eine Anmeldung bei GitHub ist nicht nötig.
 
@@ -37,13 +37,13 @@ Zwei Container: `trackcraft-backend` (Programm, Daten) und `trackcraft-frontend`
    curl -s http://127.0.0.1:8081/api/v1/health
    ```
 
-   `health` antwortet mit `"status":"ok"`, sobald das Backend läuft.
+   `health` antwortet mit `"status":"ok"`, sobald das Backend läuft. Andere Aufrufe über `127.0.0.1` weist TrackCraft mit `host_not_allowed` ab; die Oberfläche gibt es nur über den Namen aus `allowed_origins`, also über den Reverse Proxy. Steht `trackcraft-backend` in `docker compose ps` dauernd auf „Restarting“, nennt `docker compose logs trackcraft-backend` die Ursache, z. B. `Permission denied`, wenn Schritt 4 fehlt.
 
 ## Reverse Proxy
 
 Der Frontend-Container ist nur auf `127.0.0.1:8081` des Hosts erreichbar (HTTP). Der Reverse Proxy terminiert HTTPS für den Namen aus `allowed_origins` und leitet an `http://127.0.0.1:8081` weiter. Er reicht `Host`, `Origin` und `Sec-Fetch-*` unverändert weiter und fügt keine CORS-Header hinzu (RFC-0005). Uploads bis 50 MB und eine Stunde Laufzeit müssen durchgehen.
 
-Beispiel mit Caddy auf demselben Host, Zertifikat aus Caddys eigener lokaler CA (`tls internal`; deren Stammzertifikat dann auf den Geräten installieren):
+Beispiel mit Caddy auf demselben Host (unter Debian/Ubuntu `apt install caddy`, Datei `/etc/caddy/Caddyfile`, danach `systemctl reload caddy`), Zertifikat aus Caddys eigener lokaler CA (`tls internal`). Deren Stammzertifikat `/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt` auf PC, Handy und Tablet als CA installieren, wie in der [Linux-Anleitung](../linux/BETRIEB.md#3-zertifikat-und-geräte) beschrieben:
 
 ```
 trackcraft.home.arpa {
@@ -70,7 +70,7 @@ Konfiguration und Daten bleiben; vor einer Schemamigration legt TrackCraft eine 
 
 ## Rollback
 
-Ein älteres Image startet nicht gegen ein neueres Schema und ändert dann nichts. Alte Version in `compose.yaml` eintragen und `docker compose up -d`. Startet sie nicht, weil schon migriert wurde:
+Ein älteres Image startet nicht gegen ein neueres Schema und ändert dann nichts. Alte Version in `compose.yaml` eintragen und `docker compose up -d`. Starten die Container danach immer wieder neu und nennt `docker compose logs trackcraft-backend` eine zu neue Schemaversion, wurde schon migriert:
 
 ```bash
 docker compose down
