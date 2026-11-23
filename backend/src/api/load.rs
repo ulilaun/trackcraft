@@ -94,7 +94,9 @@ pub async fn form(State(state): State<AppState>, Query(params): Query<HashMap<St
         return Err(ApiError::validation("from", "after_to", "Start must not be after end"));
     }
     let forecast = match params.get("forecast") {
-        Some(f) => Forecast::parse(f).ok_or_else(|| ApiError::validation("forecast", "invalid", "Forecast must be rest or steady"))?,
+        Some(f) => {
+            Forecast::parse(f).ok_or_else(|| ApiError::validation("forecast", "invalid", "Forecast must be rest, steady or plan"))?
+        }
         None => Forecast::Rest,
     };
     let forecast_days = match params.get("forecast_days") {

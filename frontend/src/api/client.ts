@@ -813,7 +813,7 @@ export interface LoadSettingsResponse {
   data: LoadSettings;
 }
 
-export type ForecastMode = "rest" | "steady";
+export type ForecastMode = "rest" | "steady" | "plan";
 
 export interface FormDay {
   date: string;
@@ -883,5 +883,58 @@ export interface FormResponse {
     monotony_warn: number;
     days: FormDay[];
     forecast: { mode: ForecastMode; daily_load: number; days: FormForecastDay[] };
+    /** Trainingsplan (E8): Ziel und letzter Tag mit offener Einheit (ab morgen) */
+    plan: { goal: PlanGoal | null; last_date: string | null };
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Trainingsplanung (E8)
+
+export interface PlanGoal {
+  date: string;
+  name: string;
+}
+
+export type PlannedStatus = "planned" | "skipped" | "done";
+
+export interface PlannedUnit {
+  id: string;
+  date: string;
+  sport_class: SportClass;
+  sub_sport: string | null;
+  title: string;
+  note: string | null;
+  mode: "target" | "zones";
+  duration_min: number | null;
+  target_load: number | null;
+  intensive_pct: number;
+  zone_minutes: number[] | null;
+  /** „done“ = mit einer Aktivität verknüpft */
+  status: PlannedStatus;
+  activity_id: string | null;
+  load: { total: number; aerobic: number; anaerobic: number; minutes: number; method: "target" | "zones" | "estimated" };
+  /** Nur bei verknüpften Einheiten: Ist-Werte für den Vergleich */
+  actual?: {
+    activity_id: string;
+    title: string;
+    start_time: string;
+    total_time_ms: number;
+    load: number | null;
+    anaerobic: number | null;
+    load_method: string | null;
+    zone_seconds: number[] | null;
+  } | null;
+}
+
+export interface PlanResponse {
+  data: { today: string; units: PlannedUnit[]; goal: PlanGoal | null; zones_configured: boolean };
+}
+
+export interface PlannedUnitResponse {
+  data: PlannedUnit;
+}
+
+export interface ActivityPlanResponse {
+  data: { linked: PlannedUnit | null; candidates: PlannedUnit[] };
 }

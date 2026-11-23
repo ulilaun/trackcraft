@@ -57,6 +57,7 @@ function response(over: Partial<FormResponse["data"]> = {}): FormResponse {
         { date: "2026-11-22", load: 80, aerobic: 80, anaerobic: 0, estimated: 0, fitness: 66.4, fatigue: 54.2, form: 12.2, ...noParts },
       ],
       forecast: { mode: "rest", daily_load: 0, days: [{ date: "2026-11-23", load: 0, fitness: 64.9, fatigue: 47.8, form: 12.2, ...noParts }] },
+      plan: { goal: null, last_date: null },
       ...over,
     },
   };
@@ -264,5 +265,18 @@ describe("Seite Form", () => {
     fireEvent.click(save);
     await waitFor(() => expect(patches).toHaveLength(1));
     expect(patches[0]).toMatchObject({ fatigue_weight: 1.5 });
+  });
+
+  it("Vorschau „Plan“ nur mit offenen Einheiten; zeigt das Ziel und führt zum Plan (E8)", async () => {
+    setup();
+    await screen.findByText("Frisch");
+    expect(screen.queryByRole("button", { name: "Plan" })).not.toBeInTheDocument();
+
+    current = response({ plan: { goal: { date: "2026-11-23", name: "Tour" }, last_date: "2026-11-23" } });
+    setup("/form?vorschau=plan");
+    await waitFor(() => expect(formUrls().at(-1)).toContain("forecast=plan&forecast_days=28"));
+    expect(await screen.findByRole("button", { name: "Plan" })).toBeInTheDocument();
+    expect(screen.getByText(/geplante Einheiten bis 23\.11\.2026/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Plan bearbeiten" })).toHaveAttribute("href", "/plan");
   });
 });

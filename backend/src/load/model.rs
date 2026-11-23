@@ -88,6 +88,13 @@ impl Zones {
         (1..ZONES).rev().find(|&i| hr >= lower[i]).unwrap_or(0)
     }
 
+    /// HF für die Planung (E8): Mitte der Zone, für die oberste Zone die Mitte zwischen Untergrenze und max. HF.
+    pub fn zone_mid_bpm(&self, zone: usize) -> f64 {
+        let lower = self.lower_bpm();
+        let hi = if zone + 1 < ZONES { lower[zone + 1] as f64 } else { self.max_hr as f64 };
+        (lower[zone] as f64 + hi) / 2.0
+    }
+
     fn reserve_fraction(&self, hr: f64) -> f64 {
         let span = self.max_hr as f64 - self.resting_hr as f64;
         if span <= 0.0 { 0.0 } else { ((hr - self.resting_hr as f64) / span).clamp(0.0, 1.0) }
@@ -141,6 +148,24 @@ pub fn from_average(avg_hr: u32, total_ms: i64, z: &Zones, sex_factor: f64) -> C
     let load = banister(total_ms.max(0) as f64 / 60_000.0, z.reserve_fraction(avg_hr as f64), sex_factor);
     let ana = avg_hr >= z.anaerobic_from();
     Computed { trimp: load, aerobic: if ana { 0.0 } else { load }, anaerobic: if ana { load } else { 0.0 }, zone_seconds: None }
+}
+
+/// Geplante Minuten je Zone (E8): Banister-TRIMP mit der HF in der Zonenmitte; Zonen, deren Mitte ab der
+/// Anaerob-Grenze liegt, zählen anaerob.
+pub fn from_zone_minutes(minutes: &[f64; ZONES], z: &Zones, sex_factor: f64) -> Computed {
+    let threshold = z.anaerobic_from() as f64;
+    let mut out = Computed { trimp: 0.0, aerobic: 0.0, anaerobic: 0.0, zone_seconds: Some(minutes.map(|m| m * 60.0)) };
+    for (i, m) in minutes.iter().enumerate() {
+        let hr = z.zone_mid_bpm(i);
+        let load = banister(*m, z.reserve_fraction(hr), sex_factor);
+        out.trimp += load;
+        if hr >= threshold {
+            out.anaerobic += load;
+        } else {
+            out.aerobic += load;
+        }
+    }
+    out
 }
 
 /// Schätzung ohne HF: Dauer mal Belastung je Stunde.
@@ -294,12 +319,17 @@ pub fn series(loads: &BTreeMap<NaiveDate, DayLoad>, start: NaiveDate, end: Naive
 
 /// Führt die Kurve ab dem Tag nach `last` mit gleicher Tagesbelastung `daily` für `days` Tage fort.
 pub fn forecast(curve: &Curve, last: NaiveDate, daily: DayLoad, days: u32) -> Vec<DayValue> {
+    forecast_with(curve, last, |_| daily, days)
+}
+
+/// Wie [`forecast`], aber mit einer Belastung je Tag, etwa aus dem Trainingsplan (E8).
+pub fn forecast_with(curve: &Curve, last: NaiveDate, load: impl Fn(NaiveDate) -> DayLoad, days: u32) -> Vec<DayValue> {
     let mut c = curve.clone();
     let mut d = last;
     (0..days)
         .map(|_| {
             d = d.succ_opt().expect("Datum");
-            c.step(d, daily)
+            c.step(d, load(d))
         })
         .collect()
 }
@@ -312,6 +342,7 @@ pub fn tanaka(age_years: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Datelike;
 
     fn zones() -> Zones {
         Zones { max_hr: 180, resting_hr: 50, threshold_hr: None, model: Model::Reserve, bounds: [50, 60, 70, 80, 90] }
@@ -432,6 +463,29 @@ mod tests {
         assert!(plain[6].monotony.unwrap() > MONOTONY_WARN);
         assert!(more[6].fatigue > plain[6].fatigue);
         assert_eq!(more[6].fitness, plain[6].fitness);
+    }
+
+    #[test]
+    fn planned_zone_minutes() {
+        let z = zones();
+        // 50 + 130 × p: Zonen ab 115, 128, 141, 154, 167; Mitte Z2 = 134,5, Z5 = (167 + 180) / 2 = 173,5
+        assert_eq!(z.zone_mid_bpm(1), 134.5);
+        assert_eq!(z.zone_mid_bpm(4), 173.5);
+        let c = from_zone_minutes(&[0.0, 60.0, 0.0, 10.0, 0.0], &z, 1.92);
+        let aer = banister(60.0, (134.5 - 50.0) / 130.0, 1.92);
+        let ana = banister(10.0, (160.5 - 50.0) / 130.0, 1.92);
+        assert!((c.aerobic - aer).abs() < 1e-9 && (c.anaerobic - ana).abs() < 1e-9, "{c:?}");
+        assert_eq!(c.zone_seconds.unwrap()[1], 3600.0);
+    }
+
+    #[test]
+    fn forecast_with_daily_values() {
+        let d0 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let (_, curve) = series(&BTreeMap::new(), d0, d0, STD);
+        let plan = |d: NaiveDate| DayLoad { total: if d.day() == 3 { 100.0 } else { 0.0 }, ..Default::default() };
+        let f = forecast_with(&curve, d0, plan, 4);
+        assert_eq!(f.iter().map(|v| v.load.total).collect::<Vec<_>>(), vec![0.0, 100.0, 0.0, 0.0]);
+        assert!(f[1].fatigue > 0.0 && f[0].fatigue == 0.0);
     }
 
     #[test]

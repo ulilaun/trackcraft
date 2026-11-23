@@ -710,6 +710,8 @@ pub enum Forecast {
     Rest,
     /// Mittlere Tagesbelastung der letzten 28 Tage
     Steady,
+    /// Geplante Einheiten (E8), Tage ohne Einheit als Ruhe
+    Plan,
 }
 
 impl Forecast {
@@ -717,6 +719,7 @@ impl Forecast {
         match s {
             "rest" => Some(Self::Rest),
             "steady" => Some(Self::Steady),
+            "plan" => Some(Self::Plan),
             _ => None,
         }
     }
@@ -793,8 +796,11 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
 
     let last = all.last().expect("mindestens heute");
     // „Wie bisher“: mittlere Tagesbelastung der letzten 28 Tage, mit ihrer Aufteilung aerob/anaerob/geschätzt
+    // Offene Einheiten ab morgen; das letzte Datum braucht die Seite auch ohne Vorschau „Plan“ (Knopf nur mit Plan)
+    let (planned, last_planned) = crate::plan::day_loads(db, today, &s).await?;
+    let goal = crate::plan::goal_date(db).await?;
     let daily = match q.forecast {
-        Forecast::Rest => DayLoad::default(),
+        Forecast::Rest | Forecast::Plan => DayLoad::default(),
         Forecast::Steady => {
             let w = STEADY_WINDOW as f64;
             let recent = all.iter().rev().take(STEADY_WINDOW);
@@ -806,8 +812,17 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
             })
         }
     };
+    let day_load = |d: NaiveDate| if q.forecast == Forecast::Plan { planned.get(&d).copied().unwrap_or_default() } else { daily };
+    // Plan: mindestens bis zum letzten geplanten Tag bzw. Ziel und ein paar Tage darüber hinaus, höchstens 90 Tage
+    let horizon = if q.forecast == Forecast::Plan && q.forecast_days > 0 {
+        let until = [last_planned, goal].into_iter().flatten().filter(|d| *d > today).max();
+        let need = until.map(|d| (d - today).num_days() as u32 + 3).unwrap_or(0);
+        q.forecast_days.max(need).min(FORECAST_MAX_DAYS)
+    } else {
+        q.forecast_days
+    };
     let forecast: Vec<Value> = if q.to.is_none_or(|t| t >= today) {
-        model::forecast(&curve, today, daily, q.forecast_days).iter().map(|d| day_json(d, false)).collect()
+        model::forecast_with(&curve, today, day_load, horizon).iter().map(|d| day_json(d, false)).collect()
     } else {
         Vec::new()
     };
@@ -816,7 +831,7 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
     let week_ago = &all[n.saturating_sub(8).min(n - 1)];
     // Kachelreihen der Formseite (#25): vor 30 und 7 Tagen sowie in 7 Tagen mit der gewählten Vorschau
     let month_ago = &all[n.saturating_sub(31).min(n - 1)];
-    let ahead = model::forecast(&curve, today, daily, 7);
+    let ahead = model::forecast_with(&curve, today, day_load, 7);
     let snap = |d: &DayValue| {
         json!({
             "date": d.date.to_string(),
@@ -857,6 +872,11 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
             },
         },
         "days": days,
-        "forecast": { "mode": if q.forecast == Forecast::Rest { "rest" } else { "steady" }, "daily_load": round1(daily.total), "days": forecast },
+        "forecast": {
+            "mode": match q.forecast { Forecast::Rest => "rest", Forecast::Steady => "steady", Forecast::Plan => "plan" },
+            "daily_load": round1(daily.total),
+            "days": forecast,
+        },
+        "plan": { "goal": crate::plan::goal(db).await?, "last_date": last_planned.map(|d| d.to_string()) },
     }))
 }

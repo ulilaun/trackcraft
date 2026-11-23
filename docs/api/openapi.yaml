@@ -28,6 +28,8 @@ tags:
     description: Profil des einzigen Benutzers; die Datenbank ist führend
   - name: Load
     description: HF-Zonen, Belastung je Aktivität (Banister-TRIMP) und Formkurve (RFC-0009 „Belastung und Form“)
+  - name: Plan
+    description: Trainingsplanung – geplante Einheiten, Ziel, Verknüpfen mit Aktivitäten (RFC-0009 „Trainingsplanung“)
   - name: Sports
     description: Sportart-Zuordnung und Untertyp-Katalog in der Datenbank (RFC-0008 Abschnitt 4)
   - name: Garmin
@@ -223,6 +225,109 @@ paths:
       responses:
         '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/PlaceSettingsResponse'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
+  /activities/{id}/plan:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Plan]
+      operationId: getActivityPlan
+      summary: Verknüpfte Einheit (mit Vergleich) und Vorschläge zum Verknüpfen
+      description: 'Vorschläge: offene Einheiten desselben lokalen Tags und derselben Sportklasse, nicht abgelehnt.'
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityPlanResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /plan:
+    get:
+      tags: [Plan]
+      operationId: getPlan
+      summary: Geplante Einheiten im Zeitraum und Ziel
+      parameters:
+        - {name: from, in: query, schema: {type: string, format: date}, description: 'Vorgabe: heute − 7 Tage'}
+        - {name: to, in: query, schema: {type: string, format: date}, description: 'Vorgabe: heute + 28 Tage; höchstens 400 Tage Spanne'}
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/PlanResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /plan/units:
+    post:
+      tags: [Plan]
+      operationId: createPlannedUnit
+      summary: Einheit anlegen
+      description: 'Pflicht: date, sport_class, title, mode; je nach Art duration_min + target_load oder zone_minutes. Sicherungsrelevant.'
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitInput'}}}}
+      responses:
+        '201': {description: 'Angelegt', content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /plan/units/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Plan]
+      operationId: getPlannedUnit
+      summary: Einheit mit Belastung und Ist-Werten
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Plan]
+      operationId: updatePlannedUnit
+      summary: Einheit ändern (nur genannte Felder; status planned oder skipped)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitInput'}}}}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Plan]
+      operationId: deletePlannedUnit
+      summary: Einheit löschen
+      responses:
+        '204': {description: 'Gelöscht'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /plan/units/{id}/activity:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    put:
+      tags: [Plan]
+      operationId: linkPlannedUnit
+      summary: Mit einer Aktivität verknüpfen (erledigt)
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [activity_id], properties: {activity_id: {type: string}}}}}}
+      responses:
+        '200': {description: 'Verknüpft', content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Plan]
+      operationId: unlinkPlannedUnit
+      summary: Verknüpfung lösen
+      responses:
+        '200': {description: 'Gelöst', content: {application/json: {schema: {$ref: '#/components/schemas/PlannedUnitResponse'}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /plan/units/{id}/decline:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    post:
+      tags: [Plan]
+      operationId: declinePlannedUnit
+      summary: Vorschlag für eine Aktivität ausblenden („Nicht verknüpfen“)
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [activity_id], properties: {activity_id: {type: string}}}}}}
+      responses:
+        '204': {description: 'Ausgeblendet'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /plan/goal:
+    put:
+      tags: [Plan]
+      operationId: setPlanGoal
+      summary: Zieltermin setzen
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanGoal'}}}}
+      responses:
+        '200': {description: 'Gesetzt', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanGoal'}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+    delete:
+      tags: [Plan]
+      operationId: deletePlanGoal
+      summary: Zieltermin entfernen
+      responses:
+        '204': {description: 'Entfernt'}
   /activities/{id}/efforts:
     parameters:
       - {$ref: '#/components/parameters/Id'}
@@ -547,7 +652,7 @@ paths:
       parameters:
         - {name: from, in: query, schema: {type: string, format: date}}
         - {name: to, in: query, schema: {type: string, format: date}}
-        - {name: forecast, in: query, schema: {type: string, enum: [rest, steady], default: rest}}
+        - {name: forecast, in: query, schema: {type: string, enum: [rest, steady, plan], default: rest}, description: 'plan: offene Einheiten ab morgen, Tage ohne Einheit als Ruhe; die Vorschau reicht bis zum letzten Plantag bzw. Ziel + 3 Tage (höchstens 90)'}
         - {name: forecast_days, in: query, schema: {type: integer, minimum: 0, maximum: 90, default: 28}}
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/FormResponse'}}}}
@@ -1215,6 +1320,81 @@ components:
             location: {type: [string, 'null']}
             activity_count: {type: integer, minimum: 0, description: 'Aktivitäten mit gültigem Versuch auf der Strecke'}
             changed_count: {type: integer, minimum: 0, description: 'Davon mit anderem Titel oder Ort (Vorschau) bzw. geändert (POST)'}
+    PlanGoal:
+      type: object
+      additionalProperties: false
+      required: [date, name]
+      properties:
+        date: {type: string, format: date}
+        name: {type: string, minLength: 1, maxLength: 80}
+    PlannedUnitInput:
+      type: object
+      additionalProperties: false
+      properties:
+        date: {type: string, format: date}
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
+        sub_sport: {type: [string, 'null']}
+        title: {type: string, minLength: 1, maxLength: 120}
+        note: {type: [string, 'null']}
+        mode: {type: string, enum: [target, zones]}
+        duration_min: {type: integer, minimum: 1, maximum: 1440}
+        target_load: {type: number, minimum: 0, maximum: 1000}
+        intensive_pct: {type: integer, minimum: 0, maximum: 100}
+        zone_minutes: {type: array, minItems: 5, maxItems: 5, items: {type: integer, minimum: 0}, description: 'Summe 1 bis 1440'}
+        status: {type: string, enum: [planned, skipped]}
+    PlannedUnit:
+      type: object
+      required: [id, date, sport_class, title, mode, status, load]
+      properties:
+        id: {type: string}
+        date: {type: string, format: date}
+        sport_class: {type: string}
+        sub_sport: {type: [string, 'null']}
+        title: {type: string}
+        note: {type: [string, 'null']}
+        mode: {type: string, enum: [target, zones]}
+        duration_min: {type: [integer, 'null']}
+        target_load: {type: [number, 'null']}
+        intensive_pct: {type: integer}
+        zone_minutes: {type: [array, 'null'], items: {type: integer}}
+        status: {type: string, enum: [planned, skipped, done], description: 'done = mit einer Aktivität verknüpft'}
+        activity_id: {type: [string, 'null']}
+        load:
+          type: object
+          properties:
+            total: {type: number}
+            aerobic: {type: number}
+            anaerobic: {type: number}
+            minutes: {type: integer}
+            method: {type: string, enum: [target, zones, estimated]}
+        actual: {type: [object, 'null'], description: 'Ist-Werte der verknüpften Aktivität (Dauer, Belastung, anaerob, Zeit in Zonen)'}
+    PlannedUnitResponse:
+      type: object
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/PlannedUnit'}
+    PlanResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [today, units, goal, zones_configured]
+          properties:
+            today: {type: string, format: date}
+            units: {type: array, items: {$ref: '#/components/schemas/PlannedUnit'}}
+            goal: {oneOf: [{$ref: '#/components/schemas/PlanGoal'}, {type: 'null'}]}
+            zones_configured: {type: boolean}
+    ActivityPlanResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [linked, candidates]
+          properties:
+            linked: {oneOf: [{$ref: '#/components/schemas/PlannedUnit'}, {type: 'null'}]}
+            candidates: {type: array, items: {$ref: '#/components/schemas/PlannedUnit'}}
     DeletionPreviewResponse:
       type: object
       required: [data]
@@ -1911,7 +2091,7 @@ components:
               type: object
               required: [mode, daily_load, days]
               properties:
-                mode: {type: string, enum: [rest, steady]}
+                mode: {type: string, enum: [rest, steady, plan]}
                 daily_load: {type: number}
                 days: {type: array, items: {$ref: '#/components/schemas/FormDay'}}
     AvatarColor:

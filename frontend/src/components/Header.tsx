@@ -12,6 +12,7 @@ const main: { to: string; key: TextKey }[] = [
   { to: "/strecken", key: "nav.routes" },
   { to: "/statistik", key: "nav.statistics" },
   { to: "/form", key: "nav.form" },
+  { to: "/plan", key: "nav.plan" },
 ];
 const side: { to: string; key: TextKey }[] = [
   { to: "/sicherung", key: "nav.backup" },

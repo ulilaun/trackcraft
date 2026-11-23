@@ -26,6 +26,7 @@ const writes: { method: string; url: string; body: unknown }[] = [];
 let patchError: unknown = null;
 let efforts: Effort[] = [];
 let suggestion: unknown = null;
+let planMatch: unknown = { linked: null, candidates: [] };
 
 function effort(over: Partial<Effort> = {}): Effort {
   return {
@@ -78,6 +79,7 @@ beforeEach(() => {
   patchError = null;
   efforts = [];
   suggestion = null;
+  planMatch = { linked: null, candidates: [] };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -108,6 +110,7 @@ beforeEach(() => {
       const u = new URL(url, "http://x");
       if (u.pathname.endsWith("/track")) return json(200, track);
       if (u.pathname.endsWith("/location-suggestion")) return json(200, { data: suggestion });
+      if (u.pathname.endsWith("/plan")) return json(200, { data: planMatch });
       if (u.pathname.endsWith("/efforts"))
         return json(200, { data: efforts, meta: { total: efforts.length, calculation: { status: "current", version_id: "v", published_at: null } } });
       const one = /\/activities\/(\w+)$/.exec(u.pathname);

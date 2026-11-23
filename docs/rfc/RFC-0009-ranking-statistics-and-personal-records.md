@@ -96,4 +96,18 @@ Seit Schemaversion 11 (Entscheidungen Uli 22.11.2026). Leistung (Watt) liegt kau
 
 **Monotonie und Strain** (Stufe 3, Foster): über die letzten 7 Tage einschließlich heute, fehlende Tage als 0; Monotonie = Mittel / Standardabweichung der Tagesbelastung, Strain = Wochensumme × Monotonie; ohne Belastung oder ohne Streuung kein Wert. Ab Monotonie 2,0 warnt die Seite. Optional (Vorgabe aus) erhöht ein Aufschlag (Vorgabe 15 %) an solchen Tagen die Belastung, die in die Ermüdung eingeht; die Fitness bleibt unberührt.
 
+## Trainingsplanung
+
+E8 Stufe 1 (#12, Schemaversion 15, Entscheidungen Uli 23.11.2026, Mockup abgenommen). Planungshilfe/Optimierung und eine automatische Anpassung des Modells folgen später.
+
+**Geplante Einheiten** (`planned_units`, getrennt von den Aktivitäten): Datum, Sportklasse (ohne „unbekannt“), Untertyp, Titel, Notiz und die Belastung entweder als **Minuten je HF-Zone** oder als **Zielbelastung** mit Dauer und Anteil „intensiv“ (Vorgabe 0 %). Gespeichert werden nur die Eingaben; die Belastung rechnet TrackCraft beim Lesen mit dem Zonensatz, der am geplanten Tag für die Sportklasse gilt: Banister-TRIMP mit der HF in der Zonenmitte (oberste Zone: Mitte zwischen Untergrenze und max. HF), Zonen mit Mitte ab der Anaerob-Grenze zählen anaerob. Ohne Zonensatz werden Zonenminuten aus der Dauer geschätzt (Belastung je Stunde der Sportklasse). Bei Zielbelastung ist „intensiv“ der anaerobe Anteil.
+
+**Status**: geplant, ausgelassen oder erledigt. Erledigt heißt: mit einer Aktivität verknüpft (`activity_id`, eine Aktivität gehört zu höchstens einer Einheit). Wird die Aktivität gelöscht, ist die Einheit wieder geplant. Die Aktivitätsseite schlägt offene Einheiten desselben Tags und derselben Sportklasse zum Verknüpfen vor; „Nicht verknüpfen“ blendet einen Vorschlag für diese Aktivität dauerhaft aus. Nach dem Verknüpfen zeigt sie den Vergleich Plan ↔ Ist (Dauer, Belastung, anaerober Anteil, Zeit in Zonen).
+
+**Ziel**: ein Zieltermin mit Name (`plan_settings`), im Kalender als Fahne, in den Diagrammen der Vorschau als senkrechte Linie; die Seite zeigt die erwartete Form an diesem Tag mit ihrem Zustand.
+
+**Vorschau „Plan“**: vierter Modus neben Ruhe und „wie bisher“, auf der Formseite nur, wenn es ab morgen offene Einheiten gibt. Ab morgen gehen die offenen Einheiten (geplant, nicht verknüpft) als Tagesbelastung in dieselbe Kurve ein, im eingestellten Modell, mit Gewicht der Ermüdung und Foster-Aufschlag; **Tage ohne Einheit zählen als Ruhe**. Die Vorschau reicht mindestens bis zum letzten geplanten Tag bzw. zum Ziel plus 3 Tage, höchstens 90 Tage. Monotonie und Strain gelten damit auch für geplante Wochen.
+
+**Seite „Plan“**: Wochenkalender (Montag bis Sonntag, vier Wochen ab der Vorwoche, blätterbar), geplante Einheiten mit farbigem Rand (blau geplant, grün erledigt, grau ausgelassen), vergangene Aktivitäten ohne Plan gestrichelt, je Woche Belastung (bis heute gemessen, danach geplant), Monotonie der Kalenderwoche (rot über 2,0) und Anteil der Zonen. Klick auf einen Tag legt eine Einheit an, Klick auf eine Einheit öffnet sie (ändern, ausgelassen, duplizieren auf einen anderen Tag, löschen). Darunter die Formvorschau des Plans mit Kacheln: Form heute, Form am Ziel, Fitness am Ziel, geplante Belastung. Alles ist sicherungsrelevant.
+
 Die Aktivitätenliste zeigt die Belastung als sortierbare Spalte mit Summe, das Aktivitätsdetail als Kachel neben der Herzfrequenz. W′-Balance braucht Leistungsdaten und ist nicht vorgesehen (Leistungsdaten siehe eigenes Issue).

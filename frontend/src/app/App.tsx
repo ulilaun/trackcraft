@@ -14,6 +14,7 @@ import { SegmentListPage } from "../pages/segments/SegmentListPage";
 import { SettingsPage } from "../pages/settings/SettingsPage";
 import { AccountPage } from "../pages/account/AccountPage";
 import { FormPage } from "../pages/form/FormPage";
+import { PlanPage } from "../pages/plan/PlanPage";
 import { StatisticsPage } from "../pages/statistics/StatisticsPage";
 
 // Cache nur im Arbeitsspeicher, keine Persistenz (RFC-0006, RFC-0011).
@@ -37,6 +38,7 @@ export function App() {
               <Route path="/strecken/:id" element={<SegmentDetailPage />} />
               <Route path="/statistik" element={<StatisticsPage />} />
               <Route path="/form" element={<FormPage />} />
+              <Route path="/plan" element={<PlanPage />} />
               <Route path="/import" element={<ImportPage />} />
               <Route path="/sicherung" element={<Placeholder titleKey="nav.backup" milestone="M5" />} />
               <Route path="/system" element={<SystemPage />} />

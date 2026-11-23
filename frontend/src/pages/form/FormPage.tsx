@@ -16,7 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { apiGet, type ForecastMode, type FormResponse, type FormSnapshot, type StatisticsPeriodsResponse } from "../../api/client";
+import { apiGet, type ForecastMode, type FormResponse, type FormSnapshot, type PlanGoal, type StatisticsPeriodsResponse } from "../../api/client";
 import { Card } from "../../components/Card";
 import { PeriodButton, SeasonPill, YearPill, periodSelect } from "../../components/PeriodButton";
 import { Problem } from "../../components/Problem";
@@ -62,7 +62,22 @@ function tickOf(span: number) {
 function readForecast(p: URLSearchParams): ForecastMode | null {
   const v = p.get("vorschau");
   if (v === "aus") return null;
+  if (v === "plan") return "plan";
   return v === "wie-bisher" ? "steady" : "rest";
+}
+
+/** Zieltermin als senkrechte Linie mit Fahne (E8), nur wenn der Tag im Diagramm liegt. */
+function GoalLine({ goal, points, yAxisId }: { goal?: PlanGoal | null; points: { date: string }[]; yAxisId?: string }) {
+  if (!goal || !points.some((p) => p.date === goal.date)) return null;
+  return (
+    <ReferenceLine
+      x={goal.date}
+      yAxisId={yAxisId}
+      stroke="var(--color-accent)"
+      strokeWidth={2}
+      label={{ value: `🏁 ${goal.name}`, position: "insideTopLeft", fill: "var(--color-accent)", fontSize: 11 }}
+    />
+  );
 }
 
 function readParts(): boolean {
@@ -195,7 +210,7 @@ function LoadTooltip({ active, payload, parts }: { active?: boolean; payload?: {
 }
 
 /** Diagramm 1: Fitness und Ermüdung als Flächen; im Zwei-Kurven-Modell auf Wunsch die beiden Teile. */
-function LoadChart({ points, parts }: { points: ChartPoint[]; parts: boolean }) {
+export function LoadChart({ points, parts, goal }: { points: ChartPoint[]; parts: boolean; goal?: PlanGoal | null }) {
   return (
     <div className="h-64" data-testid="form-load-chart">
       <ResponsiveContainer width="100%" height="100%">
@@ -204,6 +219,7 @@ function LoadChart({ points, parts }: { points: ChartPoint[]; parts: boolean }) 
           <DayAxis points={points} />
           <YAxis {...axisProps} width={44} allowDecimals={false} />
           <Tooltip content={<LoadTooltip parts={parts} />} isAnimationActive={false} />
+          <GoalLine goal={goal} points={points} />
           <Area dataKey="fitness" stroke="var(--color-fitness)" strokeWidth={2} fill="var(--color-fitness)" fillOpacity={0.28} isAnimationActive={false} />
           <Area dataKey="fatigue" stroke="var(--color-fatigue)" strokeWidth={1.6} fill="var(--color-fatigue)" fillOpacity={0.28} isAnimationActive={false} />
           <Area
@@ -258,7 +274,7 @@ function FormTooltip({ active, payload }: { active?: boolean; payload?: { payloa
 }
 
 /** Diagramm 2: nur die Form, über null grün, darunter orange; Vorschau heller. */
-function FormChart({ points }: { points: ChartPoint[] }) {
+export function FormChart({ points, goal }: { points: ChartPoint[]; goal?: PlanGoal | null }) {
   const offset = zeroOffset(points);
   return (
     <div className="h-64" data-testid="form-form-chart">
@@ -274,6 +290,7 @@ function FormChart({ points }: { points: ChartPoint[] }) {
           <DayAxis points={points} />
           <YAxis {...axisProps} width={44} allowDecimals={false} />
           <Tooltip content={<FormTooltip />} isAnimationActive={false} />
+          <GoalLine goal={goal} points={points} />
           <ReferenceLine y={0} stroke="var(--tc-muted)" strokeOpacity={0.6} />
           <Area dataKey="form" stroke="var(--color-good)" strokeWidth={1.4} fill="url(#formFill)" isAnimationActive={false} connectNulls={false} />
           <Area
@@ -305,7 +322,7 @@ function FosterTooltip({ active, payload }: { active?: boolean; payload?: { payl
 }
 
 /** Diagramm 3: Monotonie (links, gekappt bei 4, Warnbereich ab 2) und Strain (rechts) nach Foster. */
-function FosterChart({ points, warn }: { points: FosterPoint[]; warn: number }) {
+function FosterChart({ points, warn, goal }: { points: FosterPoint[]; warn: number; goal?: PlanGoal | null }) {
   return (
     <div className="h-56" data-testid="form-foster-chart">
       <ResponsiveContainer width="100%" height="100%">
@@ -315,6 +332,7 @@ function FosterChart({ points, warn }: { points: FosterPoint[]; warn: number }) 
           <YAxis yAxisId="m" {...axisProps} width={44} domain={[0, MONOTONY_AXIS_MAX]} ticks={[0, 1, 2, 3, 4]} />
           <YAxis yAxisId="s" orientation="right" {...axisProps} width={48} allowDecimals={false} />
           <Tooltip content={<FosterTooltip />} isAnimationActive={false} />
+          <GoalLine goal={goal} points={points} yAxisId="m" />
           <ReferenceArea yAxisId="m" y1={warn} y2={MONOTONY_AXIS_MAX} fill="var(--color-danger)" fillOpacity={0.08} ifOverflow="hidden" />
           <ReferenceLine yAxisId="m" y={warn} stroke="var(--color-danger)" strokeOpacity={0.5} strokeDasharray="3 3" />
           <Area yAxisId="s" dataKey="strain" stroke="none" fill="var(--tc-muted)" fillOpacity={0.22} isAnimationActive={false} />
@@ -463,7 +481,7 @@ export function FormPage() {
   const write = (z: ListPeriod, f: ForecastMode | null) => {
     const p = new URLSearchParams();
     writePeriod(p, z);
-    if (f !== "rest") p.set("vorschau", f === "steady" ? "wie-bisher" : "aus");
+    if (f !== "rest") p.set("vorschau", f === "steady" ? "wie-bisher" : f === "plan" ? "plan" : "aus");
     setParams(p, { replace: true });
   };
   const setPeriod = (z: ListPeriod) => write(z, forecast);
@@ -502,6 +520,9 @@ export function FormPage() {
   const empty = d != null && days.length === 0;
   // Ohne Vorschau gibt es keinen Wert „in einer Woche“
   const cmp = c && { ...c.compare, week_ahead: forecast ? c.compare.week_ahead : null };
+  // „Plan“ nur, wenn es offene Einheiten gibt (oder schon gewählt ist)
+  const hasPlan = d?.plan?.last_date != null || forecast === "plan";
+  const goal = forecast === "plan" ? (d?.plan?.goal ?? null) : null;
 
   return (
     <div className="grid gap-4">
@@ -571,7 +592,7 @@ export function FormPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("form.forecast")}>
             <span className="text-xs font-medium text-muted">{t("form.forecast")}</span>
-            {(["rest", "steady", null] as const).map((m) => (
+            {(hasPlan ? (["rest", "steady", "plan", null] as const) : (["rest", "steady", null] as const)).map((m) => (
               <PeriodButton key={m ?? "off"} on={forecast === m} onClick={() => write(period, m)}>
                 {t(`form.forecast.${m ?? "off"}` as TextKey)}
               </PeriodButton>
@@ -581,7 +602,14 @@ export function FormPage() {
             <p className="text-xs text-muted">
               {forecast === "rest"
                 ? t("form.forecastHint.rest", { days: d.forecast.days.length })
-                : t("form.forecastHint.steady", { days: d.forecast.days.length, load: num(d.forecast.daily_load) })}
+                : forecast === "plan"
+                  ? t("form.forecastHint.plan", { to: d.plan?.last_date ? germanDate(d.plan.last_date) : "–" })
+                  : t("form.forecastHint.steady", { days: d.forecast.days.length, load: num(d.forecast.daily_load) })}{" "}
+              {forecast === "plan" && (
+                <Link to="/plan" className="text-accent hover:underline">
+                  {t("form.editPlan")}
+                </Link>
+              )}
             </p>
           )}
         </div>
@@ -615,7 +643,7 @@ export function FormPage() {
               ]}
             />
           )}
-          {empty ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <LoadChart points={points} parts={twoCurve && parts} />}
+          {empty ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <LoadChart points={points} parts={twoCurve && parts} goal={goal} />}
         </Card>
 
         <Card title={t("form.chart.form")} className="grid min-w-0 content-start gap-3">
@@ -632,7 +660,7 @@ export function FormPage() {
               </span>
             </div>
           )}
-          {empty ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <FormChart points={points} />}
+          {empty ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <FormChart points={points} goal={goal} />}
         </Card>
 
         <Card title={t("form.chart.foster")} className="grid min-w-0 content-start gap-3">
@@ -660,7 +688,7 @@ export function FormPage() {
             {d?.settings.foster_surcharge && monotonous && <span className="text-muted">{t("form.surchargeActive", { pct: d.settings.foster_surcharge_pct })}</span>}
             <span className="text-muted">{t("form.fosterHint", { warn: num(d?.monotony_warn ?? 2, 1) })}</span>
           </div>
-          {empty ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <FosterChart points={foster} warn={d?.monotony_warn ?? 2} />}
+          {empty ? <p className="py-10 text-center text-sm text-muted">{t("form.empty")}</p> : <FosterChart points={foster} warn={d?.monotony_warn ?? 2} goal={goal} />}
         </Card>
 
         <Card title={t("form.weeks")} className="grid min-w-0 content-start gap-3">
