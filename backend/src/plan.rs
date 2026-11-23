@@ -40,7 +40,7 @@ fn invalid(field: &'static str, code: &'static str, message: &'static str) -> Er
 }
 
 const UNIT_COLUMNS: &str = "u.id, u.date, u.sport_class, u.sub_sport, u.title, u.note, u.mode, u.duration_min, u.target_load, \
-    u.intensive_pct, u.zone_minutes, u.status, u.activity_id";
+    u.intensive_pct, u.zone_minutes, u.status, u.activity_id, u.suggestion_id";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Unit {
@@ -53,6 +53,8 @@ pub struct Unit {
     pub mode: Mode,
     pub status: String,
     pub activity_id: Option<String>,
+    /// Kennung des Vorschlags der Planungshilfe (Stufe 2); `None` = feste Einheit
+    pub suggestion_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,7 +64,7 @@ pub enum Mode {
 }
 
 impl Unit {
-    fn minutes(&self) -> u32 {
+    pub fn minutes(&self) -> u32 {
         match &self.mode {
             Mode::Target { minutes, .. } => *minutes,
             Mode::Zones(z) => z.iter().sum(),
@@ -91,7 +93,7 @@ impl Unit {
         if self.activity_id.is_some() { "done" } else { &self.status }
     }
 
-    fn to_json(&self, sets: &[ZoneSet], s: &Settings) -> Value {
+    pub fn to_json(&self, sets: &[ZoneSet], s: &Settings) -> Value {
         let (c, method) = self.load(sets, s);
         let (duration_min, target_load, intensive_pct, zone_minutes) = match &self.mode {
             Mode::Target { minutes, load, intensive_pct } => (Some(*minutes), Some(*load), *intensive_pct, None),
@@ -111,6 +113,7 @@ impl Unit {
             "zone_minutes": zone_minutes,
             "status": self.effective_status(),
             "activity_id": self.activity_id,
+            "suggested": self.suggestion_id.is_some(),
             "load": {
                 "total": round1(c.trimp),
                 "aerobic": round1(c.aerobic),
@@ -122,7 +125,7 @@ impl Unit {
     }
 }
 
-fn round1(v: f64) -> f64 {
+pub(crate) fn round1(v: f64) -> f64 {
     (v * 10.0).round() / 10.0
 }
 
@@ -149,6 +152,7 @@ fn unit_from_row(r: &sqlx::sqlite::SqliteRow) -> anyhow::Result<Unit> {
         mode,
         status: r.get("status"),
         activity_id: r.get("activity_id"),
+        suggestion_id: r.get("suggestion_id"),
     })
 }
 
@@ -221,7 +225,12 @@ pub async fn list(db: &Db, from: NaiveDate, to: NaiveDate) -> anyhow::Result<Val
     for u in &units {
         out.push(unit_json(db, u, &sets, &s).await?);
     }
-    Ok(json!({ "units": out, "goal": goal(db).await?, "zones_configured": !sets.is_empty() }))
+    Ok(json!({
+        "units": out,
+        "goal": goal(db).await?,
+        "zones_configured": !sets.is_empty(),
+        "assistant": crate::plan_assist::saved_input(db).await?,
+    }))
 }
 
 pub async fn get_one(db: &Db, id: &str) -> Result<Value, Error> {
@@ -234,22 +243,36 @@ pub async fn get_one(db: &Db, id: &str) -> Result<Value, Error> {
 /// Tagesbelastung der noch offenen Einheiten ab `after` (ausschließlich), für die Vorschau „Plan“. Tage ohne Einheit
 /// fehlen und zählen damit als Ruhe (Uli 23.11.2026). Liefert auch den letzten geplanten Tag.
 pub async fn day_loads(db: &Db, after: NaiveDate, s: &Settings) -> anyhow::Result<(BTreeMap<NaiveDate, DayLoad>, Option<NaiveDate>)> {
-    let units = units_where(db, "u.date > ? AND u.status = 'planned' AND u.activity_id IS NULL", &[after.to_string()]).await?;
+    let units = open_units(db, after, true).await?;
     let sets = load::zone_sets(db).await?;
     let mut out: BTreeMap<NaiveDate, DayLoad> = BTreeMap::new();
     for u in &units {
-        let (c, method) = u.load(&sets, s);
-        let e = out.entry(u.date).or_default();
-        e.total += c.trimp;
-        if method == "estimated" {
-            e.estimated += c.trimp;
-        } else {
-            e.aerobic += c.aerobic;
-            e.anaerobic += c.anaerobic;
-        }
+        add_load(out.entry(u.date).or_default(), u, &sets, s);
     }
     let last = out.keys().next_back().copied();
     Ok((out, last))
+}
+
+/// Offene Einheiten (geplant, nicht verknüpft) nach `after`; ohne `with_suggested` nur die festen.
+pub async fn open_units(db: &Db, after: NaiveDate, with_suggested: bool) -> anyhow::Result<Vec<Unit>> {
+    let cond = if with_suggested {
+        "u.date > ? AND u.status = 'planned' AND u.activity_id IS NULL"
+    } else {
+        "u.date > ? AND u.status = 'planned' AND u.activity_id IS NULL AND u.suggestion_id IS NULL"
+    };
+    units_where(db, cond, &[after.to_string()]).await
+}
+
+/// Zählt die Belastung einer Einheit zur Tagesbelastung; geschätzte Werte wie bei den Aktivitäten getrennt.
+pub fn add_load(e: &mut DayLoad, u: &Unit, sets: &[ZoneSet], s: &Settings) {
+    let (c, method) = u.load(sets, s);
+    e.total += c.trimp;
+    if method == "estimated" {
+        e.estimated += c.trimp;
+    } else {
+        e.aerobic += c.aerobic;
+        e.anaerobic += c.anaerobic;
+    }
 }
 
 /// Zieltermin, falls gesetzt.
@@ -373,7 +396,8 @@ async fn apply(conn: &mut SqliteConnection, u: &mut Unit, i: &UnitInput) -> Resu
     Ok(())
 }
 
-async fn save(conn: &mut SqliteConnection, u: &Unit, insert: bool, now: i64) -> Result<(), Error> {
+/// Speichert eine Einheit. Eine Änderung löscht die Kennung des Vorschlags: Die Einheit ist dann fest.
+pub(crate) async fn save(conn: &mut SqliteConnection, u: &Unit, insert: bool, now: i64) -> Result<(), Error> {
     let (dur, load, pct, zones) = match &u.mode {
         Mode::Target { minutes, load, intensive_pct } => (Some(*minutes as i64), Some(*load), *intensive_pct as i64, None),
         Mode::Zones(z) => (None, None, 0, Some(serde_json::to_string(z)?)),
@@ -384,12 +408,12 @@ async fn save(conn: &mut SqliteConnection, u: &Unit, insert: bool, now: i64) -> 
     };
     let sql = if insert {
         "INSERT INTO planned_units (date, sport_class, sub_sport, title, note, mode, duration_min, target_load, intensive_pct, \
-         zone_minutes, status, updated_at_ms, created_at_ms, id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12, ?13)"
+         zone_minutes, status, updated_at_ms, created_at_ms, id, suggestion_id)          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12, ?13, ?14)"
     } else {
         "UPDATE planned_units SET date = ?1, sport_class = ?2, sub_sport = ?3, title = ?4, note = ?5, mode = ?6, duration_min = ?7, \
-         target_load = ?8, intensive_pct = ?9, zone_minutes = ?10, status = ?11, updated_at_ms = ?12 WHERE id = ?13"
+         target_load = ?8, intensive_pct = ?9, zone_minutes = ?10, status = ?11, updated_at_ms = ?12, suggestion_id = NULL          WHERE id = ?13"
     };
-    sqlx::query(sql)
+    let q = sqlx::query(sql)
         .bind(u.date.to_string())
         .bind(&u.sport_class)
         .bind(&u.sub_sport)
@@ -402,9 +426,9 @@ async fn save(conn: &mut SqliteConnection, u: &Unit, insert: bool, now: i64) -> 
         .bind(zones)
         .bind(&u.status)
         .bind(now)
-        .bind(&u.id)
-        .execute(&mut *conn)
-        .await?;
+        .bind(&u.id);
+    let q = if insert { q.bind(u.suggestion_id.as_deref()) } else { q };
+    q.execute(&mut *conn).await?;
     bump_revision(conn, now).await?;
     Ok(())
 }
@@ -431,6 +455,7 @@ pub async fn create(db: &Db, i: &UnitInput) -> Result<Value, Error> {
         mode: Mode::Zones([0; ZONES]),
         status: "planned".into(),
         activity_id: None,
+        suggestion_id: None,
     };
     let mut tx = db.writer.begin().await?;
     apply(&mut tx, &mut u, i).await?;

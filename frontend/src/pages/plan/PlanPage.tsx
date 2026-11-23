@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Flag, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, Plus, WandSparkles } from "lucide-react";
 import {
   apiDelete,
   apiGet,
@@ -23,6 +23,7 @@ import { addDays, localDate, num } from "../../utils/format";
 import { FormChart, LoadChart } from "../form/FormPage";
 import { STATE_CLASS, chartPoints, formState, signed } from "../form/formModel";
 import { germanDate } from "../seasons/seasonModel";
+import { SuggestDialog } from "./SuggestDialog";
 import { UnitDialog } from "./UnitDialog";
 import { WEEKS, defaultStart, hm, isoWeek, weekDays, weekMonotony } from "./planModel";
 
@@ -97,6 +98,7 @@ export function PlanPage() {
   const weeks = weekDays(first);
   const [dialog, setDialog] = useState<{ unit: PlannedUnit | null; date: string } | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   const plan = useQuery({
     queryKey: ["plan", first, last],
@@ -163,6 +165,15 @@ export function PlanPage() {
           <button type="button" className={small} onClick={() => setGoalOpen(true)}>
             <Flag size={14} />
             {goal ? `${goal.name} · ${germanDate(goal.date)}` : t("plan.goal.set")}
+          </button>
+          <button
+            type="button"
+            className={small}
+            title={goal ? undefined : t("plan.suggest.needGoal")}
+            onClick={() => (goal ? setSuggestOpen(true) : setGoalOpen(true))}
+          >
+            <WandSparkles size={14} />
+            {t("plan.suggest.open")}
           </button>
           <button type="button" className={`${primaryButton} inline-flex items-center gap-1`} onClick={() => setDialog({ unit: null, date: today < first ? first : addDays(today, 1) })}>
             <Plus size={15} />
@@ -236,6 +247,7 @@ export function PlanPage() {
                           <span className="flex items-center gap-1 truncate font-semibold">
                             <SportIcon sport={u.sport_class} size={13} decorative />
                             <span className="truncate">{u.title}</span>
+                            {u.suggested && <WandSparkles size={11} className="shrink-0 text-muted" aria-label={t("plan.suggest.marker")} />}
                           </span>
                           <span className="num flex gap-1.5 text-[11px] text-muted">
                             <span>{hm(u.load.minutes)}</span>
@@ -342,6 +354,7 @@ export function PlanPage() {
         />
       )}
       {goalOpen && <GoalDialog goal={goal} today={today} onClose={() => setGoalOpen(false)} />}
+      {suggestOpen && goal && <SuggestDialog goal={goal} saved={plan.data?.data.assistant ?? null} onClose={() => setSuggestOpen(false)} />}
     </div>
   );
 }

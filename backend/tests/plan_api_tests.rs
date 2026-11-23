@@ -256,3 +256,88 @@ async fn link_planned_unit_with_activity() {
     let (s, _) = send(&f, Method::GET, &format!("/api/v1/activities/{ride}/plan"), None).await;
     assert_eq!(s, StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn suggestion_preview_apply_and_replace() {
+    let f = fixture().await;
+    let today: chrono::NaiveDate = get(&f, "/api/v1/plan").await["today"].as_str().unwrap().parse().unwrap();
+    let day = |n: i64| today + chrono::Duration::days(n);
+    let input = json!({
+        "sport_class": "cycling",
+        "minutes": [0, 60, 0, 75, 0, 180, 120],
+        "max_gain": 5,
+        "recovery_weeks": true,
+        "intensity": "polarized",
+    });
+
+    // Ohne Ziel kein Vorschlag; Prüfungen der Eingaben
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(input.clone())).await;
+    assert_eq!((s, v["error"]["details"]["fields"][0]["field"].as_str()), (StatusCode::BAD_REQUEST, Some("goal")), "{v}");
+    let (s, _) = send(&f, Method::PUT, "/api/v1/plan/goal", Some(json!({ "date": day(45).to_string(), "name": "Tour" }))).await;
+    assert_eq!(s, StatusCode::OK);
+    let mut bad = input.clone();
+    bad["max_gain"] = json!(9);
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(bad)).await;
+    assert_eq!((s, v["error"]["details"]["fields"][0]["field"].as_str()), (StatusCode::BAD_REQUEST, Some("max_gain")), "{v}");
+    let zones = json!({ "valid_from": "2020-01-01", "max_hr": 180, "resting_hr": 50, "model": "reserve" });
+    let (s, _) = send(&f, Method::POST, "/api/v1/hr-zones", Some(zones)).await;
+    assert_eq!(s, StatusCode::CREATED);
+
+    // Feste Einheit am ersten Samstag bleibt und wird eingerechnet
+    let sat = (1..=7).map(day).find(|d| chrono::Datelike::weekday(d) == chrono::Weekday::Sat).unwrap();
+    let fixed = new_unit(&f, json!({ "date": sat.to_string(), "sport_class": "cycling", "title": "Ausfahrt", "mode": "zones", "zone_minutes": [10, 100, 0, 0, 0] })).await;
+
+    // Vorschau speichert nichts
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(input.clone())).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    let p = &v["data"];
+    let units = p["units"].as_array().unwrap();
+    assert!(!units.is_empty());
+    assert!(units.iter().all(|u| u["date"] != sat.to_string() && u["mode"] == "zones" && u["phase"].is_string()));
+    assert_eq!(p["fixed_units"], 1);
+    assert_eq!(p["replaces"], 0);
+    let taper = p["summary"]["taper_days"].as_u64().unwrap();
+    assert!((7..=14).contains(&taper), "{p}");
+    assert_eq!(p["forecast"].as_array().unwrap().len(), 48, "morgen bis Ziel + 3");
+    assert!(!p["weeks"].as_array().unwrap().is_empty());
+    let listed = |v: &Value| v["units"].as_array().unwrap().len();
+    let range = format!("/api/v1/plan?from={}&to={}", day(1), day(60));
+    assert_eq!(listed(&get(&f, &range).await), 1);
+
+    // Übernehmen legt die Einheiten an, als Vorschlag markiert, und merkt sich die Eingaben
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion/apply", Some(input.clone())).await;
+    assert_eq!(s, StatusCode::CREATED, "{v}");
+    let created = v["data"]["created"].as_u64().unwrap() as usize;
+    assert_eq!((created, v["data"]["replaced"].as_u64()), (units.len(), Some(0)));
+    let list = get(&f, &range).await;
+    assert_eq!(listed(&list), created + 1);
+    assert_eq!(list["assistant"], input);
+    let suggested: Vec<&Value> = list["units"].as_array().unwrap().iter().filter(|u| u["suggested"] == true).collect();
+    assert_eq!(suggested.len(), created);
+    // Die Vorschau „Plan“ der Formseite rechnet mit allen Einheiten
+    let form = get(&f, "/api/v1/form?forecast=plan&forecast_days=28").await;
+    assert_eq!(form["plan"]["goal"]["date"].as_str(), Some(day(45).to_string().as_str()));
+
+    // Eine geänderte Einheit wird fest; ein neuer Vorschlag ersetzt nur die übrigen
+    let changed = suggested[0]["id"].as_str().unwrap().to_string();
+    let (s, v) = send(&f, Method::PATCH, &format!("/api/v1/plan/units/{changed}"), Some(json!({ "title": "Meine Runde" }))).await;
+    assert_eq!((s, v["data"]["suggested"].as_bool()), (StatusCode::OK, Some(false)));
+    let mut base = input.clone();
+    base["intensity"] = json!("base");
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(base.clone())).await;
+    assert_eq!((s, v["data"]["replaces"].as_u64(), v["data"]["fixed_units"].as_u64()), (StatusCode::OK, Some(created as u64 - 1), Some(2)));
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion/apply", Some(base.clone())).await;
+    assert_eq!((s, v["data"]["replaced"].as_u64()), (StatusCode::CREATED, Some(created as u64 - 1)), "{v}");
+    let list = get(&f, &range).await;
+    let ids: Vec<&str> = list["units"].as_array().unwrap().iter().map(|u| u["id"].as_str().unwrap()).collect();
+    assert!(ids.contains(&fixed.as_str()) && ids.contains(&changed.as_str()));
+    assert!(
+        list["units"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|u| u["suggested"] == true)
+            .all(|u| !u["title"].as_str().unwrap().starts_with("Intervalle"))
+    );
+    assert_eq!(list["assistant"]["intensity"], "base");
+}

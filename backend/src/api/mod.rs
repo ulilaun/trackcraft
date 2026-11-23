@@ -82,6 +82,8 @@ pub fn router(state: AppState) -> Router {
         .route("/plan/units/{id}/activity", put(plan::link).delete(plan::unlink))
         .route("/plan/units/{id}/decline", post(plan::decline))
         .route("/plan/goal", put(plan::set_goal).delete(plan::delete_goal))
+        .route("/plan/suggestion", post(plan::suggestion))
+        .route("/plan/suggestion/apply", post(plan::apply_suggestion))
         .route("/places/settings", get(places::get_settings).patch(places::update_settings))
         .route("/stats/dashboard", get(activities::dashboard))
         .route("/stats", get(stats::overview))
