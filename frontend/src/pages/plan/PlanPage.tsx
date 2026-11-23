@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Flag, LayoutTemplate, Plus, Repeat, WandSparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, Plus, Repeat } from "lucide-react";
 import {
-  apiDelete,
   apiGet,
-  apiPut,
   type ActivityListResponse,
   type FormResponse,
   type HrZonesResponse,
@@ -14,7 +12,7 @@ import {
   type PlannedUnit,
 } from "../../api/client";
 import { Card } from "../../components/Card";
-import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
+import { primaryButton } from "../../components/Dialog";
 import { Problem } from "../../components/Problem";
 import { SportIcon } from "../../components/SportIcon";
 import { useConfig } from "../../hooks/useConfig";
@@ -23,8 +21,9 @@ import { addDays, localDate, num } from "../../utils/format";
 import { FormChart, LoadChart } from "../form/FormPage";
 import { STATE_CLASS, chartPoints, formState, signed } from "../form/formModel";
 import { germanDate } from "../seasons/seasonModel";
+import { GoalDialog } from "./GoalDialog";
+import { goalFacts, nextGoal } from "./goalModel";
 import { SuggestDialog } from "./SuggestDialog";
-import { ApplyTemplateDialog, SaveTemplateDialog } from "./TemplateDialogs";
 import { UnitDialog } from "./UnitDialog";
 import { WEEKS, defaultStart, hm, isoWeek, weekDays, weekMonotony } from "./planModel";
 
@@ -37,58 +36,10 @@ const BORDER: Record<PlannedUnit["status"], string> = {
 const ZONE_COLORS = ["var(--color-z1, #94a3b8)", "var(--color-z2, #22c55e)", "var(--color-z3, #eab308)", "var(--color-z4, #f97316)", "var(--color-z5, #ef4444)"];
 const small = "inline-flex items-center gap-1 rounded-lg border border-line bg-card-2 px-2.5 py-1 text-sm hover:border-accent disabled:opacity-50";
 
-function GoalDialog({ goal, today, onClose }: { goal: PlanGoal | null; today: string; onClose: () => void }) {
-  const [date, setDate] = useState(goal?.date ?? addDays(today, 28));
-  const [name, setName] = useState(goal?.name ?? "");
-  const queryClient = useQueryClient();
-  const done = () => {
-    void queryClient.invalidateQueries({ queryKey: ["plan"] });
-    void queryClient.invalidateQueries({ queryKey: ["form"] });
-    onClose();
-  };
-  const save = useMutation({ mutationFn: () => apiPut("/plan/goal", { date, name: name.trim() }), onSuccess: done });
-  const remove = useMutation({ mutationFn: () => apiDelete("/plan/goal"), onSuccess: done });
-  const busy = save.isPending || remove.isPending;
-  const input = "w-full rounded-lg border border-line bg-card-2 px-2 py-1.5 text-sm text-text";
-  return (
-    <Dialog
-      title={t("plan.goal.title")}
-      onClose={onClose}
-      busy={busy}
-      footer={
-        <>
-          {goal && (
-            <button type="button" className={`${secondaryButton} text-danger`} disabled={busy} onClick={() => remove.mutate()}>
-              {t("plan.goal.remove")}
-            </button>
-          )}
-          <span className="flex-1" />
-          <button type="button" className={secondaryButton} onClick={onClose} disabled={busy}>
-            {t("edit.cancel")}
-          </button>
-          <button type="button" className={primaryButton} disabled={busy || !name.trim() || !date} onClick={() => save.mutate()}>
-            {t("edit.save")}
-          </button>
-        </>
-      }
-    >
-      <div className="grid gap-3 text-sm">
-        <label className="grid gap-1">
-          <span className="text-xs font-medium text-muted">{t("plan.goal.name")}</span>
-          <input className={input} value={name} maxLength={80} placeholder={t("plan.goal.namePlaceholder")} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label className="grid gap-1">
-          <span className="text-xs font-medium text-muted">{t("plan.field.date")}</span>
-          <input type="date" className={input} value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <p className="text-xs text-muted">{t("plan.goal.hint")}</p>
-        {(save.error ?? remove.error) && <Problem error={save.error ?? remove.error} />}
-      </div>
-    </Dialog>
-  );
-}
-
-/** Seite „Plan“ (E8): Wochenkalender mit geplanten Einheiten und Ist-Aktivitäten, Ziel und Formvorschau des Plans. */
+/**
+ * Seite „Plan“ (E8): Wochenkalender mit geplanten Einheiten, Ist-Aktivitäten und Zielen sowie die Formvorschau des Plans.
+ * Oben nur „+ Ziel“ und „+ Einheit“; die Planungshilfe sitzt im Ziel-Dialog.
+ */
 export function PlanPage() {
   const config = useConfig().data?.data;
   const tz = config?.timezone;
@@ -98,10 +49,8 @@ export function PlanPage() {
   const last = addDays(first, WEEKS * 7 - 1);
   const weeks = weekDays(first);
   const [dialog, setDialog] = useState<{ unit: PlannedUnit | null; date: string } | null>(null);
-  const [goalOpen, setGoalOpen] = useState(false);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [saveTemplate, setSaveTemplate] = useState<string | null>(null);
-  const [applyOpen, setApplyOpen] = useState(false);
+  const [goalDialog, setGoalDialog] = useState<{ goal: PlanGoal | null; date?: string } | null>(null);
+  const [suggestGoal, setSuggestGoal] = useState<PlanGoal | null>(null);
 
   const plan = useQuery({
     queryKey: ["plan", first, last],
@@ -123,7 +72,8 @@ export function PlanPage() {
   const zones = useQuery({ queryKey: ["hr-zones"], queryFn: () => apiGet<HrZonesResponse>("/hr-zones") });
 
   const units = useMemo(() => plan.data?.data.units ?? [], [plan.data]);
-  const goal = plan.data?.data.goal ?? null;
+  const goals = useMemo(() => plan.data?.data.goals ?? [], [plan.data]);
+  const goal = nextGoal(goals, today);
   const f = form.data?.data;
   // Tagesbelastung: bis heute gemessen, danach geplant (Vorschau „Plan“)
   const dayLoad = useMemo(() => {
@@ -165,22 +115,9 @@ export function PlanPage() {
           <button type="button" className={small} aria-label={t("plan.next")} onClick={() => setStart(addDays(first, 7))}>
             <ChevronRight size={15} />
           </button>
-          <button type="button" className={small} onClick={() => setGoalOpen(true)}>
-            <Flag size={14} />
-            {goal ? `${goal.name} · ${germanDate(goal.date)}` : t("plan.goal.set")}
-          </button>
-          <button
-            type="button"
-            className={small}
-            title={goal ? undefined : t("plan.suggest.needGoal")}
-            onClick={() => (goal ? setSuggestOpen(true) : setGoalOpen(true))}
-          >
-            <WandSparkles size={14} />
-            {t("plan.suggest.open")}
-          </button>
-          <button type="button" className={small} onClick={() => setApplyOpen(true)}>
-            <LayoutTemplate size={14} />
-            {t("plan.template.applyOpen")}
+          <button type="button" className={`${small} py-1.5`} onClick={() => setGoalDialog({ goal: null })}>
+            <Flag size={14} aria-hidden />
+            {t("plan.goal.add")}
           </button>
           <button type="button" className={`${primaryButton} inline-flex items-center gap-1`} onClick={() => setDialog({ unit: null, date: today < first ? first : addDays(today, 1) })}>
             <Plus size={15} />
@@ -231,7 +168,7 @@ export function PlanPage() {
                       aria-label={t("plan.dayAdd", { date: germanDate(d) })}
                       data-day={d}
                       onClick={(e) => {
-                        if ((e.target as HTMLElement).closest("[data-unit],[data-act]")) return;
+                        if ((e.target as HTMLElement).closest("[data-unit],[data-act],[data-goal]")) return;
                         setDialog({ unit: null, date: d });
                       }}
                       onKeyDown={(e) => {
@@ -254,7 +191,6 @@ export function PlanPage() {
                           <span className="flex items-center gap-1 truncate font-semibold">
                             <SportIcon sport={u.sport_class} size={13} decorative />
                             <span className="truncate">{u.title}</span>
-                            {u.suggested && <WandSparkles size={11} className="shrink-0 text-muted" aria-label={t("plan.suggest.marker")} />}
                             {u.series_id && <Repeat size={11} className="shrink-0 text-muted" aria-label={t("plan.series.marker")} />}
                           </span>
                           <span className="num flex gap-1.5 text-[11px] text-muted">
@@ -283,9 +219,22 @@ export function PlanPage() {
                           </span>
                         </Link>
                       ))}
-                      {goal?.date === d && (
-                        <span className="justify-self-end rounded-md bg-accent-strong px-1.5 text-[11px] font-bold text-white">🏁 {goal.name}</span>
-                      )}
+                      {goals
+                        .filter((g) => g.date === d)
+                        .map((g) => (
+                          <button
+                            key={g.id}
+                            type="button"
+                            data-goal={g.id}
+                            onClick={() => setGoalDialog({ goal: g })}
+                            title={[g.name, goalFacts(g)].filter(Boolean).join(" · ")}
+                            className="flex min-w-0 items-center gap-1 rounded-md bg-accent-strong px-1.5 py-0.5 text-left text-[11px] font-bold text-white hover:opacity-90"
+                          >
+                            <Flag size={11} className="shrink-0" aria-hidden />
+                            <SportIcon sport={g.sport_class} size={12} decorative />
+                            <span className="truncate">{g.name}</span>
+                          </button>
+                        ))}
                     </div>
                   );
                 })}
@@ -302,17 +251,6 @@ export function PlanPage() {
                         <i key={k} style={{ width: `${(m / zoneSum) * 100}%`, background: ZONE_COLORS[k] }} />
                       ))}
                     </span>
-                  )}
-                  {weekUnits.length > 0 && (
-                    <button
-                      type="button"
-                      className="mt-1 inline-flex items-center gap-1 justify-self-start text-[11px] text-muted hover:text-accent"
-                      onClick={() => setSaveTemplate(days[0]!)}
-                      aria-label={t("plan.template.saveWeek", { n: isoWeek(days[0]!) })}
-                    >
-                      <LayoutTemplate size={12} aria-hidden />
-                      {t("plan.template.asTemplate")}
-                    </button>
                   )}
                 </div>
               </div>
@@ -350,8 +288,8 @@ export function PlanPage() {
         {form.error && <Problem error={form.error} />}
         {points.length > 0 && (
           <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-            <LoadChart points={points} parts={false} goal={goal} />
-            <FormChart points={points} goal={goal} />
+            <LoadChart points={points} parts={false} goals={goals} />
+            <FormChart points={points} goals={goals} />
           </div>
         )}
         <p className="text-xs text-muted">
@@ -372,16 +310,20 @@ export function PlanPage() {
           onClose={() => setDialog(null)}
         />
       )}
-      {goalOpen && <GoalDialog goal={goal} today={today} onClose={() => setGoalOpen(false)} />}
-      {saveTemplate && (
-        <SaveTemplateDialog
-          weekStart={saveTemplate}
-          units={units.filter((u) => u.date >= saveTemplate && u.date <= addDays(saveTemplate, 6))}
-          onClose={() => setSaveTemplate(null)}
+      {goalDialog && (
+        <GoalDialog
+          goal={goalDialog.goal}
+          today={today}
+          date={goalDialog.date}
+          sportClass={plan.data?.data.assistant?.sport_class === "unknown" ? undefined : plan.data?.data.assistant?.sport_class}
+          onClose={() => setGoalDialog(null)}
+          onSuggest={(g) => {
+            setGoalDialog(null);
+            setSuggestGoal(g);
+          }}
         />
       )}
-      {applyOpen && <ApplyTemplateDialog today={today} onClose={() => setApplyOpen(false)} />}
-      {suggestOpen && goal && <SuggestDialog goal={goal} saved={plan.data?.data.assistant ?? null} onClose={() => setSuggestOpen(false)} />}
+      {suggestGoal && <SuggestDialog goal={suggestGoal} saved={plan.data?.data.assistant ?? null} onClose={() => setSuggestGoal(null)} />}
     </div>
   );
 }

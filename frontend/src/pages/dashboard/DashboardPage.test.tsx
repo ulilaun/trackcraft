@@ -75,7 +75,7 @@ beforeEach(() => {
           },
         });
       }
-      if (url.includes("/plan?")) return json(200, { data: { today: "2026-11-04", units, goal: null, zones_configured: true, assistant: null } });
+      if (url.includes("/plan?")) return json(200, { data: { today: "2026-11-04", units, goals: [], zones_configured: true, assistant: null } });
       return json(200, { data: feed, meta: { total: 57, limit: 5, offset: 0 } });
     }),
   );

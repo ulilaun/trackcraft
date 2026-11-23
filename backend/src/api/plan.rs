@@ -1,4 +1,4 @@
-//! Trainingsplanung (E8, OpenAPI „Plan“): `/plan`, `/plan/units`, `/plan/goal`, `/activities/{id}/plan`.
+//! Trainingsplanung (E8, OpenAPI „Plan“): `/plan`, `/plan/units`, `/plan/goals`, `/activities/{id}/plan`.
 
 use std::collections::HashMap;
 
@@ -14,16 +14,15 @@ use super::AppState;
 use super::error::ApiError;
 use super::import::parse_json;
 use crate::activities;
-use crate::plan::{self, ApplyTemplateInput, Error, GoalInput, Scope, TemplateInput, UnitInput};
+use crate::plan::{self, Error, GoalInput, Scope, UnitInput};
 use crate::plan_assist::{self, Input as SuggestionInput};
 
 fn error(e: Error) -> Response {
     match e {
         Error::NotFound => ApiError::PLANNED_UNIT_NOT_FOUND.into_response(),
+        Error::GoalNotFound => ApiError::PLAN_GOAL_NOT_FOUND.into_response(),
         Error::ActivityNotFound => ApiError::ACTIVITY_NOT_FOUND.into_response(),
         Error::ActivityTaken => ApiError::ACTIVITY_ALREADY_PLANNED.into_response(),
-        Error::TemplateNotFound => ApiError::PLAN_TEMPLATE_NOT_FOUND.into_response(),
-        Error::TemplateExists => ApiError::PLAN_TEMPLATE_EXISTS.into_response(),
         Error::Validation { field, code, message } => ApiError::validation(field, code, message).into_response(),
         Error::Internal(e) => ApiError::from(e).into_response(),
     }
@@ -139,17 +138,37 @@ pub async fn decline(State(state): State<AppState>, Path(id): Path<String>, body
     }
 }
 
-pub async fn set_goal(State(state): State<AppState>, body: Bytes) -> Response {
+/// Alle Ziele nach Datum.
+pub async fn goals(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    Ok(Json(json!({ "data": plan::goals_json(&state.db).await? })))
+}
+
+pub async fn create_goal(State(state): State<AppState>, body: Bytes) -> Response {
     let input: GoalInput = match parse_json(&body) {
         Ok(i) => i,
         Err(e) => return e.into_response(),
     };
-    data(plan::set_goal(&state.db, Some(&input)).await)
+    match plan::create_goal(&state.db, &input).await {
+        Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
+        Err(e) => error(e),
+    }
 }
 
-pub async fn delete_goal(State(state): State<AppState>) -> Response {
-    match plan::set_goal(&state.db, None).await {
-        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+pub async fn get_goal(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+    data(plan::goal(&state.db, &id).await.map(|g| g.to_json()))
+}
+
+pub async fn update_goal(State(state): State<AppState>, Path(id): Path<String>, body: Bytes) -> Response {
+    let input: GoalInput = match parse_json(&body) {
+        Ok(i) => i,
+        Err(e) => return e.into_response(),
+    };
+    data(plan::update_goal(&state.db, &id, &input).await)
+}
+
+pub async fn delete_goal(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+    match plan::delete_goal(&state.db, &id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => error(e),
     }
 }
@@ -159,7 +178,7 @@ pub async fn for_activity(State(state): State<AppState>, Path(id): Path<String>)
     data(plan::for_activity(&state.cfg, &state.db, &id).await)
 }
 
-/// Planungshilfe (Stufe 2): Vorschlag bis zum Ziel berechnen, ohne zu speichern.
+/// Planungshilfe (Stufe 2): Vorschlag bis zum gewählten Ziel berechnen, ohne zu speichern.
 pub async fn suggestion(State(state): State<AppState>, body: Bytes) -> Response {
     let input: SuggestionInput = match parse_json(&body) {
         Ok(i) => i,
@@ -169,7 +188,7 @@ pub async fn suggestion(State(state): State<AppState>, body: Bytes) -> Response 
     data(plan_assist::preview(&state.cfg, &state.db, &input, today).await)
 }
 
-/// Planungshilfe: Vorschlag neu berechnen und als Einheiten anlegen; ersetzt offene Einheiten eines früheren Vorschlags.
+/// Planungshilfe: Vorschlag neu berechnen und als normale Einheiten anlegen.
 pub async fn apply_suggestion(State(state): State<AppState>, body: Bytes) -> Response {
     let input: SuggestionInput = match parse_json(&body) {
         Ok(i) => i,
@@ -177,45 +196,6 @@ pub async fn apply_suggestion(State(state): State<AppState>, body: Bytes) -> Res
     };
     let today = activities::today(&state.cfg);
     match plan_assist::apply(&state.cfg, &state.db, &input, today).await {
-        Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
-        Err(e) => error(e),
-    }
-}
-
-/// Wochenvorlagen nach Name.
-pub async fn templates(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
-    let today = activities::today(&state.cfg);
-    Ok(Json(json!({ "data": plan::templates(&state.db, today).await? })))
-}
-
-/// Woche als Vorlage speichern (auch beim Ersetzen 201 mit der Vorlage).
-pub async fn save_template(State(state): State<AppState>, body: Bytes) -> Response {
-    let input: TemplateInput = match parse_json(&body) {
-        Ok(i) => i,
-        Err(e) => return e.into_response(),
-    };
-    let today = activities::today(&state.cfg);
-    match plan::save_template(&state.db, &input, today).await {
-        Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
-        Err(e) => error(e),
-    }
-}
-
-pub async fn delete_template(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match plan::delete_template(&state.db, &id).await {
-        Ok(()) => StatusCode::NO_CONTENT.into_response(),
-        Err(e) => error(e),
-    }
-}
-
-/// Vorlage auf Wochen anwenden; vorhandene Einheiten bleiben.
-pub async fn apply_template(State(state): State<AppState>, Path(id): Path<String>, body: Bytes) -> Response {
-    let input: ApplyTemplateInput = match parse_json(&body) {
-        Ok(i) => i,
-        Err(e) => return e.into_response(),
-    };
-    let today = activities::today(&state.cfg);
-    match plan::apply_template(&state.db, &id, &input, today).await {
         Ok(v) => (StatusCode::CREATED, Json(json!({ "data": v }))).into_response(),
         Err(e) => error(e),
     }

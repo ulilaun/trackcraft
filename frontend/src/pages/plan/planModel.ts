@@ -180,12 +180,10 @@ export function previewLoad(f: UnitForm, set: HrZoneSet | null, s: Pick<LoadSett
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Wiederholen und Wochenvorlagen (E8)
+// Wiederholen (E8)
 
 /** Höchstens so viele Einheiten hat eine Serie (mit der ersten). */
 export const MAX_SERIES = 26;
-/** Höchstens so viele Wochen belegt eine Vorlage auf einmal. */
-export const MAX_TEMPLATE_WEEKS = 12;
 
 /** Daten einer Serie ab `date` (mit `date`) im Abstand von `everyWeeks` Wochen bis `until`, höchstens 27 zum Prüfen. */
 export function seriesDates(date: string, everyWeeks: number, until: string): string[] {
@@ -211,15 +209,5 @@ export function changedInput(before: ReturnType<typeof unitInput>, after: Return
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(a)) if (!loadKeys.includes(k) && !same(k)) out[k] = a[k];
   if (loadKeys.some((k) => !same(k))) for (const k of loadKeys) if (k in a) out[k] = a[k];
-  return out;
-}
-
-/** Tage, an denen eine Vorlage ab `weekStart` über `weeks` Wochen Einheiten anlegt (ab heute). */
-export function templateDates(weekdays: number[], weekStart: string, weeks: number, today: string): { date: string; week: number }[] {
-  const out: { date: string; week: number }[] = [];
-  for (let w = 0; w < weeks; w++) for (const wd of weekdays) {
-    const d = addDays(weekStart, w * 7 + wd);
-    if (d >= today) out.push({ date: d, week: w });
-  }
   return out;
 }

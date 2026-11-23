@@ -10,7 +10,6 @@ import {
   previewLoad,
   repeatProblem,
   seriesDates,
-  templateDates,
   unitInput,
   unitProblem,
   weekDays,
@@ -125,13 +124,5 @@ describe("Serien und Vorlagen", () => {
     expect(changedInput(before, unitInput({ ...formOf(null, "2026-11-24"), title: "Neu" }, false))).toEqual({ title: "Neu" });
     const zones = { ...formOf(null, "2026-11-24"), zones: ["10", "60", "0", "0", "0"] };
     expect(changedInput(before, unitInput(zones, false))).toEqual({ mode: "zones", zone_minutes: [10, 60, 0, 0, 0] });
-  });
-
-  it("Tage einer Vorlage ab heute", () => {
-    expect(templateDates([1, 5], "2026-11-23", 2, "2026-11-25")).toEqual([
-      { date: "2026-11-28", week: 0 },
-      { date: "2026-12-01", week: 1 },
-      { date: "2026-12-05", week: 1 },
-    ]);
   });
 });

@@ -807,7 +807,7 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
     // „Wie bisher“: mittlere Tagesbelastung der letzten 28 Tage, mit ihrer Aufteilung aerob/anaerob/geschätzt
     // Offene Einheiten ab morgen; das letzte Datum braucht die Seite auch ohne Vorschau „Plan“ (Knopf nur mit Plan)
     let (planned, last_planned) = crate::plan::day_loads(db, today, &s).await?;
-    let goal = crate::plan::goal_date(db).await?;
+    let goals = crate::plan::goals(db).await?;
     let daily = match q.forecast {
         Forecast::Rest | Forecast::Plan => DayLoad::default(),
         Forecast::Steady => {
@@ -822,9 +822,9 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
         }
     };
     let day_load = |d: NaiveDate| if q.forecast == Forecast::Plan { planned.get(&d).copied().unwrap_or_default() } else { daily };
-    // Plan: mindestens bis zum letzten geplanten Tag bzw. Ziel und ein paar Tage darüber hinaus, höchstens 90 Tage
+    // Plan: mindestens bis zum letzten geplanten Tag bzw. letzten Ziel und ein paar Tage darüber hinaus, höchstens 90 Tage
     let horizon = if q.forecast == Forecast::Plan && q.forecast_days > 0 {
-        let until = [last_planned, goal].into_iter().flatten().filter(|d| *d > today).max();
+        let until = last_planned.into_iter().chain(goals.iter().map(|g| g.date)).filter(|d| *d > today).max();
         let need = until.map(|d| (d - today).num_days() as u32 + 3).unwrap_or(0);
         q.forecast_days.max(need).min(FORECAST_MAX_DAYS)
     } else {
@@ -886,6 +886,9 @@ pub async fn form(cfg: &Validated, db: &Db, q: &FormQuery, today: NaiveDate) -> 
             "daily_load": round1(daily.total),
             "days": forecast,
         },
-        "plan": { "goal": crate::plan::goal(db).await?, "last_date": last_planned.map(|d| d.to_string()) },
+        "plan": {
+            "goals": goals.iter().map(crate::plan::Goal::to_json).collect::<Vec<_>>(),
+            "last_date": last_planned.map(|d| d.to_string()),
+        },
     }))
 }

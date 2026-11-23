@@ -883,17 +883,28 @@ export interface FormResponse {
     monotony_warn: number;
     days: FormDay[];
     forecast: { mode: ForecastMode; daily_load: number; days: FormForecastDay[] };
-    /** Trainingsplan (E8): Ziel und letzter Tag mit offener Einheit (ab morgen) */
-    plan: { goal: PlanGoal | null; last_date: string | null };
+    /** Trainingsplan (E8): alle Ziele und letzter Tag mit offener Einheit (ab morgen) */
+    plan: { goals: PlanGoal[]; last_date: string | null };
   };
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // Trainingsplanung (E8)
 
+/** Ziel (Wettkampf, Tour) als Ereignis im Kalender */
 export interface PlanGoal {
+  id: string;
   date: string;
+  sport_class: SportClass;
   name: string;
+  description: string | null;
+  url: string | null;
+  distance_m: number | null;
+  target_time_s: number | null;
+}
+
+export interface PlanGoalResponse {
+  data: PlanGoal;
 }
 
 export type PlannedStatus = "planned" | "skipped" | "done";
@@ -913,9 +924,7 @@ export interface PlannedUnit {
   /** „done“ = mit einer Aktivität verknüpft */
   status: PlannedStatus;
   activity_id: string | null;
-  /** Aus einem Vorschlag der Planungshilfe und seitdem unverändert */
-  suggested?: boolean;
-  /** Serie (Wiederholen oder Wochenvorlage über mehrere Wochen) */
+  /** Serie (Wiederholen) */
   series_id?: string | null;
   /** Offene Einheiten derselben Serie nach diesem Tag */
   series_following?: number;
@@ -937,7 +946,8 @@ export interface PlanResponse {
   data: {
     today: string;
     units: PlannedUnit[];
-    goal: PlanGoal | null;
+    /** Alle Ziele nach Datum */
+    goals: PlanGoal[];
     zones_configured: boolean;
     /** Zuletzt übernommene Eingaben der Planungshilfe */
     assistant: SuggestionInput | null;
@@ -946,6 +956,8 @@ export interface PlanResponse {
 
 /** Eingaben der Planungshilfe (E8 Stufe 2) */
 export interface SuggestionInput {
+  /** Ziel, auf das geplant wird (wird nicht gemerkt) */
+  goal_id?: string;
   sport_class: SportClass;
   /** Höchstens so viele Minuten je Wochentag, Montag zuerst */
   minutes: number[];
@@ -962,8 +974,6 @@ export interface SuggestionResponse {
     goal_date: string;
     units: (PlannedUnit & { phase: PlanPhase })[];
     fixed_units: number;
-    /** Offene Einheiten eines früheren Vorschlags, die beim Übernehmen ersetzt werden */
-    replaces: number;
     blocks: { phase: PlanPhase; from: string; to: string; factor: number }[];
     weeks: { start: string; phase: PlanPhase | null; load: number; monotony: number | null; low_zone_pct: number | null; units: number }[];
     summary: {
@@ -982,29 +992,7 @@ export interface SuggestionResponse {
 }
 
 export interface SuggestionApplyResponse {
-  data: { created: number; replaced: number; suggestion_id: string };
-}
-
-/** Eine Einheit einer Wochenvorlage (Wochentag 0 = Montag), Belastung mit dem heutigen Zonensatz. */
-export type PlanTemplateUnit = Omit<PlannedUnit, "id" | "date" | "status" | "activity_id" | "suggested" | "series_id" | "series_following" | "actual"> & {
-  weekday: number;
-};
-
-export interface PlanTemplate {
-  id: string;
-  name: string;
-  units: PlanTemplateUnit[];
-  minutes: number;
-  load: number;
-  updated_at: string;
-}
-
-export interface PlanTemplatesResponse {
-  data: PlanTemplate[];
-}
-
-export interface PlanTemplateApplyResponse {
-  data: { created: number; skipped: number };
+  data: { created: number };
 }
 
 export interface PlannedUnitResponse {

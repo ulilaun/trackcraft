@@ -57,7 +57,7 @@ function response(over: Partial<FormResponse["data"]> = {}): FormResponse {
         { date: "2026-11-22", load: 80, aerobic: 80, anaerobic: 0, estimated: 0, fitness: 66.4, fatigue: 54.2, form: 12.2, ...noParts },
       ],
       forecast: { mode: "rest", daily_load: 0, days: [{ date: "2026-11-23", load: 0, fitness: 64.9, fatigue: 47.8, form: 12.2, ...noParts }] },
-      plan: { goal: null, last_date: null },
+      plan: { goals: [], last_date: null },
       ...over,
     },
   };
@@ -289,7 +289,7 @@ describe("Seite Form", () => {
     await screen.findByText("Frisch");
     expect(screen.queryByRole("button", { name: "Plan" })).not.toBeInTheDocument();
 
-    current = response({ plan: { goal: { date: "2026-11-23", name: "Tour" }, last_date: "2026-11-23" } });
+    current = response({ plan: { goals: [{ id: "g1", date: "2026-11-23", sport_class: "cycling", name: "Tour", description: null, url: null, distance_m: null, target_time_s: null }], last_date: "2026-11-23" } });
     setup("/form?vorschau=plan");
     await waitFor(() => expect(formUrls().at(-1)).toContain("forecast=plan&forecast_days=28"));
     expect(await screen.findByRole("button", { name: "Plan" })).toBeInTheDocument();

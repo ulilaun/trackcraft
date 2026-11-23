@@ -6,7 +6,8 @@
 //! **Optimierung**: In Aufbaublöcken gilt der größte Anteil der verfügbaren Zeit, bei dem die Fitness höchstens um den
 //! erlaubten Anstieg wächst; Entlastung = 60 % davon. Für das Tapering sucht TrackCraft Länge (7–14 Tage) und Umfang so,
 //! dass die Form am Ziel „frisch“ ist (bevorzugt +10 bis +20) und die Fitness dort möglichst hoch bleibt. Gerechnet wird
-//! mit derselben Formkurve wie auf der Formseite, feste Einheiten gehen mit ein.
+//! mit derselben Formkurve wie auf der Formseite. Alle schon geplanten offenen Einheiten gelten als fest und gehen mit ein;
+//! übernommene Vorschläge sind danach normale Einheiten (das Ziel weiß nichts mehr davon).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -51,6 +52,9 @@ pub enum Intensity {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Input {
+    /// Ziel, auf das geplant wird; wird nicht gemerkt
+    #[serde(default, skip_serializing)]
+    pub goal_id: Option<String>,
     pub sport_class: String,
     /// Höchstens so viele Minuten je Wochentag, Montag zuerst; unter 30 = Ruhetag
     pub minutes: [u32; 7],
@@ -310,7 +314,6 @@ fn make_unit(ctx: &Context, input: &Input, slot: &Slot, phase: Phase, f: f64) ->
         mode,
         status: "planned".into(),
         activity_id: None,
-        suggestion_id: None,
         series_id: None,
         series_following: 0,
     })
@@ -621,14 +624,19 @@ struct Loaded {
 
 async fn prepare(cfg: &Validated, db: &Db, input: &Input, today: NaiveDate) -> Result<Loaded, Error> {
     input.validate()?;
-    let goal = plan::goal_date(db).await?.ok_or(invalid("goal", "required", "Set a goal first"))?;
+    let goal_id = input.goal_id.as_deref().ok_or(invalid("goal_id", "required", "Choose a goal"))?;
+    let goal = match plan::goal(db, goal_id).await {
+        Ok(g) => g.date,
+        Err(Error::GoalNotFound) => return Err(invalid("goal_id", "not_found", "Goal not found")),
+        Err(e) => return Err(e),
+    };
     let (curve, settings) = load::curve_at(cfg, db, today).await?;
     let sets = load::zone_sets(db).await?;
     let per_hour = settings.estimate_per_hour.get(&input.sport_class).copied().unwrap_or(0.0);
     if load::applicable(&sets, &input.sport_class, goal).is_none() && per_hour <= 0.0 {
         return Err(invalid("sport_class", "no_load_basis", "No heart rate zones and no load per hour for this sport class"));
     }
-    let fixed = plan::open_units(db, today, false).await?;
+    let fixed = plan::open_units(db, today).await?;
     Ok(Loaded { curve, settings, sets, fixed, goal })
 }
 
@@ -643,36 +651,18 @@ pub async fn preview(cfg: &Validated, db: &Db, input: &Input, today: NaiveDate) 
     let s = suggest(&ctx, input)?;
     let mut v = s.to_json(&ctx);
     v["summary"]["max_gain"] = json!(input.max_gain);
-    v["replaces"] = json!(replaceable(db, today).await?);
     Ok(v)
 }
 
-async fn replaceable(db: &Db, today: NaiveDate) -> anyhow::Result<i64> {
-    Ok(sqlx::query_scalar(
-        "SELECT COUNT(*) FROM planned_units WHERE suggestion_id IS NOT NULL AND status = 'planned' AND activity_id IS NULL AND date > ?",
-    )
-    .bind(today.to_string())
-    .fetch_one(&db.reader)
-    .await?)
-}
-
-/// Vorschlag neu berechnen und übernehmen: offene, unveränderte Einheiten eines früheren Vorschlags werden ersetzt.
+/// Vorschlag neu berechnen und als normale Einheiten in den Kalender eintragen; vorhandene Einheiten bleiben.
 pub async fn apply(cfg: &Validated, db: &Db, input: &Input, today: NaiveDate) -> Result<Value, Error> {
     let l = prepare(cfg, db, input, today).await?;
     let ctx = context(&l, today);
     let s = suggest(&ctx, input)?;
-    let suggestion_id = new_id();
     let now = chrono::Utc::now().timestamp_millis();
     let mut tx = db.writer.begin().await?;
-    let replaced = sqlx::query(
-        "DELETE FROM planned_units WHERE suggestion_id IS NOT NULL AND status = 'planned' AND activity_id IS NULL AND date > ?",
-    )
-    .bind(today.to_string())
-    .execute(&mut *tx)
-    .await?
-    .rows_affected();
     for (u, _) in &s.units {
-        let u = Unit { id: new_id(), suggestion_id: Some(suggestion_id.clone()), ..u.clone() };
+        let u = Unit { id: new_id(), ..u.clone() };
         plan::save(&mut tx, &u, true, now).await?;
     }
     sqlx::query("UPDATE plan_settings SET assistant = ?, updated_at_ms = ? WHERE id = 1")
@@ -682,7 +672,7 @@ pub async fn apply(cfg: &Validated, db: &Db, input: &Input, today: NaiveDate) ->
         .await?;
     bump_revision(&mut tx, now).await?;
     tx.commit().await?;
-    Ok(json!({ "created": s.units.len(), "replaced": replaced, "suggestion_id": suggestion_id }))
+    Ok(json!({ "created": s.units.len() }))
 }
 
 #[cfg(test)]
@@ -720,6 +710,7 @@ mod tests {
 
     fn input() -> Input {
         Input {
+            goal_id: None,
             sport_class: "cycling".into(),
             minutes: [0, 60, 0, 75, 0, 180, 120],
             max_gain: 5,
@@ -802,7 +793,6 @@ mod tests {
             mode: Mode::Zones([10, 100, 10, 0, 0]),
             status: "planned".into(),
             activity_id: None,
-            suggestion_id: None,
             series_id: None,
             series_following: 0,
         };
