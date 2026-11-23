@@ -173,8 +173,12 @@ async fn units_goal_and_plan_forecast() {
     assert_eq!(s, StatusCode::BAD_REQUEST);
 
     // Ziel und Vorschau „Plan“: reicht über das Ziel hinaus, Tage ohne Einheit sind Ruhe, ausgelassene zählen nicht
-    let (s, v) = send(&f, Method::PUT, "/api/v1/plan/goal", Some(json!({ "date": day(40), "name": " Tour " }))).await;
-    assert_eq!((s, v["data"]["name"].as_str()), (StatusCode::OK, Some("Tour")), "{v}");
+    let goal =
+        json!({ "date": day(40), "sport_class": "cycling", "name": " Tour ", "url": "https://example.org/tour", "distance_m": 120000 });
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/goals", Some(goal)).await;
+    assert_eq!((s, v["data"]["name"].as_str()), (StatusCode::CREATED, Some("Tour")), "{v}");
+    let goal_id = v["data"]["id"].as_str().unwrap().to_string();
+    assert_eq!((v["data"]["distance_m"].as_f64(), v["data"]["target_time_s"].clone()), (Some(120000.0), Value::Null));
     let skipped = new_unit(&f, unit_body(&day(3), "Fällt aus")).await;
     let (s, _) = send(&f, Method::PATCH, &format!("/api/v1/plan/units/{skipped}"), Some(json!({ "status": "skipped" }))).await;
     assert_eq!(s, StatusCode::OK);
@@ -182,7 +186,7 @@ async fn units_goal_and_plan_forecast() {
     let fc = v["forecast"]["days"].as_array().unwrap();
     assert_eq!(fc.len(), 43, "Ziel in 40 Tagen + 3");
     assert_eq!(v["forecast"]["mode"], "plan");
-    assert_eq!(v["plan"]["goal"]["date"].as_str(), Some(day(40).as_str()));
+    assert_eq!(v["plan"]["goals"][0]["date"].as_str(), Some(day(40).as_str()));
     assert_eq!(v["plan"]["last_date"].as_str(), Some(day(2).as_str()));
     let load_on = |d: &str| fc.iter().find(|x| x["date"] == d).unwrap()["load"].as_f64().unwrap();
     assert_eq!((load_on(&day(1)), load_on(&day(2)), load_on(&day(3))), (0.0, 80.0, 0.0));
@@ -193,10 +197,12 @@ async fn units_goal_and_plan_forecast() {
     // Liste im Zeitraum, Ziel entfernen, Einheit löschen
     let list = get(&f, &format!("/api/v1/plan?from={}&to={}", day(0), day(10))).await;
     assert_eq!(list["units"].as_array().unwrap().len(), 2);
-    assert_eq!(list["goal"]["name"], "Tour");
-    let (s, _) = send(&f, Method::DELETE, "/api/v1/plan/goal", None).await;
+    assert_eq!(list["goals"][0]["name"], "Tour");
+    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/goals/{goal_id}"), None).await;
     assert_eq!(s, StatusCode::NO_CONTENT);
-    assert_eq!(get(&f, "/api/v1/plan").await["goal"], Value::Null);
+    assert_eq!(get(&f, "/api/v1/plan").await["goals"], json!([]));
+    let (s, v) = send(&f, Method::DELETE, &format!("/api/v1/plan/goals/{goal_id}"), None).await;
+    assert_eq!((s, v["error"]["code"].as_str()), (StatusCode::NOT_FOUND, Some("plan_goal_not_found")));
     let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/units/{skipped}"), None).await;
     assert_eq!(s, StatusCode::NO_CONTENT);
     let (s, v) = send(&f, Method::GET, &format!("/api/v1/plan/units/{skipped}"), None).await;
@@ -258,7 +264,7 @@ async fn link_planned_unit_with_activity() {
 }
 
 #[tokio::test]
-async fn suggestion_preview_apply_and_replace() {
+async fn suggestion_preview_and_apply() {
     let f = fixture().await;
     let today: chrono::NaiveDate = get(&f, "/api/v1/plan").await["today"].as_str().unwrap().parse().unwrap();
     let day = |n: i64| today + chrono::Duration::days(n);
@@ -272,9 +278,18 @@ async fn suggestion_preview_apply_and_replace() {
 
     // Ohne Ziel kein Vorschlag; Prüfungen der Eingaben
     let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(input.clone())).await;
-    assert_eq!((s, v["error"]["details"]["fields"][0]["field"].as_str()), (StatusCode::BAD_REQUEST, Some("goal")), "{v}");
-    let (s, _) = send(&f, Method::PUT, "/api/v1/plan/goal", Some(json!({ "date": day(45).to_string(), "name": "Tour" }))).await;
-    assert_eq!(s, StatusCode::OK);
+    assert_eq!((s, v["error"]["details"]["fields"][0]["field"].as_str()), (StatusCode::BAD_REQUEST, Some("goal_id")), "{v}");
+    let mut input = input;
+    input["goal_id"] = json!("gibtsnicht");
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(input.clone())).await;
+    assert_eq!((s, v["error"]["details"]["fields"][0]["code"].as_str()), (StatusCode::BAD_REQUEST, Some("not_found")), "{v}");
+    // Zwei Ziele; geplant wird auf das gewählte
+    let goal = |d: i64, n: &str| json!({ "date": day(d).to_string(), "sport_class": "cycling", "name": n });
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/goals", Some(goal(45, "Tour"))).await;
+    assert_eq!(s, StatusCode::CREATED);
+    input["goal_id"] = v["data"]["id"].clone();
+    let (s, _) = send(&f, Method::POST, "/api/v1/plan/goals", Some(goal(20, "Vorbereitung"))).await;
+    assert_eq!(s, StatusCode::CREATED);
     let mut bad = input.clone();
     bad["max_gain"] = json!(9);
     let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(bad)).await;
@@ -285,7 +300,7 @@ async fn suggestion_preview_apply_and_replace() {
 
     // Feste Einheit am ersten Samstag bleibt und wird eingerechnet
     let sat = (1..=7).map(day).find(|d| chrono::Datelike::weekday(d) == chrono::Weekday::Sat).unwrap();
-    let fixed = new_unit(&f, json!({ "date": sat.to_string(), "sport_class": "cycling", "title": "Ausfahrt", "mode": "zones", "zone_minutes": [10, 100, 0, 0, 0] })).await;
+    new_unit(&f, json!({ "date": sat.to_string(), "sport_class": "cycling", "title": "Ausfahrt", "mode": "zones", "zone_minutes": [10, 100, 0, 0, 0] })).await;
 
     // Vorschau speichert nichts
     let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(input.clone())).await;
@@ -295,7 +310,7 @@ async fn suggestion_preview_apply_and_replace() {
     assert!(!units.is_empty());
     assert!(units.iter().all(|u| u["date"] != sat.to_string() && u["mode"] == "zones" && u["phase"].is_string()));
     assert_eq!(p["fixed_units"], 1);
-    assert_eq!(p["replaces"], 0);
+    assert_eq!(p["goal_date"].as_str(), Some(day(45).to_string().as_str()));
     let taper = p["summary"]["taper_days"].as_u64().unwrap();
     assert!((7..=14).contains(&taper), "{p}");
     assert_eq!(p["forecast"].as_array().unwrap().len(), 48, "morgen bis Ziel + 3");
@@ -304,42 +319,29 @@ async fn suggestion_preview_apply_and_replace() {
     let range = format!("/api/v1/plan?from={}&to={}", day(1), day(60));
     assert_eq!(listed(&get(&f, &range).await), 1);
 
-    // Übernehmen legt die Einheiten an, als Vorschlag markiert, und merkt sich die Eingaben
+    // Übernehmen legt normale Einheiten an und merkt sich die Eingaben (ohne Ziel)
     let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion/apply", Some(input.clone())).await;
     assert_eq!(s, StatusCode::CREATED, "{v}");
     let created = v["data"]["created"].as_u64().unwrap() as usize;
-    assert_eq!((created, v["data"]["replaced"].as_u64()), (units.len(), Some(0)));
+    assert_eq!(created, units.len());
     let list = get(&f, &range).await;
     assert_eq!(listed(&list), created + 1);
-    assert_eq!(list["assistant"], input);
-    let suggested: Vec<&Value> = list["units"].as_array().unwrap().iter().filter(|u| u["suggested"] == true).collect();
-    assert_eq!(suggested.len(), created);
-    // Die Vorschau „Plan“ der Formseite rechnet mit allen Einheiten
+    let mut remembered = input.clone();
+    remembered.as_object_mut().unwrap().remove("goal_id");
+    assert_eq!(list["assistant"], remembered);
+    assert!(list["units"].as_array().unwrap().iter().all(|u| u.get("suggested").is_none()));
+    // Die Vorschau „Plan“ der Formseite reicht bis zum letzten Ziel
     let form = get(&f, "/api/v1/form?forecast=plan&forecast_days=28").await;
-    assert_eq!(form["plan"]["goal"]["date"].as_str(), Some(day(45).to_string().as_str()));
+    assert_eq!(form["plan"]["goals"].as_array().unwrap().len(), 2);
+    assert_eq!(form["forecast"]["days"].as_array().unwrap().len(), 48);
 
-    // Eine geänderte Einheit wird fest; ein neuer Vorschlag ersetzt nur die übrigen
-    let changed = suggested[0]["id"].as_str().unwrap().to_string();
-    let (s, v) = send(&f, Method::PATCH, &format!("/api/v1/plan/units/{changed}"), Some(json!({ "title": "Meine Runde" }))).await;
-    assert_eq!((s, v["data"]["suggested"].as_bool()), (StatusCode::OK, Some(false)));
-    let mut base = input.clone();
-    base["intensity"] = json!("base");
-    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(base.clone())).await;
-    assert_eq!((s, v["data"]["replaces"].as_u64(), v["data"]["fixed_units"].as_u64()), (StatusCode::OK, Some(created as u64 - 1), Some(2)));
-    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion/apply", Some(base.clone())).await;
-    assert_eq!((s, v["data"]["replaced"].as_u64()), (StatusCode::CREATED, Some(created as u64 - 1)), "{v}");
-    let list = get(&f, &range).await;
-    let ids: Vec<&str> = list["units"].as_array().unwrap().iter().map(|u| u["id"].as_str().unwrap()).collect();
-    assert!(ids.contains(&fixed.as_str()) && ids.contains(&changed.as_str()));
-    assert!(
-        list["units"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|u| u["suggested"] == true)
-            .all(|u| !u["title"].as_str().unwrap().starts_with("Intervalle"))
-    );
-    assert_eq!(list["assistant"]["intensity"], "base");
+    // Ein neuer Vorschlag ersetzt nichts: Alle Einheiten gelten als fest, frei sind nur noch Tage ohne Einheit
+    let (s, v) = send(&f, Method::POST, "/api/v1/plan/suggestion", Some(input.clone())).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["data"]["fixed_units"].as_u64(), Some(created as u64 + 1));
+    let taken: std::collections::HashSet<String> =
+        list["units"].as_array().unwrap().iter().map(|u| u["date"].as_str().unwrap().to_string()).collect();
+    assert!(v["data"]["units"].as_array().unwrap().iter().all(|u| !taken.contains(u["date"].as_str().unwrap())));
 }
 
 /// Einheiten im Zeitraum, nach Datum.
@@ -444,81 +446,37 @@ async fn repeat_series_and_change_following() {
     assert_eq!(v["data"]["series_following"], 3);
 }
 
+/// Migration 18 übernimmt das bisherige einzelne Ziel in die Ziel-Tabelle (Sportklasse aus der Planungshilfe) und
+/// macht vorgeschlagene Einheiten zu normalen Einheiten.
 #[tokio::test]
-async fn week_templates_save_apply_delete() {
-    use chrono::Datelike;
-    let f = fixture().await;
-    let today: chrono::NaiveDate = get(&f, "/api/v1/plan").await["today"].as_str().unwrap().parse().unwrap();
-    let monday = today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64) + chrono::Duration::days(7);
-    let d = |n: i64| monday + chrono::Duration::days(n);
-    let apply = |tid: &str| format!("/api/v1/plan/templates/{tid}/apply");
-
-    // Woche mit zwei Einheiten (Di, Sa); die Samstags-Einheit als Zielbelastung
-    new_unit(&f, unit_body(&d(1).to_string(), "Intervalle")).await;
-    new_unit(
-        &f,
-        json!({ "date": d(5).to_string(), "sport_class": "running", "title": "Lauf", "mode": "target",
-                "duration_min": 50, "target_load": 60, "intensive_pct": 10 }),
+async fn migration_18_moves_goal_to_table() {
+    let dir = common::temp();
+    let cfg = common::validated(dir.path());
+    std::fs::create_dir_all(&cfg.raw.paths.database_dir).unwrap();
+    let db = Db::open(&cfg.database_file()).await.unwrap();
+    let pending = db.pending_migrations().await.unwrap();
+    let upto17: Vec<_> = pending.iter().copied().filter(|(v, _)| *v <= 17).collect();
+    db.migrate(&upto17).await.unwrap();
+    sqlx::raw_sql(
+        r#"UPDATE plan_settings SET goal_date = '2027-02-07', goal_name = 'Radmarathon', updated_at_ms = 5,
+             assistant = '{"sport_class":"running","minutes":[0,60,0,60,0,120,90],"max_gain":5,"recovery_weeks":true,"intensity":"base"}';
+           INSERT INTO planned_units (id, date, sport_class, title, mode, zone_minutes, created_at_ms, updated_at_ms, suggestion_id)
+             VALUES ('u1', '2027-01-10', 'running', 'Grundlage', 'zones', '[10,50,0,0,0]', 0, 0, 's1');"#,
     )
-    .await;
-
-    let (s, v) =
-        send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "Grundwoche", "week_start": d(0).to_string() }))).await;
-    assert_eq!(s, StatusCode::CREATED, "{v}");
-    let t = &v["data"];
-    assert_eq!(t["units"].as_array().unwrap().iter().map(|u| u["weekday"].as_u64().unwrap()).collect::<Vec<_>>(), [1, 5]);
-    assert_eq!(t["minutes"], 120);
-    let tid = t["id"].as_str().unwrap().to_string();
-
-    // Name schon vergeben (ohne Groß/Klein), mit replace ersetzt
-    let (s, _) =
-        send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "grundwoche", "week_start": d(0).to_string() }))).await;
-    assert_eq!(s, StatusCode::CONFLICT);
-    let (s, v) = send(
-        &f,
-        Method::POST,
-        "/api/v1/plan/templates",
-        Some(json!({ "name": "Grundwoche", "week_start": d(0).to_string(), "replace": true })),
-    )
-    .await;
-    assert_eq!((s, v["data"]["id"].as_str()), (StatusCode::CREATED, Some(tid.as_str())));
-    // Kein Montag, leere Woche
-    let (s, _) = send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "X", "week_start": d(1).to_string() }))).await;
-    assert_eq!(s, StatusCode::BAD_REQUEST);
-    let (s, _) = send(&f, Method::POST, "/api/v1/plan/templates", Some(json!({ "name": "X", "week_start": d(14).to_string() }))).await;
-    assert_eq!(s, StatusCode::BAD_REQUEST);
-    assert_eq!(get(&f, "/api/v1/plan/templates").await.as_array().unwrap().len(), 1);
-
-    // Anwenden auf 3 Wochen ab der Woche danach: 6 neue Einheiten, je Vorlagen-Einheit eine Serie
-    let (s, v) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(7).to_string(), "weeks": 3 }))).await;
-    assert_eq!(s, StatusCode::CREATED, "{v}");
-    assert_eq!((v["data"]["created"].as_u64(), v["data"]["skipped"].as_u64()), (Some(6), Some(0)));
-    let applied = units_between(&f, d(7), d(27)).await;
-    assert_eq!(applied.len(), 6);
-    let runs: Vec<&Value> = applied.iter().filter(|u| u["sport_class"] == "running").collect();
-    assert_eq!(runs.len(), 3);
-    assert!(runs.iter().all(|u| u["series_id"] == runs[0]["series_id"] && u["mode"] == "target" && u["intensive_pct"] == 10));
-    assert!(runs[0]["series_id"].is_string());
-    assert_eq!(runs[0]["date"], d(12).to_string().as_str());
-
-    // Auf die eigene Woche angewendet: vorhandene bleiben, Vorlage kommt dazu (eine Woche = keine Serie)
-    let (s, _) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(0).to_string(), "weeks": 1 }))).await;
-    assert_eq!(s, StatusCode::CREATED);
-    let week = units_between(&f, d(0), d(6)).await;
-    assert_eq!(week.len(), 4);
-    assert!(week.iter().all(|u| u["series_id"].is_null()));
-
-    // Grenzen: Wochen, Vergangenheit, unbekannte Vorlage
-    let (s, _) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(0).to_string(), "weeks": 13 }))).await;
-    assert_eq!(s, StatusCode::BAD_REQUEST);
-    let (s, v) = send(&f, Method::POST, &apply(&tid), Some(json!({ "week_start": d(-28).to_string(), "weeks": 1 }))).await;
-    assert_eq!((s, v["error"]["details"]["fields"][0]["code"].as_str()), (StatusCode::BAD_REQUEST, Some("past")), "{v}");
-    let (s, _) = send(&f, Method::POST, &apply("nope"), Some(json!({ "week_start": d(0).to_string(), "weeks": 1 }))).await;
-    assert_eq!(s, StatusCode::NOT_FOUND);
-
-    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/templates/{tid}"), None).await;
-    assert_eq!(s, StatusCode::NO_CONTENT);
-    let (s, _) = send(&f, Method::DELETE, &format!("/api/v1/plan/templates/{tid}"), None).await;
-    assert_eq!(s, StatusCode::NOT_FOUND);
-    assert_eq!(units_between(&f, d(0), d(27)).await.len(), 10, "Einheiten bleiben nach dem Löschen der Vorlage");
+    .execute(&db.writer)
+    .await
+    .unwrap();
+    let rest = db.pending_migrations().await.unwrap();
+    db.migrate(&rest).await.unwrap();
+    let goals: Vec<(String, String, String, i64)> =
+        sqlx::query_as("SELECT date, sport_class, name, updated_at_ms FROM plan_goals").fetch_all(&db.reader).await.unwrap();
+    assert_eq!(goals, vec![("2027-02-07".into(), "running".into(), "Radmarathon".into(), 5)]);
+    let id: String = sqlx::query_scalar("SELECT id FROM plan_goals").fetch_one(&db.reader).await.unwrap();
+    assert_eq!(id.len(), 36, "{id}");
+    let assistant: Option<String> =
+        sqlx::query_scalar("SELECT assistant FROM plan_settings WHERE id = 1").fetch_one(&db.reader).await.unwrap();
+    assert!(assistant.unwrap().contains("running"));
+    let units: i64 = sqlx::query_scalar("SELECT count(*) FROM planned_units").fetch_one(&db.reader).await.unwrap();
+    assert_eq!(units, 1);
+    db.close().await;
 }

@@ -321,93 +321,56 @@ paths:
       responses:
         '204': {description: 'Ausgeblendet'}
         '404': {$ref: '#/components/responses/NotFound'}
-  /plan/goal:
-    put:
+  /plan/goals:
+    get:
       tags: [Plan]
-      operationId: setPlanGoal
-      summary: Zieltermin setzen
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanGoal'}}}}
+      operationId: listPlanGoals
+      summary: Alle Ziele nach Datum
       responses:
-        '200': {description: 'Gesetzt', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanGoal'}}}}}}
+        '200': {description: 'OK', content: {application/json: {schema: {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/PlanGoal'}}}}}}}
+    post:
+      tags: [Plan]
+      operationId: createPlanGoal
+      summary: Ziel anlegen (Wettkampf, Tour); Datum, Sportklasse und Name sind Pflicht
+      description: 'Mehrere Ziele sind erlaubt. Sicherungsrelevant.'
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanGoalInput'}}}}
+      responses:
+        '201': {description: 'Angelegt', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanGoal'}}}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
+  /plan/goals/{id}:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Plan]
+      operationId: getPlanGoal
+      summary: Ein Ziel
+      responses:
+        '200': {description: 'OK', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanGoal'}}}}}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Plan]
+      operationId: updatePlanGoal
+      summary: Ziel ändern (nur gesetzte Felder; optionale Felder mit null leeren)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanGoalInput'}}}}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanGoal'}}}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
     delete:
       tags: [Plan]
       operationId: deletePlanGoal
-      summary: Zieltermin entfernen
-      responses:
-        '204': {description: 'Entfernt'}
-  /plan/templates:
-    get:
-      tags: [Plan]
-      operationId: listPlanTemplates
-      summary: Wochenvorlagen nach Name, je Einheit mit Belastung (Zonensatz von heute)
-      responses:
-        '200': {description: 'OK', content: {application/json: {schema: {type: object, properties: {data: {type: array, items: {$ref: '#/components/schemas/PlanTemplate'}}}}}}}
-    post:
-      tags: [Plan]
-      operationId: savePlanTemplate
-      summary: Einheiten einer Kalenderwoche als Vorlage speichern
-      description: 'Name eindeutig ohne Groß/Klein; mit `replace` wird eine vorhandene Vorlage gleichen Namens ersetzt, sonst 409. Sicherungsrelevant.'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [name, week_start]
-              properties:
-                name: {type: string, minLength: 1, maxLength: 80}
-                week_start: {type: string, format: date, description: 'Montag der Woche'}
-                replace: {type: boolean, default: false}
-      responses:
-        '201': {description: 'Gespeichert', content: {application/json: {schema: {type: object, properties: {data: {$ref: '#/components/schemas/PlanTemplate'}}}}}}
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '409': {$ref: '#/components/responses/Conflict'}
-  /plan/templates/{id}:
-    parameters:
-      - {$ref: '#/components/parameters/Id'}
-    delete:
-      tags: [Plan]
-      operationId: deletePlanTemplate
-      summary: Vorlage löschen (angelegte Einheiten bleiben)
+      summary: Ziel löschen (die Einheiten im Kalender bleiben)
       responses:
         '204': {description: 'Gelöscht'}
-        '404': {$ref: '#/components/responses/NotFound'}
-  /plan/templates/{id}/apply:
-    parameters:
-      - {$ref: '#/components/parameters/Id'}
-    post:
-      tags: [Plan]
-      operationId: applyPlanTemplate
-      summary: Vorlage auf 1 bis 12 Wochen anwenden
-      description: 'Vorhandene Einheiten bleiben, Tage vor heute entfallen (`skipped`). Jede Einheit der Vorlage wird über die Wochen zu einer Serie (ab zwei Terminen).'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [week_start, weeks]
-              properties:
-                week_start: {type: string, format: date, description: 'Montag der ersten Woche'}
-                weeks: {type: integer, minimum: 1, maximum: 12}
-      responses:
-        '201':
-          description: Angelegt
-          content: {application/json: {schema: {type: object, properties: {data: {type: object, properties: {created: {type: integer}, skipped: {type: integer}}}}}}}
-        '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
   /plan/suggestion:
     post:
       tags: [Plan]
       operationId: previewPlanSuggestion
-      summary: Planungshilfe – Vorschlag bis zum Ziel berechnen (speichert nichts)
+      summary: Planungshilfe – Vorschlag bis zum gewählten Ziel berechnen (speichert nichts)
       description: >-
-        E8 Stufe 2 (RFC-0009 „Planungshilfe“). Braucht ein Ziel mindestens 8 Tage voraus. Feste offene Einheiten (selbst
-        angelegt oder geändert) bleiben und zählen mit; offene, unveränderte Einheiten eines früheren Vorschlags würden ersetzt
-        (`replaces`).
+        E8 Stufe 2 (RFC-0009 „Planungshilfe“). Plant auf das Ziel `goal_id`, das mindestens 8 Tage voraus liegen muss. Alle
+        offenen Einheiten bleiben fest und zählen mit; nur Tage ohne Einheit werden verplant.
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SuggestionInput'}}}}
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/SuggestionResponse'}}}}
@@ -416,13 +379,13 @@ paths:
     post:
       tags: [Plan]
       operationId: applyPlanSuggestion
-      summary: Planungshilfe – Vorschlag neu berechnen und als Einheiten anlegen
-      description: 'Ersetzt offene, unveränderte Einheiten eines früheren Vorschlags und merkt sich die Eingaben (`assistant` in GET /plan). Sicherungsrelevant.'
+      summary: Planungshilfe – Vorschlag neu berechnen und als normale Einheiten anlegen
+      description: 'Ersetzt nichts; die Einheiten sind danach normale Einheiten ohne Bezug zum Ziel. Merkt sich die Eingaben ohne `goal_id` (`assistant` in GET /plan). Sicherungsrelevant.'
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SuggestionInput'}}}}
       responses:
         '201':
           description: Angelegt
-          content: {application/json: {schema: {type: object, properties: {data: {type: object, properties: {created: {type: integer}, replaced: {type: integer}, suggestion_id: {type: string}}}}}}}
+          content: {application/json: {schema: {type: object, properties: {data: {type: object, properties: {created: {type: integer}}}}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
   /activities/{id}/efforts:
     parameters:
@@ -748,7 +711,7 @@ paths:
       parameters:
         - {name: from, in: query, schema: {type: string, format: date}}
         - {name: to, in: query, schema: {type: string, format: date}}
-        - {name: forecast, in: query, schema: {type: string, enum: [rest, steady, plan], default: rest}, description: 'plan: offene Einheiten ab morgen, Tage ohne Einheit als Ruhe; die Vorschau reicht bis zum letzten Plantag bzw. Ziel + 3 Tage (höchstens 90)'}
+        - {name: forecast, in: query, schema: {type: string, enum: [rest, steady, plan], default: rest}, description: 'plan: offene Einheiten ab morgen, Tage ohne Einheit als Ruhe; die Vorschau reicht bis zum letzten Plantag bzw. letzten Ziel + 3 Tage (höchstens 90)'}
         - {name: forecast_days, in: query, schema: {type: integer, minimum: 0, maximum: 90, default: 28}}
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/FormResponse'}}}}
@@ -1138,7 +1101,7 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
     NotFound:
-      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `hr_zone_set_not_found`, `backup_not_found`, `operation_not_found`).
+      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `hr_zone_set_not_found`, `planned_unit_not_found`, `plan_goal_not_found`, `backup_not_found`, `operation_not_found`).
       content:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
@@ -1418,11 +1381,29 @@ components:
             changed_count: {type: integer, minimum: 0, description: 'Davon mit anderem Titel oder Ort (Vorschau) bzw. geändert (POST)'}
     PlanGoal:
       type: object
+      description: Ziel (Wettkampf, Tour) als Ereignis im Kalender
+      required: [id, date, sport_class, name, description, url, distance_m, target_time_s]
+      properties:
+        id: {type: string}
+        date: {type: string, format: date}
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
+        name: {type: string, minLength: 1, maxLength: 80}
+        description: {type: [string, 'null'], maxLength: 2000}
+        url: {type: [string, 'null'], description: 'Webseite, http oder https'}
+        distance_m: {type: [number, 'null'], exclusiveMinimum: 0}
+        target_time_s: {type: [integer, 'null'], minimum: 1, description: 'Zielzeit in Sekunden'}
+    PlanGoalInput:
+      type: object
       additionalProperties: false
-      required: [date, name]
+      description: 'Beim Anlegen sind date, sport_class und name Pflicht'
       properties:
         date: {type: string, format: date}
+        sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
         name: {type: string, minLength: 1, maxLength: 80}
+        description: {type: [string, 'null'], maxLength: 2000}
+        url: {type: [string, 'null'], maxLength: 500}
+        distance_m: {type: [number, 'null'], minimum: 1, maximum: 10000000}
+        target_time_s: {type: [integer, 'null'], minimum: 1, maximum: 2592000}
     PlannedUnitInput:
       type: object
       additionalProperties: false
@@ -1463,8 +1444,7 @@ components:
         zone_minutes: {type: [array, 'null'], items: {type: integer}}
         status: {type: string, enum: [planned, skipped, done], description: 'done = mit einer Aktivität verknüpft'}
         activity_id: {type: [string, 'null']}
-        suggested: {type: boolean, description: 'Aus einem Vorschlag der Planungshilfe und seitdem unverändert; jede Änderung macht die Einheit fest'}
-        series_id: {type: [string, 'null'], description: 'Serie (Wiederholen oder Wochenvorlage über mehrere Wochen)'}
+        series_id: {type: [string, 'null'], description: 'Serie (Wiederholen)'}
         series_following: {type: integer, description: 'Offene Einheiten derselben Serie nach diesem Tag'}
         load:
           type: object
@@ -1486,30 +1466,19 @@ components:
       properties:
         data:
           type: object
-          required: [today, units, goal, zones_configured]
+          required: [today, units, goals, zones_configured]
           properties:
             today: {type: string, format: date}
             units: {type: array, items: {$ref: '#/components/schemas/PlannedUnit'}}
-            goal: {oneOf: [{$ref: '#/components/schemas/PlanGoal'}, {type: 'null'}]}
+            goals: {type: array, items: {$ref: '#/components/schemas/PlanGoal'}, description: 'Alle Ziele nach Datum'}
             zones_configured: {type: boolean}
             assistant: {oneOf: [{$ref: '#/components/schemas/SuggestionInput'}, {type: 'null'}], description: 'Zuletzt übernommene Eingaben der Planungshilfe'}
-    PlanTemplate:
-      type: object
-      properties:
-        id: {type: string}
-        name: {type: string}
-        units:
-          type: array
-          description: 'Einheiten wie PlannedUnit ohne id, date, status, Verknüpfung und Serie, dazu weekday (0 = Montag)'
-          items: {type: object, properties: {weekday: {type: integer, minimum: 0, maximum: 6}}}
-        minutes: {type: integer}
-        load: {type: number}
-        updated_at: {type: string, format: date-time}
     SuggestionInput:
       type: object
       additionalProperties: false
-      required: [sport_class, minutes, max_gain, recovery_weeks, intensity]
+      required: [goal_id, sport_class, minutes, max_gain, recovery_weeks, intensity]
       properties:
+        goal_id: {type: string, description: 'Ziel, auf das geplant wird; wird nicht gemerkt'}
         sport_class: {type: string, enum: [cycling, ebike, running, skiing, swimming, studio]}
         minutes: {type: array, minItems: 7, maxItems: 7, items: {type: integer, minimum: 0, maximum: 600}, description: 'Höchstens so viele Minuten je Wochentag, Montag zuerst; unter 30 = Ruhetag; mindestens ein Tag ab 30'}
         max_gain: {type: integer, minimum: 3, maximum: 7, description: 'Höchster Fitnessanstieg je Woche'}
@@ -1528,8 +1497,7 @@ components:
               type: array
               description: 'Vorgeschlagene Einheiten (noch ohne id), je mit `phase`'
               items: {allOf: [{$ref: '#/components/schemas/PlannedUnit'}, {type: object, properties: {phase: {type: string, enum: [build, recovery, taper]}}}]}
-            fixed_units: {type: integer, description: 'Feste offene Einheiten bis zum Ziel'}
-            replaces: {type: integer, description: 'Offene Einheiten eines früheren Vorschlags, die beim Übernehmen ersetzt werden'}
+            fixed_units: {type: integer, description: 'Schon geplante offene Einheiten bis zum Ziel (bleiben fest)'}
             blocks:
               type: array
               items: {type: object, properties: {phase: {type: string, enum: [build, recovery, taper]}, from: {type: string, format: date}, to: {type: string, format: date}, factor: {type: number, description: 'Anteil der verfügbaren Zeit (Tapering: zu Beginn)'}}}
@@ -2253,6 +2221,12 @@ components:
                 mode: {type: string, enum: [rest, steady, plan]}
                 daily_load: {type: number}
                 days: {type: array, items: {$ref: '#/components/schemas/FormDay'}}
+            plan:
+              type: object
+              description: 'Trainingsplan (E8): alle Ziele und der letzte Tag mit offener Einheit ab morgen'
+              properties:
+                goals: {type: array, items: {$ref: '#/components/schemas/PlanGoal'}}
+                last_date: {type: [string, 'null'], format: date}
     AvatarColor:
       type: string
       enum: [blue, teal, green, amber, orange, red, pink, violet]

@@ -20,13 +20,14 @@ const input = "w-full rounded-lg border border-line bg-card-2 px-2 py-1.5 text-s
 const tile = "rounded-lg border border-line bg-card-2 px-3 py-2";
 
 /**
- * Planungshilfe (E8 Stufe 2): Eingaben links, Vorschlag rechts. Die Vorschau rechnet bei jeder Änderung neu,
- * „Übernehmen“ legt die Einheiten an und ersetzt offene, unveränderte Einheiten eines früheren Vorschlags.
+ * Planungshilfe (E8 Stufe 2) für ein Ziel: Eingaben links, Vorschlag rechts. Die Vorschau rechnet bei jeder Änderung
+ * neu, „Übernehmen“ trägt die Einheiten als normale Einheiten in den Kalender ein; vorhandene Einheiten bleiben fest.
  */
 export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved: SuggestionInput | null; onClose: () => void }) {
   const start = saved ?? DEFAULT_INPUT;
   const [base, setBase] = useState<Omit<SuggestionInput, "minutes">>(() => ({
-    sport_class: start.sport_class,
+    goal_id: goal.id,
+    sport_class: goal.sport_class === "unknown" ? start.sport_class : goal.sport_class,
     max_gain: start.max_gain,
     recovery_weeks: start.recovery_weeks,
     intensity: start.intensity,
@@ -80,7 +81,7 @@ export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved:
       wide
       footer={
         <>
-          <span className="flex-1 text-xs text-muted">{p && p.replaces > 0 ? t("plan.suggest.replaces", { n: p.replaces }) : ""}</span>
+          <span className="flex-1" />
           <button type="button" className={secondaryButton} onClick={onClose} disabled={busy}>
             {t("edit.cancel")}
           </button>
@@ -229,7 +230,7 @@ export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved:
                 </div>
               </div>
 
-              {points.length > 0 && <FormChart points={points} goal={goal} />}
+              {points.length > 0 && <FormChart points={points} goals={[goal]} />}
 
               <div className="grid gap-1 text-sm">
                 {p.weeks.map((w) => {
