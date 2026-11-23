@@ -112,6 +112,7 @@ describe("Einstellungen als Master-Detail", () => {
     expect(links.map((l) => l.getAttribute("href"))).toEqual([
       "/einstellungen/synchronisierung",
       "/einstellungen/sportarten",
+      "/einstellungen/plan-vorlagen",
       "/einstellungen/orte",
       "/einstellungen/darstellung",
     ]);

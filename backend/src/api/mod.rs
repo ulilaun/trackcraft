@@ -83,6 +83,8 @@ pub fn router(state: AppState) -> Router {
         .route("/plan/units/{id}/decline", post(plan::decline))
         .route("/plan/goals", get(plan::goals).post(plan::create_goal))
         .route("/plan/goals/{id}", get(plan::get_goal).patch(plan::update_goal).delete(plan::delete_goal))
+        .route("/plan/templates", get(plan::templates).post(plan::create_template))
+        .route("/plan/templates/{id}", axum::routing::patch(plan::update_template).delete(plan::delete_template))
         .route("/plan/suggestion", post(plan::suggestion))
         .route("/plan/suggestion/apply", post(plan::apply_suggestion))
         .route("/places/settings", get(places::get_settings).patch(places::update_settings))

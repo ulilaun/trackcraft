@@ -1,7 +1,20 @@
 import { useState } from "react";
 import { Repeat } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiDelete, apiPatch, apiPost, type HrZoneSet, type LoadSettings, type PlannedUnit, type PlannedUnitResponse, type SubSportCatalog } from "../../api/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  type HrZoneSet,
+  type LoadSettings,
+  type PlanTemplate,
+  type PlanTemplateResponse,
+  type PlanTemplatesResponse,
+  type PlannedUnit,
+  type PlannedUnitResponse,
+  type SubSportCatalog,
+} from "../../api/client";
 import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
@@ -9,7 +22,21 @@ import { t, type TextKey } from "../../i18n";
 import { addDays, num } from "../../utils/format";
 import { SPORT_CLASSES } from "../../utils/sports";
 import { germanDate } from "../seasons/seasonModel";
-import { MAX_SERIES, applicableSet, changedInput, formOf, hm, previewLoad, repeatProblem, seriesDates, unitInput, unitProblem, type UnitForm } from "./planModel";
+import {
+  MAX_SERIES,
+  applicableSet,
+  changedInput,
+  formOf,
+  formOfTemplate,
+  hm,
+  previewLoad,
+  repeatProblem,
+  seriesDates,
+  templateInput,
+  unitInput,
+  unitProblem,
+  type UnitForm,
+} from "./planModel";
 
 const input = "w-full rounded-lg border border-line bg-card-2 px-2 py-1.5 text-sm text-text disabled:opacity-60";
 const pill = (on: boolean) =>
@@ -17,13 +44,27 @@ const pill = (on: boolean) =>
 const ZONE_LABELS = ["Z1", "Z2", "Z3", "Z4", "Z5"];
 const CLASSES = SPORT_CLASSES.filter((c) => c !== "unknown");
 
-/** Geplante Einheit anlegen oder ändern (E8): Belastung als Minuten je Zone oder als Zielbelastung, mit Vorschau. */
+/** Wohin eine neue Einheit gespeichert wird (#38). */
+export type SaveTarget = "calendar" | "both" | "template";
+
+export function useTemplates(enabled = true) {
+  return useQuery({ queryKey: ["plan-templates"], enabled, queryFn: () => apiGet<PlanTemplatesResponse>("/plan/templates") });
+}
+
+/**
+ * Geplante Einheit anlegen oder ändern (E8): Belastung als Minuten je Zone oder als Zielbelastung, mit Vorschau.
+ * Neue Einheiten können aus einer Vorlage gefüllt und zusätzlich oder nur als Vorlage gespeichert werden. Mit
+ * `template` (ohne `unit`) bearbeitet der Dialog eine Vorlage (Einstellungen → Plan-Vorlagen); `template: null`
+ * zusammen mit `templateOnly` legt dort eine neue an.
+ */
 export function UnitDialog({
   unit,
   date,
   zoneSets,
   settings,
   catalog,
+  template,
+  templateOnly = false,
   onClose,
 }: {
   unit: PlannedUnit | null;
@@ -31,22 +72,37 @@ export function UnitDialog({
   zoneSets: HrZoneSet[];
   settings?: LoadSettings;
   catalog?: SubSportCatalog;
+  /** Vorlage bearbeiten (nur mit `templateOnly`) */
+  template?: PlanTemplate | null;
+  /** Dialog für eine Vorlage (Einstellungen): kein Datum, kein Status, kein Wiederholen */
+  templateOnly?: boolean;
   onClose: () => void;
 }) {
-  const [form, setForm] = useState<UnitForm>(() => formOf(unit, date));
+  const [form, setForm] = useState<UnitForm>(() => (template ? formOfTemplate(template, { date, status: "planned" }) : formOf(unit, date)));
   const [copyTo, setCopyTo] = useState<string | null>(null);
   // Wiederholen: 0 = nein, sonst alle N Wochen bis `until`
   const [repeat, setRepeat] = useState(0);
   const [until, setUntil] = useState(() => addDays(unit?.date ?? date, 56));
   const inSeries = !!unit?.series_id && (unit.series_following ?? 0) > 0;
   const [scope, setScope] = useState<"this" | "following">("this");
+  // Neue Einheit: Kalender, Kalender + Vorlage oder nur Vorlage; Name der Vorlage folgt dem Titel, bis man ihn ändert
+  const isNew = !unit && !templateOnly;
+  const [target, setTarget] = useState<SaveTarget>(templateOnly ? "template" : "calendar");
+  const [name, setName] = useState<string | null>(template?.name ?? null);
+  const templateName = name ?? form.title;
+  const withTemplate = target !== "calendar";
+  const inCalendar = target !== "template";
+  const templates = useTemplates(isNew);
+  const [chosen, setChosen] = useState("");
+
   const queryClient = useQueryClient();
   const flash = useFlash();
   const set = (patch: Partial<UnitForm>) => setForm((f) => ({ ...f, ...patch }));
   const zoneSet = applicableSet(zoneSets, form.sportClass, form.date);
   const preview = previewLoad(form, zoneSet, settings);
-  const dates = repeat ? seriesDates(form.date, repeat, until) : [];
-  const problem = unitProblem(form) ?? (repeat ? repeatProblem(dates) : null);
+  const dates = repeat && inCalendar ? seriesDates(form.date, repeat, until) : [];
+  const problem = unitProblem(form) ?? (repeat && inCalendar ? repeatProblem(dates) : null);
+  const nameMissing = withTemplate && !templateName.trim();
   const query = scope === "following" ? "?scope=following" : "";
   const done = unit?.status === "done";
   const subs = catalog?.[form.sportClass] ?? [];
@@ -56,23 +112,44 @@ export function UnitDialog({
     void queryClient.invalidateQueries({ queryKey: ["form"] });
   };
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      if (templateOnly) {
+        const body = templateInput(form, templateName);
+        return template ? apiPatch<PlanTemplateResponse>(`/plan/templates/${template.id}`, body) : apiPost<PlanTemplateResponse>("/plan/templates", body);
+      }
+      // Erst die Vorlage: ein vergebener Name bricht ab, bevor etwas im Kalender landet
+      if (withTemplate) await apiPost<PlanTemplateResponse>("/plan/templates", templateInput(form, templateName));
+      if (!inCalendar) return null;
       const body: Record<string, unknown> =
         unit && scope === "following" ? changedInput(unitInput(formOf(unit, unit.date), !done), unitInput(form, !done)) : unitInput(form, !!unit && !done);
       if (repeat) body.repeat = { every_weeks: repeat, until };
       return unit ? apiPatch<PlannedUnitResponse>(`/plan/units/${unit.id}${query}`, body) : apiPost<PlannedUnitResponse>("/plan/units", body);
     },
     onSuccess: () => {
-      refresh();
-      flash(repeat ? t("plan.repeat.saved", { n: dates.length }) : t("plan.saved"));
+      if (withTemplate) void queryClient.invalidateQueries({ queryKey: ["plan-templates"] });
+      if (inCalendar) refresh();
+      flash(
+        templateOnly
+          ? t("plan.template.saved", { name: templateName.trim() })
+          : !inCalendar
+            ? t("plan.template.saved", { name: templateName.trim() })
+            : repeat
+              ? t("plan.repeat.saved", { n: dates.length })
+              : t("plan.saved"),
+      );
       onClose();
     },
   });
   const remove = useMutation({
-    mutationFn: () => apiDelete(`/plan/units/${unit!.id}${query}`),
+    mutationFn: () => (templateOnly ? apiDelete(`/plan/templates/${template!.id}`) : apiDelete(`/plan/units/${unit!.id}${query}`)),
     onSuccess: () => {
-      refresh();
-      flash(t("plan.deleted"));
+      if (templateOnly) {
+        void queryClient.invalidateQueries({ queryKey: ["plan-templates"] });
+        flash(t("plan.template.deleted", { name: template!.name }));
+      } else {
+        refresh();
+        flash(t("plan.deleted"));
+      }
       onClose();
     },
   });
@@ -85,15 +162,17 @@ export function UnitDialog({
     },
   });
   const busy = save.isPending || remove.isPending || copy.isPending;
+  const title = templateOnly ? (template ? "plan.template.edit" : "plan.template.new") : unit ? "plan.unit.edit" : "plan.unit.new";
+  const canDelete = templateOnly ? !!template : !!unit;
 
   return (
     <Dialog
-      title={t(unit ? "plan.unit.edit" : "plan.unit.new")}
+      title={t(title)}
       onClose={onClose}
       busy={busy}
       footer={
         <>
-          {unit && (
+          {canDelete && (
             <button type="button" className={`${secondaryButton} text-danger`} disabled={busy} onClick={() => remove.mutate()}>
               {t("plan.delete")}
             </button>
@@ -107,13 +186,41 @@ export function UnitDialog({
           <button type="button" className={secondaryButton} onClick={onClose} disabled={busy}>
             {t("edit.cancel")}
           </button>
-          <button type="button" className={primaryButton} disabled={busy || problem != null} onClick={() => save.mutate()}>
+          <button type="button" className={primaryButton} disabled={busy || problem != null || nameMissing} onClick={() => save.mutate()}>
             {save.isPending ? t("edit.saving") : t("edit.save")}
           </button>
         </>
       }
     >
       <div className="grid gap-3 text-sm">
+        {isNew && (templates.data?.data.length ?? 0) > 0 && (
+          <label className="grid gap-1 rounded-lg border border-line bg-card-2 p-2">
+            <span className="text-xs font-medium text-muted">{t("plan.template.from")}</span>
+            <select
+              className={input}
+              value={chosen}
+              disabled={busy}
+              onChange={(e) => {
+                const tpl = templates.data?.data.find((x) => x.id === e.target.value);
+                setChosen(e.target.value);
+                if (tpl) setForm((f) => formOfTemplate(tpl, { date: f.date, status: f.status }));
+              }}
+            >
+              <option value="">{t("plan.template.none")}</option>
+              {templates.data?.data.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name} · {hm(x.load.minutes)} · {num(x.load.total)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {templateOnly && (
+          <label className="grid gap-1">
+            <span className="text-xs font-medium text-muted">{t("plan.template.name")}</span>
+            <input className={input} value={templateName} maxLength={80} disabled={busy} onChange={(e) => setName(e.target.value)} />
+          </label>
+        )}
         {inSeries && (
           <div className="grid gap-1 rounded-lg border border-line bg-card-2 p-2" data-testid="plan-series-scope">
             <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -154,11 +261,13 @@ export function UnitDialog({
             </button>
           </div>
         )}
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="grid gap-1">
-            <span className="text-xs font-medium text-muted">{t("plan.field.date")}</span>
-            <input type="date" className={input} value={form.date} disabled={busy} onChange={(e) => set({ date: e.target.value })} />
-          </label>
+        <div className={`grid gap-3 ${inCalendar ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          {inCalendar && (
+            <label className="grid gap-1">
+              <span className="text-xs font-medium text-muted">{t("plan.field.date")}</span>
+              <input type="date" className={input} value={form.date} disabled={busy} onChange={(e) => set({ date: e.target.value })} />
+            </label>
+          )}
           <label className="grid gap-1">
             <span className="text-xs font-medium text-muted">{t("plan.field.sport")}</span>
             <select
@@ -277,7 +386,7 @@ export function UnitDialog({
           <textarea className={`${input} min-h-16`} rows={2} value={form.note} disabled={busy} onChange={(e) => set({ note: e.target.value })} />
         </label>
 
-        {scope === "this" && (
+        {scope === "this" && inCalendar && !templateOnly && (
           <div className="grid gap-1">
             <span className="text-xs font-medium text-muted">{t(unit ? "plan.repeat.fromHere" : "plan.repeat.title")}</span>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("plan.repeat.title")}>
@@ -301,6 +410,25 @@ export function UnitDialog({
                       : t("plan.repeat.count", { n: dates.length, from: germanDate(dates[0]!), to: germanDate(dates.at(-1)!) })}
                 </span>
               </div>
+            )}
+          </div>
+        )}
+
+        {isNew && (
+          <div className="grid gap-1" data-testid="plan-save-target">
+            <span className="text-xs font-medium text-muted">{t("plan.target.title")}</span>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("plan.target.title")}>
+              {(["calendar", "both", "template"] as const).map((x) => (
+                <button key={x} type="button" role="radio" aria-checked={target === x} className={pill(target === x)} onClick={() => setTarget(x)}>
+                  {t(`plan.target.${x}` as TextKey)}
+                </button>
+              ))}
+            </div>
+            {withTemplate && (
+              <label className="grid gap-1">
+                <span className="text-xs font-medium text-muted">{t("plan.template.name")}</span>
+                <input className={input} value={templateName} maxLength={80} disabled={busy} onChange={(e) => setName(e.target.value)} />
+              </label>
             )}
           </div>
         )}

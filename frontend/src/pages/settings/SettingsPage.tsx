@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { Activity, ArrowLeft, ChevronRight, MapPin, Palette, RefreshCw, type LucideIcon } from "lucide-react";
+import { Activity, ArrowLeft, CalendarRange, ChevronRight, MapPin, Palette, RefreshCw, type LucideIcon } from "lucide-react";
 import { t, type TextKey } from "../../i18n";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { GarminSettings } from "./GarminSettings";
 import { PlaceSettings } from "./PlaceSettings";
+import { PlanTemplateSettings } from "./PlanTemplateSettings";
 import { SportsSettings } from "./SportsSettings";
 
 type Section = { slug: string; title: TextKey; hint: TextKey; icon: LucideIcon; render: () => ReactNode };
@@ -13,6 +14,7 @@ type Section = { slug: string; title: TextKey; hint: TextKey; icon: LucideIcon; 
 const SECTIONS: Section[] = [
   { slug: "synchronisierung", title: "settings.sync", hint: "settings.syncHint", icon: RefreshCw, render: () => <GarminSettings /> },
   { slug: "sportarten", title: "settings.sports", hint: "settings.sportsHint", icon: Activity, render: () => <SportsSettings /> },
+  { slug: "plan-vorlagen", title: "settings.planTemplates", hint: "settings.planTemplatesHint", icon: CalendarRange, render: () => <PlanTemplateSettings /> },
   { slug: "orte", title: "settings.places", hint: "settings.placesHint", icon: MapPin, render: () => <PlaceSettings /> },
   { slug: "darstellung", title: "settings.appearance", hint: "settings.appearanceHint", icon: Palette, render: () => <AppearanceSettings /> },
 ];

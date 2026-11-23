@@ -1,5 +1,5 @@
 // Seite „Plan“ (E8): Wochen, Formular einer Einheit, Vorschau der Belastung; reine Logik ohne React.
-import type { HrZoneSet, LoadSettings, PlannedUnit, SportClass } from "../../api/client";
+import type { HrZoneSet, LoadSettings, PlanTemplate, PlannedUnit, SportClass } from "../../api/client";
 import { addDays } from "../../utils/format";
 import { monday } from "../form/formModel";
 
@@ -104,6 +104,18 @@ export function unitProblem(f: UnitForm): UnitProblem | null {
     if (z.some((v) => v == null) || sum < 1 || sum > 1440) return "zones";
   }
   return null;
+}
+
+/** Formular aus einer Vorlage: übernimmt alles außer Datum und Status. */
+export function formOfTemplate(t: PlanTemplate, keep: Pick<UnitForm, "date" | "status">): UnitForm {
+  return { ...formOf({ ...t, date: keep.date, status: "planned", activity_id: null }, keep.date), status: keep.status };
+}
+
+/** Eingabe für POST/PATCH `/plan/templates`: wie eine Einheit ohne Datum und Status, dazu der Name. */
+export function templateInput(f: UnitForm, name: string) {
+  const { date: _date, ...rest } = unitInput(f, false);
+  void _date;
+  return { name: name.trim(), ...rest };
 }
 
 /** Eingabe für POST/PATCH `/plan/units`. */
