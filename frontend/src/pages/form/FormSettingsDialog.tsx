@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiPatch, type CurveModel, type LoadSettings, type LoadSettingsResponse, type SportClass } from "../../api/client";
 import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
+import { InfoButton, InfoItem } from "../../components/InfoButton";
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
 import { SportIcon } from "../../components/SportIcon";
@@ -14,8 +15,8 @@ const MODELS: CurveModel[] = ["standard", "two_curve"];
 
 /** Vorlagen (#24): füllen Modell, Zeitkonstanten und Gewicht. */
 const PRESETS = {
-  standard: { model: "standard", fitness: 42, fatigue: 7, weight: 1 },
-  sporttracks: { model: "standard", fitness: 21, fatigue: 12, weight: 0.75 },
+  classic: { model: "standard", fitness: 42, fatigue: 7, weight: 1 },
+  responsive: { model: "standard", fitness: 21, fatigue: 12, weight: 0.75 },
 } as const;
 type Preset = keyof typeof PRESETS;
 
@@ -33,6 +34,16 @@ const whole = (s: string, lo: number, hi: number): number | null => {
   const v = Number(s);
   return v >= lo && v <= hi ? v : null;
 };
+
+/** Abschnittsüberschrift mit ⓘ für das Erklärfenster. */
+function Legend({ text, title, help }: { text: string; title: string; help: ReactNode }) {
+  return (
+    <legend className={`${legend} flex items-center gap-1`}>
+      {text}
+      <InfoButton title={title}>{help}</InfoButton>
+    </legend>
+  );
+}
 
 function NumberField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
   return (
@@ -133,7 +144,18 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
     >
       <div className="grid gap-5">
         <fieldset className="grid gap-2">
-          <legend className={legend}>{t("form.settings.preset")}</legend>
+          <Legend
+            text={t("form.settings.preset")}
+            title={t("form.help.preset.title")}
+            help={
+              <>
+                <p>{t("form.help.preset.intro")}</p>
+                <InfoItem term={t("form.preset.classic")}>{t("form.help.preset.classic")}</InfoItem>
+                <InfoItem term={t("form.preset.responsive")}>{t("form.help.preset.responsive")}</InfoItem>
+                <p className="text-muted">{t("form.help.preset.tip")}</p>
+              </>
+            }
+          />
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("form.settings.preset")}>
             {(Object.keys(PRESETS) as Preset[]).map((k) => (
               <button
@@ -153,7 +175,23 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
         </fieldset>
 
         <fieldset className="grid gap-2">
-          <legend className={legend}>{t("form.settings.model")}</legend>
+          <Legend
+            text={t("form.settings.model")}
+            title={t("form.help.model.title")}
+            help={
+              <>
+                <p>{t("form.help.model.intro")}</p>
+                <InfoItem term={t("form.model.standard")}>{t("form.help.model.standard")}</InfoItem>
+                <InfoItem term={t("form.model.two_curve")}>{t("form.help.model.two_curve")}</InfoItem>
+                <InfoItem term={t("form.settings.fitnessDays")}>{t("form.help.model.fitness")}</InfoItem>
+                <InfoItem term={t("form.settings.fatigueDays")}>{t("form.help.model.fatigue")}</InfoItem>
+                <InfoItem term={`${t("form.fatigueAerobic")} / ${t("form.anaerobic")}`}>{t("form.help.model.parts")}</InfoItem>
+                <InfoItem term={t("form.settings.restBonus")}>{t("form.help.model.restBonus")}</InfoItem>
+                <InfoItem term={t("form.settings.weight")}>{t("form.help.model.weight")}</InfoItem>
+                <p className="text-muted">{t("form.help.model.states")}</p>
+              </>
+            }
+          />
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("form.settings.model")}>
             {MODELS.map((m) => (
               <button
@@ -189,7 +227,16 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
         </fieldset>
 
         <fieldset className="grid gap-2">
-          <legend className={legend}>{t("form.settings.foster")}</legend>
+          <Legend
+            text={t("form.settings.foster")}
+            title={t("form.help.foster.title")}
+            help={
+              <>
+                <InfoItem term={t("form.monotonyShort")}>{t("form.help.foster.monotony")}</InfoItem>
+                <InfoItem term={t("form.settings.fosterSurcharge")}>{t("form.help.foster.surcharge")}</InfoItem>
+              </>
+            }
+          />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={surcharge} onChange={(e) => setSurcharge(e.target.checked)} />
             {t("form.settings.fosterSurcharge")}
@@ -198,7 +245,17 @@ export function FormSettingsDialog({ settings, onClose }: { settings: LoadSettin
         </fieldset>
 
         <fieldset className="grid gap-2">
-          <legend className={legend}>{t("form.settings.estimate")}</legend>
+          <Legend
+            text={t("form.settings.estimate")}
+            title={t("form.help.estimate.title")}
+            help={
+              <>
+                <p>{t("form.help.estimate.how")}</p>
+                <p>{t("form.help.estimate.scale")}</p>
+                <p className="text-muted">{t("form.help.estimate.recalc")}</p>
+              </>
+            }
+          />
           {SPORT_CLASSES.map((c) => (
             <label key={c} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex items-center gap-2">
