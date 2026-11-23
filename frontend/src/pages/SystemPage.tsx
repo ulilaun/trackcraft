@@ -20,7 +20,7 @@ export function SystemPage() {
   const v = version.data?.data;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {version.error ? (
         <Card title={t("system.version")}>
           <Problem error={version.error} />

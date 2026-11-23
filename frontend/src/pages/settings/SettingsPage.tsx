@@ -29,7 +29,7 @@ export function SettingsPage() {
   const shown = current ?? SECTIONS[0]!;
 
   return (
-    <div className="grid min-w-0 gap-4">
+    <div className="grid grid-cols-1 min-w-0 gap-4">
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(220px,28%)_minmax(0,1fr)] lg:items-start">
         <nav

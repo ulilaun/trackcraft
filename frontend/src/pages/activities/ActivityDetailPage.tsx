@@ -111,7 +111,7 @@ export function ActivityDetailPage() {
   if (activity.error) {
     const notFound = activity.error instanceof ApiError && activity.error.status === 404;
     return (
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <div>{back}</div>
         <Card>{notFound ? <p className="text-muted">{t("detail.notFound")}</p> : <Problem error={activity.error} />}</Card>
       </div>
@@ -132,7 +132,7 @@ export function ActivityDetailPage() {
     "flex items-center gap-1.5 rounded-lg border border-line bg-card-2 px-3 py-1.5 text-sm hover:border-accent disabled:opacity-40 disabled:hover:border-line";
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div>{back}</div>
       <Card>
         <div className="flex flex-wrap items-center gap-4">

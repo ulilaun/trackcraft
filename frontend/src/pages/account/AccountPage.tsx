@@ -21,7 +21,7 @@ export function AccountPage() {
   const profile = useProfile();
   const today = localDate(new Date(), useConfig().data?.data.timezone);
   return (
-    <div className="grid min-w-0 max-w-3xl gap-4">
+    <div className="grid grid-cols-1 min-w-0 max-w-3xl gap-4">
       <h1 className="text-2xl font-bold">{t("account.title")}</h1>
       {profile.error ? (
         <Problem error={profile.error} />

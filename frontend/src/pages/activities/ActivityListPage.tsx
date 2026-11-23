@@ -179,7 +179,7 @@ export function ActivityListPage() {
   );
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <h1 className="text-2xl font-bold">{t("nav.activities")}</h1>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label={t("list.kpi.count")} value={s ? num(s.count) : "–"} sub={periodText(period, pickedSeason)} />

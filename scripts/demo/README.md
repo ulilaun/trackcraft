@@ -7,7 +7,7 @@ Erfundene Trainingsdaten auf Mallorca für Screenshots und Vorführungen, ohne e
 | `routes.json` | Sechs Strecken (Rad: Formentor, Sa Calobra, Pollença–Lluc, Alcúdia; Laufen: Hafenrunde, Vall de Boquer). Aus OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende, ODbL), geroutet mit [BRouter](https://brouter.de). |
 | `make_demo.py` | Erzeugt daraus rund 180 GPX-Aktivitäten von März 2025 bis November 2026 mit erfundenem Tempo, Puls und GPS-Rauschen (fester Zufallswert, reproduzierbar). |
 | `seed_demo.py` | Importiert die Dateien in eine **leere** Test-Instanz, legt zwei Saisons, fünf Segmente und zwei Strecken an. |
-| `screenshots.mjs` | Fotografiert Dashboard, Aktivitätenliste, Aktivität, Segment, Statistik und eine Tablet-Ansicht, hell und dunkel, nach `docs/screenshots/`. |
+| `screenshots.mjs` | Fotografiert Dashboard, Aktivitätenliste, Aktivität, Segment, Statistik und eine Tablet-Ansicht, hell und dunkel, nach `docs/screenshots/`, und prüft danach, dass keine Hauptseite bei 360 px Breite seitlich scrollt (sonst Exit-Code 1). |
 
 ## Ablauf
 
