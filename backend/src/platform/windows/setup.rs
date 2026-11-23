@@ -324,18 +324,20 @@ pub fn setup(args: SetupArgs) -> anyhow::Result<()> {
     }
     let cfg = config::load(&layout.config_file);
 
-    println!("4. Zertifikat");
+    // Der Dienst zuerst: Erst mit ihm gibt es das Konto NT SERVICE\TrackCraft, dem der Zertifikatsschritt
+    // Leserechte auf den Serverschlüssel gibt (sonst scheitert icacls, wenn noch kein Dienst eingerichtet ist).
+    println!("4. Dienst {SERVICE_NAME} ({ACCOUNT})");
+    let service = register_service(&mgr, &exe, access)?;
+
+    println!("5. Ereignisquelle {SERVICE_NAME}");
+    register_event_source()?;
+
+    println!("6. Zertifikat");
     if let Ok(cfg) = &cfg {
         apply_certificates(cfg, &layout, false)?;
     } else {
         println!("   übersprungen, Konfiguration ist ungültig (siehe unten)");
     }
-
-    println!("5. Dienst {SERVICE_NAME} ({ACCOUNT})");
-    let service = register_service(&mgr, &exe, access)?;
-
-    println!("6. Ereignisquelle {SERVICE_NAME}");
-    register_event_source()?;
 
     println!("7. Zugriffsrechte");
     icacls_grant(&layout.config_dir, "(OI)(CI)RX")?;
