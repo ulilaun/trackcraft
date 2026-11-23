@@ -120,7 +120,7 @@ export function SegmentDetailPage() {
   if (segment.error) {
     const notFound = segment.error instanceof ApiError && segment.error.status === 404;
     return (
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <div>{back}</div>
         <Card>{notFound ? <p className="text-muted">{t("segment.notFound")}</p> : <Problem error={segment.error} />}</Card>
       </div>
@@ -155,7 +155,7 @@ export function SegmentDetailPage() {
   const td = "px-2 py-1.5";
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div>{back}</div>
       <Card>
         <div className="flex flex-wrap items-center gap-4">

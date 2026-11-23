@@ -55,4 +55,23 @@ for (const scheme of ["light", "dark"]) {
     await ctx.close();
   }
 }
+
+// Handybreite: keine Seite darf breiter als der Bildschirm sein, breite Inhalte scrollen nur in ihrem Kasten.
+const phone = await browser.newContext({ viewport: { width: 360, height: 780 }, locale: "de-DE", timezoneId: "Europe/Berlin", ignoreHTTPSErrors: true });
+const page = await phone.newPage();
+const pages = ["/", "/aktivitaeten", `/aktivitaeten/${ride.id}`, "/segmente", "/strecken", `/segmente/${calobra.id}`, "/statistik", "/form", "/plan", "/import", "/system", "/einstellungen", "/konto"];
+const tooWide = [];
+for (const url of pages) {
+  await page.goto(BASE + url, { waitUntil: "networkidle" });
+  await page.waitForTimeout(500);
+  const [scroll, client] = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  if (scroll > client) tooWide.push(`${url}: ${scroll} px statt ${client} px`);
+}
+await phone.close();
 await browser.close();
+if (tooWide.length) {
+  console.error(`Auf Handybreite zu breit:\n  ${tooWide.join("\n  ")}`);
+  process.exitCode = 1;
+} else {
+  console.log(`Handybreite 360 px: alle ${pages.length} Seiten passen.`);
+}

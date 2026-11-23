@@ -525,7 +525,7 @@ export function FormPage() {
   const goal = forecast === "plan" ? (d?.plan?.goal ?? null) : null;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{t("form.title")}</h1>
         <button

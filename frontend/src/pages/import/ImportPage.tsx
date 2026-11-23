@@ -286,7 +286,7 @@ export function ImportPage() {
 
   if (phase === "empty") {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {title}
         <DropZone maxMb={maxMb} onFiles={(f) => void uploadAll(f)} />
       </div>
@@ -295,7 +295,7 @@ export function ImportPage() {
 
   if (phase === "upload") {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {title}
         <UploadList entries={entries} />
       </div>
@@ -312,7 +312,7 @@ export function ImportPage() {
 
   if (phase === "done") {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {title}
         {noticeList}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -343,7 +343,7 @@ export function ImportPage() {
   const deciding = rows.filter((r) => r.kind === "duplicate" || r.kind === "time");
   const pendingReady = rows.filter((r) => r.kind === "ready");
   return (
-    <div className="grid gap-4 pb-2">
+    <div className="grid grid-cols-1 gap-4 pb-2">
       {title}
       {noticeList}
       <SummaryCards s={summary} />

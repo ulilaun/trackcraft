@@ -183,7 +183,7 @@ export function StatisticsPage() {
   const yearSum = periods.data?.data.years.find((y) => y.year === year);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <h1 className="text-2xl font-bold">{t("nav.statistics")}</h1>
 
       <section className="grid gap-2" aria-label={t("stats.seasons")}>

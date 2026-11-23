@@ -87,7 +87,7 @@ export function SegmentListPage({ kind }: { kind: SegmentKind }) {
   const route = kind === "route";
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <h1 className="flex items-center gap-2 text-2xl font-bold">
         <SegmentKindIcon kind={kind} size={26} className="text-muted" />
         {t(kind === "route" ? "nav.routes" : "nav.segments")}
