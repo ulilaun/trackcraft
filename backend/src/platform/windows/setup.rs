@@ -147,13 +147,29 @@ fn is_unconfigured(config_file: &Path) -> bool {
     std::fs::read_to_string(config_file).map(|t| install::is_unconfigured(&t)).unwrap_or(false)
 }
 
+/// Hebt den Schreibschutz einer vorhandenen Datei auf; fehlt sie, passiert nichts.
+fn clear_readonly(path: &Path) {
+    if let Ok(meta) = std::fs::metadata(path) {
+        let mut perm = meta.permissions();
+        if perm.readonly() {
+            #[allow(clippy::permissions_set_readonly_false)] // nur Windows: entfernt das Attribut „Schreibgeschützt“
+            perm.set_readonly(false);
+            let _ = std::fs::set_permissions(path, perm);
+        }
+    }
+}
+
 fn copy_payload(source: &Path, target: &Path) -> anyhow::Result<()> {
     std::fs::create_dir_all(target).with_context(|| format!("{} lässt sich nicht anlegen", target.display()))?;
     for name in PAYLOAD {
         let from = source.join(name);
         if from.is_file() {
-            std::fs::copy(&from, target.join(name))
-                .with_context(|| format!("{name} lässt sich nicht nach {} kopieren", target.display()))?;
+            let to = target.join(name);
+            // Kopieren übernimmt Dateiattribute: Eine schreibgeschützte Quelle (z. B. direkt aus dem ZIP gestartet)
+            // machte das Ziel schreibgeschützt, und das nächste Update scheiterte mit „Zugriff verweigert“.
+            clear_readonly(&to);
+            std::fs::copy(&from, &to).with_context(|| format!("{name} lässt sich nicht nach {} kopieren", target.display()))?;
+            clear_readonly(&to);
         }
     }
     let web = target.join("web");
@@ -172,6 +188,7 @@ fn copy_dir(from: &Path, to: &Path) -> anyhow::Result<()> {
             copy_dir(&entry.path(), &dest)?;
         } else {
             std::fs::copy(entry.path(), &dest)?;
+            clear_readonly(&dest);
         }
     }
     Ok(())

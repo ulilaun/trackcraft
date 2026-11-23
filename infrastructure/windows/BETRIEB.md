@@ -19,7 +19,7 @@ Gilt für das Windows-ZIP `trackcraft-<version>-windows-x86_64.zip` (RFC-0005, R
 
    Der Wert muss mit der Zeile in `SHA256SUMS.txt` übereinstimmen.
 3. Rechtsklick auf das ZIP → Eigenschaften → „Zulassen“ ankreuzen. Sonst warnt SmartScreen beim Start, weil TrackCraft nicht signiert ist.
-4. Das ZIP entpacken, wo es liegt, z. B. im Download-Ordner.
+4. Das ZIP entpacken (Rechtsklick → „Alle extrahieren“), wo es liegt, z. B. im Download-Ordner. `setup.cmd` nicht direkt im geöffneten ZIP doppelklicken: Dann fehlen ihm die übrigen Dateien.
 
 ### Für Entwickler: lokal gebautes Paket
 
