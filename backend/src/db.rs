@@ -23,6 +23,7 @@ pub const MIGRATIONS: &[(i64, &str)] = &[
     (12, include_str!("../migrations/0012_form_models.sql")),
     (13, include_str!("../migrations/0013_places.sql")),
     (14, include_str!("../migrations/0014_fatigue_weight.sql")),
+    (15, include_str!("../migrations/0015_training_plan.sql")),
 ];
 
 /// Schemaversion dieses Programms.

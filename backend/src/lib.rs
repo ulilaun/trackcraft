@@ -19,6 +19,7 @@ pub mod load;
 pub mod localtime;
 pub mod logging;
 pub mod places;
+pub mod plan;
 pub mod platform;
 pub mod profile;
 pub mod seasons;

@@ -7,6 +7,7 @@ pub mod guard;
 pub mod import;
 pub mod load;
 pub mod places;
+pub mod plan;
 pub mod profile;
 pub mod seasons;
 pub mod segments;
@@ -74,6 +75,13 @@ pub fn router(state: AppState) -> Router {
         .route("/activities/{id}/track", get(activities::track))
         .route("/activities/{id}/efforts", get(activities::efforts))
         .route("/activities/{id}/location-suggestion", get(places::suggestion))
+        .route("/activities/{id}/plan", get(plan::for_activity))
+        .route("/plan", get(plan::list))
+        .route("/plan/units", post(plan::create))
+        .route("/plan/units/{id}", get(plan::get_one).patch(plan::update).delete(plan::delete))
+        .route("/plan/units/{id}/activity", put(plan::link).delete(plan::unlink))
+        .route("/plan/units/{id}/decline", post(plan::decline))
+        .route("/plan/goal", put(plan::set_goal).delete(plan::delete_goal))
         .route("/places/settings", get(places::get_settings).patch(places::update_settings))
         .route("/stats/dashboard", get(activities::dashboard))
         .route("/stats", get(stats::overview))

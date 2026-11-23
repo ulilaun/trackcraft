@@ -54,6 +54,9 @@ impl ApiError {
     pub const LOCAL_TIME_AMBIGUOUS: Self =
         Self::new(StatusCode::BAD_REQUEST, "local_time_ambiguous", "Local time occurs twice, occurrence is required");
     pub const ACTIVITY_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "activity_not_found", "Activity not found");
+    pub const PLANNED_UNIT_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "planned_unit_not_found", "Planned unit not found");
+    pub const ACTIVITY_ALREADY_PLANNED: Self =
+        Self::new(StatusCode::CONFLICT, "activity_already_planned", "Activity is already linked to another planned unit");
     pub const SEGMENT_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "segment_not_found", "Segment not found");
     pub const JOB_NOT_FOUND: Self = Self::new(StatusCode::NOT_FOUND, "job_not_found", "Job not found");
     pub const JOB_NOT_RETRYABLE: Self = Self::new(StatusCode::CONFLICT, "job_not_retryable", "Job has not failed");
