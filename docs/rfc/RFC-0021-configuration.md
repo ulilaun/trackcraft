@@ -74,6 +74,7 @@ Spalte „Wirkung“: **Neuberechnung** löst eine versionierte Neuberechnung au
 | `[garmin] api_base_url` | optional, Vorgabe `https://personal.connectapi.garmin.com` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests) | Betrieb | nein |
 | `[garmin] request_delay_ms` | optional, Vorgabe `1000`, höchstens `60000` (Pause vor jedem Download) | Betrieb | nein |
 | `[places] nominatim_url` | optional, Vorgabe `https://nominatim.openstreetmap.org` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests); Rückwärtssuche des Ortsvorschlags (RFC-0017), etwa für eine eigene Nominatim-Instanz | Betrieb | nein |
+| `[demo] enabled` | optional, Vorgabe `false`. `true`: Hinweisband „Demo mit erfundenen Daten“; beim Start werden alle Daten um ganze Tage verschoben, sodass die letzte Aktivität gestern war. Nur mit einer Demo-Datenbank (`trackcraft demo mark`, Migration 20), sonst bricht der Start ab | Neustart | nein |
 
 Feste Werte in V1 (nicht konfigurierbar): fünf aufbewahrte Sicherungsstände, genau eine Vollsicherung.
 

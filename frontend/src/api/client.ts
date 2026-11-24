@@ -171,6 +171,8 @@ export interface ConfigResponse {
     segments: { minimum_length_m: number; route_edge_m: number };
     /** Untertyp-Katalog je Sportklasse aus der Datenbank */
     sub_sport_catalog: SubSportCatalog;
+    /** `[demo] enabled`: Hinweisband „Demo mit erfundenen Daten“ */
+    demo?: boolean;
   };
 }
 

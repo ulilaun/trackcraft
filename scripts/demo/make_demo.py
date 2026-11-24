@@ -3,7 +3,10 @@
 Die Strecken in routes.json stammen aus OpenStreetMap-Daten (© OpenStreetMap-Mitwirkende, ODbL), geroutet mit
 BRouter. Zeiten, Tempo, Puls und GPS-Rauschen sind erfunden und mit festem Zufallswert reproduzierbar.
 
-Aufruf:  python scripts/demo/make_demo.py <zielordner>
+Aufruf:  python scripts/demo/make_demo.py <zielordner> [letzter_tag]
+
+Die letzte Aktivität liegt auf `letzter_tag` (JJJJ-MM-TT, Vorgabe gestern), die erste rund 21 Monate davor. Mit
+festem `letzter_tag` ist die Ausgabe reproduzierbar.
 """
 
 import json
@@ -39,8 +42,7 @@ KINDS = {
 }
 
 # Wer auf Mallorca wohnt: das ganze Jahr alle paar Tage, im Sommer weniger Radfahren (Hitze), mehr Laufen
-FIRST_DAY = date(2025, 3, 1)
-LAST_DAY = date(2026, 11, 22)
+SPAN_DAYS = 630
 RIDES = ["formentor", "lluc", "alcudia", "sa_calobra", "formentor", "alcudia", "lluc"]
 RUNS = ["hafenrunde", "hafenrunde", "boquer"]
 
@@ -137,12 +139,17 @@ def gpx(sport, title, pts):
     )
 
 
-def schedule(rng):
-    """(Datum, Strecke) für alle Aktivitäten: alle zwei bis fünf Tage, Mai bis September öfter Laufen."""
+def schedule(rng, last_day):
+    """(Datum, Strecke) für alle Aktivitäten: alle zwei bis fünf Tage, Juni bis September öfter Laufen. Rückwärts vom
+    letzten Tag aus, damit die letzte Aktivität genau dort liegt."""
+    days = []
+    day, first = last_day, last_day - timedelta(days=SPAN_DAYS)
+    while day >= first:
+        days.append(day)
+        day -= timedelta(days=rng.choice([2, 3, 3, 4, 5]))
     plan = []
-    day = FIRST_DAY
     rides = runs = 0
-    while day <= LAST_DAY:
+    for day in reversed(days):
         summer = 6 <= day.month <= 9
         if rng.random() < (0.55 if summer else 0.3):
             plan.append((day, RUNS[runs % len(RUNS)]))
@@ -150,18 +157,18 @@ def schedule(rng):
         else:
             plan.append((day, RIDES[rides % len(RIDES)]))
             rides += 1
-        day += timedelta(days=rng.choice([2, 3, 3, 4, 5]))
     return plan
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3):
         sys.exit(__doc__)
     out = Path(sys.argv[1])
+    last_day = date.fromisoformat(sys.argv[2]) if len(sys.argv) == 3 else date.today() - timedelta(days=1)
     out.mkdir(parents=True, exist_ok=True)
     routes = json.loads((HERE / "routes.json").read_text(encoding="utf-8"))
     rng = random.Random(20260315)
-    plan = schedule(rng)
+    plan = schedule(rng, last_day)
     for n, (day, name) in enumerate(plan):
         form = 0.92 + 0.12 * n / max(len(plan) - 1, 1) + rng.uniform(-0.03, 0.03)
         hour = 8 if KINDS[name][0] == "road" else rng.choice([7, 18])

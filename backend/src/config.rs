@@ -41,6 +41,17 @@ pub struct Config {
     pub garmin: GarminSection,
     #[serde(default)]
     pub places: PlacesSection,
+    #[serde(default)]
+    pub demo: DemoSection,
+}
+
+/// Demo mit erfundenen Daten: Hinweisband in der Oberfläche, beim Start Daten auf heute verschieben (nur
+/// Demo-Datenbank, siehe Migration 0020).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DemoSection {
+    #[serde(default)]
+    pub enabled: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

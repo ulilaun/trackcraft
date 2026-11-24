@@ -26,6 +26,7 @@
   "health.database": "Datenbank",
   "health.filesystem": "Dateisystem",
   "health.storage": "Speicher",
+  "demo.banner": "Demo mit erfundenen Daten auf Mallorca. Eine eigene TrackCraft-Installation bleibt unberührt.",
   "state.loading": "Lädt …",
   "state.offline": "Keine Verbindung zu TrackCraft. Läuft der Rechner?",
   "error.plan_template_exists": "Eine Vorlage mit diesem Namen gibt es schon.",
