@@ -92,6 +92,29 @@ jobs:
           name: demo-zip
           path: dist/trackcraft-*-demo.zip
 
+  # Portable Windows-Demo ohne Installation: Programm aus dem Windows-ZIP, Demo-Datenbank, demo.cmd (Issue #41)
+  windows-demo:
+    needs: [meta, windows, demo]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: in
+      - uses: actions/download-artifact@v4
+        with:
+          name: demo-zip
+          path: in
+      - name: ZIP packen
+        run: |
+          v="${{ needs.meta.outputs.version }}"
+          python3 scripts/demo/package_windows_demo.py "in/trackcraft-$v-windows-x86_64.zip" "in/trackcraft-$v-demo.zip" "dist/trackcraft-$v-windows-demo.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-demo-zip
+          path: dist/trackcraft-*-windows-demo.zip
+
   images:
     needs: [checks, meta]
     runs-on: ubuntu-latest
@@ -146,7 +169,7 @@ jobs:
           path: dist/trackcraft-*-docker.zip
 
   publish:
-    needs: [meta, windows, linux, images, demo]
+    needs: [meta, windows, linux, images, demo, windows-demo]
     runs-on: ubuntu-latest
     permissions:
       contents: write

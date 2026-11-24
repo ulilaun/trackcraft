@@ -19,6 +19,43 @@ pub fn demo_mark(path: &Path) -> anyhow::Result<()> {
     })
 }
 
+/// `demo start`: Demo zum Ausprobieren ohne Installation und ohne Administratorrechte (Windows `demo.cmd`).
+pub fn demo_start(ws: crate::demo::Workspace, reset: bool, open_browser: bool) -> anyhow::Result<()> {
+    ws.prepare(reset)?;
+    let cfg = config::load(&ws.config_file())?;
+    let _guard = crate::logging::init(&cfg, true).inspect_err(|_| crate::logging::init_stderr())?;
+    let url = ws.url();
+    println!();
+    println!("TrackCraft-Demo mit erfundenen Daten auf Mallorca");
+    println!("  Adresse:  {url}");
+    println!("  Ordner:   {}", ws.dir.display());
+    println!();
+    println!("Der Browser warnt beim ersten Aufruf vor dem Zertifikat (z. B. \"Verbindung ist nicht privat\").");
+    println!("Das ist bei der Demo erwartet: Das Zertifikat hat diese Demo selbst erstellt, kein Gerät kennt es.");
+    println!("Weiter über \"Erweitert\" und \"Weiter zu localhost\". Nur für diese Demo-Adresse so bestätigen.");
+    println!();
+    println!("Beenden mit Strg+C oder durch Schließen dieses Fensters. Neu beginnen: mit --reset starten.");
+    println!("Entfernen: diesen Ordner löschen. Eine eigene TrackCraft-Installation bleibt unberührt.");
+    println!();
+    let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
+    runtime.block_on(crate::server::run(cfg, crate::server::os_shutdown_signal(), move |addr| {
+        tracing::info!(%addr, "Demo bereit: {url}");
+        if open_browser {
+            open_url(&url);
+        }
+    }))
+}
+
+fn open_url(url: &str) {
+    #[cfg(windows)]
+    let result = std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn();
+    #[cfg(not(windows))]
+    let result = std::process::Command::new("xdg-open").arg(url).spawn();
+    if let Err(e) = result {
+        tracing::warn!("Browser lässt sich nicht öffnen ({e}); Adresse selbst aufrufen: {url}");
+    }
+}
+
 /// Gibt das Prüfergebnis aus; `true`, wenn TrackCraft mit dieser Datei starten kann.
 pub fn check_config_report(path: &Path) -> bool {
     println!("Konfiguration: {}", path.display());
