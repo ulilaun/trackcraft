@@ -1,6 +1,7 @@
 // Saisons (RFC-0009 „Saisons“): reine Logik für Auswahl, Zuordnung und Formular.
 import { ApiError, type Season, type SeasonInput } from "../../api/client";
 import { t } from "../../i18n";
+import { dayDate } from "../../utils/format";
 
 /** Lokaler Kalendertag `YYYY-MM-DD` eines Zeitpunkts in der Zeitzone der Installation. */
 export function localDate(iso: string | null | undefined, timeZone?: string): string | null {
@@ -14,15 +15,9 @@ export function inSeason(day: string | null, s: Pick<Season, "start_date" | "end
   return day != null && day >= s.start_date && day <= s.end_date;
 }
 
-/** `YYYY-MM-DD` als `TT.MM.JJJJ`. */
-export function germanDate(day: string): string {
-  const [y, m, d] = day.split("-");
-  return `${d}.${m}.${y}`;
-}
-
 /** Zeitraum zur Anzeige, z. B. „01.03.2026 – 31.10.2026“. */
 export function seasonRange(s: Pick<Season, "start_date" | "end_date">): string {
-  return `${germanDate(s.start_date)} – ${germanDate(s.end_date)}`;
+  return `${dayDate(s.start_date)} – ${dayDate(s.end_date)}`;
 }
 
 export interface SeasonForm {

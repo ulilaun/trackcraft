@@ -1,8 +1,10 @@
+import { Fragment } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { DemoBanner } from "../components/DemoBanner";
 import { FlashProvider } from "../components/Flash";
 import { Header } from "../components/Header";
+import { useApplyLocale, useLocale } from "../hooks/useLocale";
 import { useApplyTheme } from "../hooks/useTheme";
 import { Placeholder } from "../pages/Placeholder";
 import { SystemPage } from "../pages/SystemPage";
@@ -23,33 +25,38 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, ref
 
 export function App() {
   useApplyTheme();
+  useApplyLocale();
+  // Texte und Formate werden beim Rendern gelesen: nach einem Wechsel die Oberfläche neu aufbauen
+  const { language, format } = useLocale();
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <FlashProvider>
-          <DemoBanner />
-          <Header />
-          <main className="mx-auto max-w-[1400px] p-4">
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/aktivitaeten" element={<ActivityListPage />} />
-              <Route path="/aktivitaeten/:id" element={<ActivityDetailPage />} />
-              <Route path="/segmente" element={<SegmentListPage key="segment" kind="segment" />} />
-              <Route path="/segmente/:id" element={<SegmentDetailPage />} />
-              <Route path="/strecken" element={<SegmentListPage key="route" kind="route" />} />
-              <Route path="/strecken/:id" element={<SegmentDetailPage />} />
-              <Route path="/statistik" element={<StatisticsPage />} />
-              <Route path="/form" element={<FormPage />} />
-              <Route path="/plan" element={<PlanPage />} />
-              <Route path="/import" element={<ImportPage />} />
-              <Route path="/sicherung" element={<Placeholder titleKey="nav.backup" milestone="M5" />} />
-              <Route path="/system" element={<SystemPage />} />
-              <Route path="/einstellungen" element={<SettingsPage />} />
-              <Route path="/einstellungen/:section" element={<SettingsPage />} />
-              <Route path="/konto" element={<AccountPage />} />
-              <Route path="*" element={<DashboardPage />} />
-            </Routes>
-          </main>
+          <Fragment key={`${language}-${format}`}>
+            <DemoBanner />
+            <Header />
+            <main className="mx-auto max-w-[1400px] p-4">
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/aktivitaeten" element={<ActivityListPage />} />
+                <Route path="/aktivitaeten/:id" element={<ActivityDetailPage />} />
+                <Route path="/segmente" element={<SegmentListPage key="segment" kind="segment" />} />
+                <Route path="/segmente/:id" element={<SegmentDetailPage />} />
+                <Route path="/strecken" element={<SegmentListPage key="route" kind="route" />} />
+                <Route path="/strecken/:id" element={<SegmentDetailPage />} />
+                <Route path="/statistik" element={<StatisticsPage />} />
+                <Route path="/form" element={<FormPage />} />
+                <Route path="/plan" element={<PlanPage />} />
+                <Route path="/import" element={<ImportPage />} />
+                <Route path="/sicherung" element={<Placeholder titleKey="nav.backup" milestone="M5" />} />
+                <Route path="/system" element={<SystemPage />} />
+                <Route path="/einstellungen" element={<SettingsPage />} />
+                <Route path="/einstellungen/:section" element={<SettingsPage />} />
+                <Route path="/konto" element={<AccountPage />} />
+                <Route path="*" element={<DashboardPage />} />
+              </Routes>
+            </main>
+          </Fragment>
         </FlashProvider>
       </BrowserRouter>
     </QueryClientProvider>

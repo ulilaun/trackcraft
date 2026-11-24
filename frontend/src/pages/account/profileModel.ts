@@ -1,5 +1,6 @@
 // Reine Logik der Kontoseite.
 import type { AvatarColor, Profile, ProfileInput } from "../../api/client";
+import { upperFirst } from "../../utils/format";
 
 export const AVATAR_COLORS: AvatarColor[] = ["blue", "teal", "green", "amber", "orange", "red", "pink", "violet"];
 
@@ -20,7 +21,7 @@ export function avatarText(nickname: string): string {
   const chars = Array.from(nickname.trim());
   if (chars.length === 0) return "?";
   if (chars.length <= 3) return chars.join("");
-  return chars[0]!.toLocaleUpperCase("de-DE");
+  return upperFirst(chars[0]!);
 }
 
 /** Alter in vollen Jahren an `today` (beide YYYY-MM-DD); null ohne Geburtstag. */

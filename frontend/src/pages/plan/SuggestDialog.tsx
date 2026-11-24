@@ -6,15 +6,13 @@ import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog"
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
 import { t, type TextKey } from "../../i18n";
-import { addDays, num } from "../../utils/format";
+import { addDays, dayDate, dayMonth, num, WEEK, weekdayShort } from "../../utils/format";
 import { SPORT_CLASSES } from "../../utils/sports";
 import { FormChart } from "../form/FormPage";
 import { STATE_CLASS, chartPoints, formState, signed } from "../form/formModel";
-import { germanDate } from "../seasons/seasonModel";
 import { hm, isoWeek } from "./planModel";
 import { DEFAULT_INPUT, PHASE_COLOR, inputProblem, requestInput, weeklyHours } from "./suggestModel";
 
-const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const CLASSES = SPORT_CLASSES.filter((c) => c !== "unknown");
 const input = "w-full rounded-lg border border-line bg-card-2 px-2 py-1.5 text-sm text-text disabled:opacity-60";
 const tile = "rounded-lg border border-line bg-card-2 px-3 py-2";
@@ -101,7 +99,7 @@ export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved:
           <div className={tile}>
             <div className="text-xs text-muted">{t("plan.suggest.goal")}</div>
             <div className="font-semibold">
-              {goal.name} · {germanDate(goal.date)}
+              {goal.name} · {dayDate(goal.date)}
             </div>
           </div>
           <label className="grid gap-1">
@@ -117,13 +115,13 @@ export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved:
           <fieldset className="grid gap-1">
             <legend className="mb-1 text-xs font-medium text-muted">{t("plan.suggest.minutes")}</legend>
             <div className="grid grid-cols-7 gap-1">
-              {WEEKDAYS.map((w, i) => (
-                <label key={w} className="grid gap-0.5 text-center text-[11px] text-muted">
-                  {w}
+              {WEEK.map((i) => (
+                <label key={i} className="grid gap-0.5 text-center text-[11px] text-muted">
+                  {weekdayShort(i)}
                   <input
                     className={`${input} num px-0 text-center`}
                     inputMode="numeric"
-                    aria-label={t("plan.suggest.minutesOf", { day: w })}
+                    aria-label={t("plan.suggest.minutesOf", { day: weekdayShort(i) })}
                     value={texts[i]}
                     disabled={busy}
                     onChange={(e) => setTexts((old) => old.map((v, k) => (k === i ? e.target.value : v)))}
@@ -247,7 +245,7 @@ export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved:
                       <ul className="mt-1 grid gap-0.5">
                         {us.map((u) => (
                           <li key={u.date} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-2 text-xs">
-                            <span className="text-muted">{germanDate(u.date).slice(0, 6)}</span>
+                            <span className="text-muted">{dayMonth(u.date)}</span>
                             <span className="truncate">{u.title}</span>
                             <span className="num text-muted">
                               {hm(u.load.minutes)} · {num(u.load.total)}

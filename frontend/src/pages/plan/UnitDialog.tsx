@@ -18,10 +18,9 @@ import {
 import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
-import { t, type TextKey } from "../../i18n";
-import { addDays, num } from "../../utils/format";
+import { t, tn, type TextKey } from "../../i18n";
+import { addDays, dayDate, num } from "../../utils/format";
 import { SPORT_CLASSES } from "../../utils/sports";
-import { germanDate } from "../seasons/seasonModel";
 import {
   MAX_SERIES,
   applicableSet,
@@ -157,7 +156,7 @@ export function UnitDialog({
     mutationFn: (day: string) => apiPost<PlannedUnitResponse>("/plan/units", unitInput({ ...form, date: day }, false)),
     onSuccess: (_, day) => {
       refresh();
-      flash(t("plan.copied", { date: germanDate(day) }));
+      flash(t("plan.copied", { date: dayDate(day) }));
       onClose();
     },
   });
@@ -225,7 +224,7 @@ export function UnitDialog({
           <div className="grid gap-1 rounded-lg border border-line bg-card-2 p-2" data-testid="plan-series-scope">
             <span className="flex items-center gap-1.5 text-xs text-muted">
               <Repeat size={13} aria-hidden />
-              {unit!.series_following === 1 ? t("plan.series.infoOne") : t("plan.series.info", { n: unit!.series_following ?? 0 })}
+              {tn("plan.series.info", unit!.series_following ?? 0)}
             </span>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("plan.series.scope")}>
               {(["this", "following"] as const).map((sc) => (
@@ -407,7 +406,7 @@ export function UnitDialog({
                     ? t("plan.problem.repeatNone")
                     : problem === "repeatMany"
                       ? t("plan.problem.repeatMany", { n: MAX_SERIES })
-                      : t("plan.repeat.count", { n: dates.length, from: germanDate(dates[0]!), to: germanDate(dates.at(-1)!) })}
+                      : t("plan.repeat.count", { n: dates.length, from: dayDate(dates[0]!), to: dayDate(dates.at(-1)!) })}
                 </span>
               </div>
             )}

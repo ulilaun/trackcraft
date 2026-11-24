@@ -22,10 +22,9 @@ import { PeriodButton, SeasonPill, YearPill, periodSelect } from "../../componen
 import { Problem } from "../../components/Problem";
 import { useConfig } from "../../hooks/useConfig";
 import { t, type TextKey } from "../../i18n";
-import { localDate, num } from "../../utils/format";
+import { dayDate, dayMonth, localDate, monthShort, num } from "../../utils/format";
 import { periodDays, rangeFrom, readPeriod, writePeriod, yearChoices, type ListPeriod } from "../activities/listModel";
 import { useSeasons } from "../seasons/useSeasons";
-import { germanDate } from "../seasons/seasonModel";
 import { FormSettingsDialog } from "./FormSettingsDialog";
 import {
   FORECAST_DAYS,
@@ -44,7 +43,6 @@ import {
   type WeekBar,
 } from "./formModel";
 
-const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 /** Gemeinsame Zeitachse: Überfahren zeigt in allen Tagesdiagrammen denselben Tag (#25). */
 const SYNC = "form-days";
 /** Schalter „aerob/anaerob einblenden“ wird im Browser gemerkt (Uli 23.11.2026). */
@@ -54,8 +52,8 @@ const PARTS_KEY = "trackcraft.form.fatigueParts";
 function tickOf(span: number) {
   return (d: string) => {
     if (span > 3 * 365) return d.slice(0, 4);
-    if (span > 120) return `${MONTHS[Number(d.slice(5, 7)) - 1]}${d.slice(5, 7) === "01" ? ` ${d.slice(2, 4)}` : ""}`;
-    return `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
+    if (span > 120) return `${monthShort(Number(d.slice(5, 7)) - 1)}${d.slice(5, 7) === "01" ? ` ${d.slice(2, 4)}` : ""}`;
+    return dayMonth(d);
   };
 }
 
@@ -180,7 +178,7 @@ function TipBox({ date, forecast, children }: { date: string; forecast: boolean;
   return (
     <div className="rounded-lg border border-line bg-card px-3 py-2 text-xs shadow">
       <div className="mb-1 font-semibold">
-        {germanDate(date)}
+        {dayDate(date)}
         {forecast && <span className="ml-1 font-normal text-muted">· {t("form.forecastLabel")}</span>}
       </div>
       {children}
@@ -373,7 +371,7 @@ function WeekTooltip({ active, payload }: { active?: boolean; payload?: { payloa
   if (!active || !w) return null;
   return (
     <div className="rounded-lg border border-line bg-card px-3 py-2 text-xs shadow">
-      <div className="mb-1 font-semibold">{t("form.weekOf", { day: germanDate(w.week) })}</div>
+      <div className="mb-1 font-semibold">{t("form.weekOf", { day: dayDate(w.week) })}</div>
       {(
         [
           ["form.aerobic", w.aerobic, "var(--color-aerobic)"],
@@ -608,7 +606,7 @@ export function FormPage() {
               {forecast === "rest"
                 ? t("form.forecastHint.rest", { days: d.forecast.days.length })
                 : forecast === "plan"
-                  ? t("form.forecastHint.plan", { to: d.plan?.last_date ? germanDate(d.plan.last_date) : "–" })
+                  ? t("form.forecastHint.plan", { to: d.plan?.last_date ? dayDate(d.plan.last_date) : "–" })
                   : t("form.forecastHint.steady", { days: d.forecast.days.length, load: num(d.forecast.daily_load) })}{" "}
               {forecast === "plan" && (
                 <Link to="/plan" className="text-accent hover:underline">

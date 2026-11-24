@@ -4,8 +4,8 @@ import { apiPatch, type PlannedUnit, type PlannedUnitResponse } from "../../api/
 import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
-import { t } from "../../i18n";
-import { germanDate } from "../seasons/seasonModel";
+import { t, tn } from "../../i18n";
+import { dayDate } from "../../utils/format";
 
 type Move = { unit: PlannedUnit; date: string };
 
@@ -34,7 +34,7 @@ export function useMoveUnit() {
     onSuccess: (_, { date }) => {
       void queryClient.invalidateQueries({ queryKey: ["plan"] });
       void queryClient.invalidateQueries({ queryKey: ["form"] });
-      flash(t("plan.move.done", { date: germanDate(date) }));
+      flash(t("plan.move.done", { date: dayDate(date) }));
       setAsk(null);
     },
   });
@@ -66,9 +66,9 @@ export function useMoveUnit() {
       }
     >
       <div className="grid gap-2 text-sm">
-        <p>{t("plan.move.question", { title: ask.unit.title, from: germanDate(ask.unit.date), to: germanDate(ask.date) })}</p>
+        <p>{t("plan.move.question", { title: ask.unit.title, from: dayDate(ask.unit.date), to: dayDate(ask.date) })}</p>
         <p className="text-xs text-muted">
-          {ask.unit.series_following === 1 ? t("plan.series.infoOne") : t("plan.series.info", { n: ask.unit.series_following ?? 0 })}.{" "}
+          {tn("plan.series.info", ask.unit.series_following ?? 0)}.{" "}
           {t("plan.move.followingHint")}
         </p>
         {save.error && <Problem error={save.error} />}
