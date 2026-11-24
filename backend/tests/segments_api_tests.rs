@@ -328,6 +328,20 @@ async fn route_update_filter_and_delete() {
     assert_eq!(r["segment"]["ranked_count"], 3);
     assert_eq!(r["segment"]["elevation_gain_m"], 39.0, "{r}");
     assert_eq!(r["segment"]["average_grade_pct"], 3.0, "{r}");
+    // Heutige Bestzeit der Strecke = kürzeste Dauer aller Versuche dieser Strecke
+    let best = v["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["segment_id"] == route.as_str())
+        .filter_map(|e| e["duration_ms"].as_i64())
+        .min()
+        .unwrap();
+    let best_ms = r["segment"]["best_ms"].as_i64().expect("best_ms");
+    assert!(best_ms <= best, "{r}");
+    if r["rank"] == 1 {
+        assert_eq!(Some(best_ms), r["duration_ms"].as_i64(), "{r}");
+    }
 
     // Liste: Reiter Segmente und Strecken, Suche, Sortierung
     let (_, v) = get(&f, "/api/v1/segments?kind=route").await;
