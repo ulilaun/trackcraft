@@ -12,6 +12,9 @@ Status: version 0.9 (pre-release on the way to v1.0). **The user interface and t
 
 **Try it without installing:** the [demo](#try-it) with made-up rides on Mallorca starts with a double-click on Windows or with a single `docker compose` command.
 
+<p align="center"><img src="docs/screenshots/segment-erstellen.gif" width="720" alt="Animation: a climb is marked on the map and elevation profile of a ride and saved as a segment. TrackCraft matches it against all activities and shows the history of best times."></p>
+<p align="center"><sub>Mark a segment, save it, done: TrackCraft instantly finds it in every past ride (German UI).</sub></p>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaet-dunkel.png">
   <img src="docs/screenshots/aktivitaet-hell.png" alt="Activity detail with key figures, map and elevation and heart rate profile">

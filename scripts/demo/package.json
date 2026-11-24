@@ -3,9 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "screenshots": "node screenshots.mjs"
+    "screenshots": "node screenshots.mjs",
+    "segment-gif": "node segment_gif.mjs"
   },
   "devDependencies": {
-    "playwright": "1.65.1"
+    "gifenc": "1.0.3",
+    "playwright": "1.65.1",
+    "pngjs": "7.0.0"
   }
 }

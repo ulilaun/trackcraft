@@ -12,6 +12,9 @@ Stand: Version 0.9 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumenta
 
 **Ausprobieren ohne Installation:** Die [Demo](#ausprobieren) mit erfundenen Mallorca-Daten läuft unter Windows per Doppelklick oder mit einem `docker compose`-Befehl.
 
+<p align="center"><img src="docs/screenshots/segment-erstellen.gif" width="720" alt="Animation: Auf einer Fahrt wird ein Anstieg auf Karte und Höhenprofil markiert und als Segment angelegt. TrackCraft wertet alle Aktivitäten aus und zeigt die Bestzeiten-Entwicklung."></p>
+<p align="center"><sub>Segment markieren, anlegen, fertig: TrackCraft findet es sofort in allen bisherigen Fahrten.</sub></p>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaet-dunkel.png">
   <img src="docs/screenshots/aktivitaet-hell.png" alt="Aktivitätsdetail mit Kennzahlen, Karte und Höhen- und Pulsprofil">
