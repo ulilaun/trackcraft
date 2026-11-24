@@ -46,6 +46,7 @@ def main():
                     z.writestr(info, d.read(n))
         z.write(ROOT / "infrastructure" / "windows" / "demo.cmd", "demo.cmd")
         z.write(ROOT / "infrastructure" / "windows" / "DEMO.md", "DEMO.md")
+        z.write(ROOT / "infrastructure" / "windows" / "DEMO.en.md", "DEMO.en.md")
     shutil.move(tmp, out)
     print(f"{out}: {out.stat().st_size / 1e6:.1f} MB")
 

@@ -41,6 +41,7 @@ $required = @(
     "frontend/dist/index.html",
     "backend/config/trackcraft.example.toml",
     "infrastructure/windows/BETRIEB.md",
+    "infrastructure/windows/BETRIEB.en.md",
     "infrastructure/windows/setup.cmd",
     "LICENSE",
     $Licenses
@@ -51,6 +52,7 @@ Copy-Item "backend/target/release/trackcraft.exe" $stage
 Copy-Item "frontend/dist/*" (Join-Path $stage "web") -Recurse
 Copy-Item "backend/config/trackcraft.example.toml" $stage
 Copy-Item "infrastructure/windows/BETRIEB.md" $stage
+Copy-Item "infrastructure/windows/BETRIEB.en.md" $stage
 Copy-Item "infrastructure/windows/setup.cmd" $stage
 Copy-Item "LICENSE" $stage
 Copy-Item $Licenses (Join-Path $stage "THIRD-PARTY-LICENSES.txt")

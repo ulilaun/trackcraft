@@ -1,5 +1,7 @@
 # TrackCraft unter Linux betreiben
 
+Deutsch · [English](BETRIEB.en.md)
+
 Gilt für das Paket `trackcraft-<version>-linux-x86_64.tar.gz` (RFC-0005 „Linux“, RFC-0015). TrackCraft läuft als systemd-Dienst `trackcraft` unter einem eigenen Benutzer, liefert die Oberfläche selbst aus und spricht nur HTTPS, wie unter Windows. Erprobt auf Debian 13 in einem Proxmox-Container (LXC), zuletzt am 23.11.2026 auf einem frischen Container mit Installation, Import, Update, Sicherung und Rollback.
 
 ## Voraussetzungen

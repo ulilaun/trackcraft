@@ -26,7 +26,8 @@ const FIREWALL_RULE: &str = "TrackCraft";
 const SID_SYSTEM: &str = "*S-1-5-18";
 const SID_ADMINS: &str = "*S-1-5-32-544";
 /// Dateien des ZIP, die in den Installationsordner gehören (neben `web\`).
-const PAYLOAD: &[&str] = &["trackcraft.exe", "trackcraft.example.toml", "setup.cmd", "BETRIEB.md", "LICENSE", "THIRD-PARTY-LICENSES.txt"];
+const PAYLOAD: &[&str] =
+    &["trackcraft.exe", "trackcraft.example.toml", "setup.cmd", "BETRIEB.md", "BETRIEB.en.md", "LICENSE", "THIRD-PARTY-LICENSES.txt"];
 
 /// Werte für `setup`; fehlende werden bei `interactive` abgefragt, sonst gelten die Vorgaben.
 #[derive(Debug, Default)]
