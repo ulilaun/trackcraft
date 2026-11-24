@@ -8,7 +8,7 @@
 
 **Your training data on your own machine.** TrackCraft is a self-hosted training platform for FIT and GPX files: import activities, view them on a map, draw your own segments and routes, track personal bests across years and seasons, follow training load and form, and plan your training up to your next goal. No cloud, no account, inside your home network.
 
-Status: version 0.9 (pre-release on the way to v1.0). **The user interface is available in English and German** (Settings → Appearance, with date and number format chosen separately); the documentation is mostly German. TrackCraft is built for **one person** in their home network and deliberately has **no login** (see [Security](#security-home-network-only)).
+Status: version 0.9 (pre-release on the way to v1.0). **The user interface is available in English and German** (Settings → Appearance, with date and number format chosen separately); the guides for Windows, Linux and Docker are in English and German, the specification in `docs` is German. TrackCraft is built for **one person** in their home network and deliberately has **no login** (see [Security](#security-home-network-only)).
 
 **Try it without installing:** the [demo](#try-it) with made-up rides on Mallorca starts with a double-click on Windows or with a single `docker compose` command.
 
@@ -69,20 +69,20 @@ TrackCraft v1 has **no login**. Whoever reaches the UI may read, change and dele
 
 A demo with the made-up Mallorca data runs on your own machine without installation. The data is shifted on start so that the last activity was yesterday; a banner marks it as a demo. An existing TrackCraft installation is not touched.
 
-- **Windows:** unzip `trackcraft-<version>-windows-demo.zip` from the [latest release](https://github.com/ulilaun/trackcraft/releases/latest) and double-click `demo.cmd`. No administrator rights needed; the browser opens <https://localhost:8443>.
+- **Windows:** unzip `trackcraft-<version>-windows-demo.zip` from the [latest release](https://github.com/ulilaun/trackcraft/releases/latest) and double-click `demo.cmd`. No administrator rights needed; the browser opens <https://localhost:8443>. Details in `DEMO.en.md`.
 - **Docker:** take `compose.demo.yaml` from `trackcraft-<version>-docker.zip`, run `docker compose -f compose.demo.yaml up` and open <https://localhost:8443>. Remove everything with `docker compose -f compose.demo.yaml down -v`.
 
 **Certificate warning:** the browser warns on first access. That is expected for the demo, which creates its own certificate on first start. Continue via **Advanced** and **Proceed to localhost**, for this demo address only. A real [installation](#installation) does not show this warning.
 
 ## Installation
 
-Packages are available under [Releases](../../releases), each with `SHA256SUMS.txt`. The step-by-step guides are in German.
+Packages are available under [Releases](../../releases), each with `SHA256SUMS.txt`. Every package contains its guide in English (`BETRIEB.en.md`) and German (`BETRIEB.md`).
 
 | Platform | Requirements | Package | Guide |
 | :--- | :--- | :--- | :--- |
-| Windows | Windows 11, x86-64, 2 GB free RAM | `trackcraft-<version>-windows-x86_64.zip`, run `setup.cmd` | [infrastructure/windows/BETRIEB.md](infrastructure/windows/BETRIEB.md) |
-| Linux | x86-64 with systemd and glibc ≥ 2.35 (e.g. Debian 12/13, Ubuntu 22.04+), 1 GB free RAM | `trackcraft-<version>-linux-x86_64.tar.gz`, run `setup.sh` | [infrastructure/linux/BETRIEB.md](infrastructure/linux/BETRIEB.md) |
-| Docker | x86-64 host with Docker Engine and the Compose plugin, a reverse proxy for HTTPS in front | `trackcraft-<version>-docker.zip` with `compose.yaml`; images `ghcr.io/ulilaun/trackcraft-backend` and `-frontend`, public | [infrastructure/docker/BETRIEB.md](infrastructure/docker/BETRIEB.md) |
+| Windows | Windows 11, x86-64, 2 GB free RAM | `trackcraft-<version>-windows-x86_64.zip`, run `setup.cmd` | [infrastructure/windows/BETRIEB.en.md](infrastructure/windows/BETRIEB.en.md) |
+| Linux | x86-64 with systemd and glibc ≥ 2.35 (e.g. Debian 12/13, Ubuntu 22.04+), 1 GB free RAM | `trackcraft-<version>-linux-x86_64.tar.gz`, run `setup.sh` | [infrastructure/linux/BETRIEB.en.md](infrastructure/linux/BETRIEB.en.md) |
+| Docker | x86-64 host with Docker Engine and the Compose plugin, a reverse proxy for HTTPS in front | `trackcraft-<version>-docker.zip` with `compose.yaml`; images `ghcr.io/ulilaun/trackcraft-backend` and `-frontend`, public | [infrastructure/docker/BETRIEB.en.md](infrastructure/docker/BETRIEB.en.md) |
 
 On Windows and Linux the setup asks for the machine's name in your home network (e.g. `trackcraft.home.arpa`), creates certificates and configuration and starts the service. An update is the same setup from the newer package; the database is migrated automatically.
 
@@ -100,7 +100,7 @@ For your own analysis, yes: segments, leaderboards, statistics, form and plannin
 Via Garmin Connect (personal API key, fetches your whole history) or as FIT and GPX files by drag and drop, for example from another platform's data export (unpack compressed files first). TrackCraft detects duplicates itself.
 
 **How do I back up my data?**
-Everything lives in one data folder: a SQLite database and your unchanged original files. Back up that folder with your usual tool; the guides show how. TrackCraft copies the database itself before every schema migration. Daily backups, restore and export from the UI come with v1.0.
+Everything lives in one data folder: a SQLite database and your unchanged original files. Back up that folder with your usual tool; the [guides](#installation) show how. TrackCraft copies the database itself before every schema migration. Daily backups, restore and export from the UI come with v1.0.
 
 **What leaves my network?**
 Only map tile requests (browser → OpenStreetMap or your provider), the optional place suggestion (server → Nominatim, rounded start coordinate, can be switched off) and, if configured, the Garmin Connect download. No telemetry, no accounts, no cloud.

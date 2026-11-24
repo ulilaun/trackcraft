@@ -18,7 +18,8 @@ use crate::config::{self, Validated};
 use crate::install::{self, Answers};
 
 /// Dateien des Pakets, die in den Installationsordner gehören (neben `web/`).
-const PAYLOAD: &[&str] = &["trackcraft", "trackcraft.example.toml", "setup.sh", "BETRIEB.md", "LICENSE", "THIRD-PARTY-LICENSES.txt"];
+const PAYLOAD: &[&str] =
+    &["trackcraft", "trackcraft.example.toml", "setup.sh", "BETRIEB.md", "BETRIEB.en.md", "LICENSE", "THIRD-PARTY-LICENSES.txt"];
 const DEFAULT_INSTALL_DIR: &str = "/opt/trackcraft";
 const CONFIG_DIR: &str = "/etc/trackcraft";
 const DATA_DIR: &str = "/var/lib/trackcraft";

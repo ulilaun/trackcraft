@@ -1,5 +1,7 @@
 # TrackCraft-Demo für Windows
 
+Deutsch · [English](DEMO.en.md)
+
 Erfundene Trainingsdaten auf Mallorca (knapp zwei Jahre Laufen, Radfahren und Wandern, Segmente, Strecken, Plan).
 Zum Ausprobieren. Es wird nichts installiert, und Administratorrechte sind nicht nötig.
 

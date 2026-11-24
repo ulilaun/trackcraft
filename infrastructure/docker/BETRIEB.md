@@ -1,5 +1,7 @@
 # TrackCraft mit Docker betreiben
 
+Deutsch · [English](BETRIEB.en.md)
+
 Zweite Plattform nach RFC-0005: x86-64-Host mit Docker Engine und dem Compose-Plugin (Befehl `docker compose`, nicht das alte `docker-compose`), z. B. ein Mini-PC mit Linux oder eine Synology mit Container Manager. Erprobt auf Debian 13 mit Docker 29 aus dem offiziellen Docker-Paketarchiv, in einem Proxmox-Container mit `nesting` und `keyctl`. Anders als unter Windows und Linux macht TrackCraft im Container **kein eigenes HTTPS**: Davor gehört ein Reverse Proxy, der HTTPS für den Namen im Heimnetz anbietet (Abschnitt „Reverse Proxy“).
 
 Zwei Container: `trackcraft-backend` (Programm, Daten) und `trackcraft-frontend` (Nginx mit der Oberfläche, leitet `/api` ans Backend). Die Images liegen öffentlich unter `ghcr.io/ulilaun/trackcraft-backend` und `ghcr.io/ulilaun/trackcraft-frontend`; eine Anmeldung bei GitHub ist nicht nötig.
