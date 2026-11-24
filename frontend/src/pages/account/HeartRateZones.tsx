@@ -20,8 +20,7 @@ import { Problem } from "../../components/Problem";
 import { SportIcon } from "../../components/SportIcon";
 import { t, type TextKey } from "../../i18n";
 import { SPORT_CLASSES } from "../../utils/sports";
-import { germanDate } from "../seasons/seasonModel";
-import { addDays } from "../../utils/format";
+import { addDays, dayDate } from "../../utils/format";
 import {
   DEFAULT_BOUNDS,
   ZONE_MODELS,
@@ -351,8 +350,8 @@ function ZoneEditor({
                   className={`num flex w-full justify-between gap-3 rounded-lg px-2 py-1.5 text-left text-sm ${set?.id === h.id ? "bg-card-2 font-semibold" : "hover:bg-card-2"}`}
                 >
                   <span>
-                    {germanDate(h.valid_from)} –{" "}
-                    {history[i + 1] ? germanDate(addDays(history[i + 1]!.valid_from, -1)) : t("zones.open")}
+                    {dayDate(h.valid_from)} –{" "}
+                    {history[i + 1] ? dayDate(addDays(history[i + 1]!.valid_from, -1)) : t("zones.open")}
                   </span>
                   <span className="text-muted">
                     {h.max_hr} / {h.resting_hr}

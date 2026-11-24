@@ -1,6 +1,6 @@
 // Dashboard nach RFC-0018: Woche, Monat und Jahr aus GET /stats/dashboard, Woche mit Plan (E8), ohne React.
 import type { DashboardStatsResponse, PeriodBlock, PeriodSummary, PlannedUnit, SportClass } from "../../api/client";
-import { addDays } from "../../utils/format";
+import { addDays, dayRange, monthYear, weekdayShort } from "../../utils/format";
 import { SPORT_CLASSES, zeroBySport } from "../../utils/sports";
 
 /** Reihenfolge der Stapel von unten nach oben, wie die Filter-Pills der Liste. */
@@ -33,14 +33,12 @@ export interface DayBar extends Record<SportClass, number> {
   title?: string;
 }
 
-const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-
 export function dayBars(block: PeriodBlock, kind: "week" | "month"): DayBar[] {
   const out: DayBar[] = [];
   for (let day = block.from, i = 0; day <= block.to && i < 31; day = addDays(day, 1), i++) {
     out.push({
       date: day,
-      label: kind === "week" ? (WEEKDAYS[i] ?? "") : String(Number(day.slice(8, 10))),
+      label: kind === "week" ? weekdayShort(i) : String(Number(day.slice(8, 10))),
       ...zeroBySport(),
       count: 0,
     });
@@ -82,7 +80,7 @@ export function weekDays(block: PeriodBlock, units: PlannedUnit[]): WeekDay[] {
     const first = STACK_ORDER.find((c) => done[c] > 0);
     out.push({
       date: day,
-      label: `${WEEKDAYS[i]} ${Number(day.slice(8, 10))}`,
+      label: `${weekdayShort(i)} ${Number(day.slice(8, 10))}`,
       done,
       doneTotal: STACK_ORDER.reduce((s, c) => s + done[c], 0),
       planned: plan.reduce((s, u) => s + plannedMinutes(u), 0),
@@ -93,11 +91,9 @@ export function weekDays(block: PeriodBlock, units: PlannedUnit[]): WeekDay[] {
   return out;
 }
 
-/** Zeitraum der Woche kurz: „23.–29.11.“, über den Monatswechsel „30.11.–06.12.“ */
+/** Zeitraum der Woche kurz: „23.–29.11.“, über den Monatswechsel „30.11.–06.12.“ (Muster de-DE). */
 export function weekRange(from: string, to: string): string {
-  const d = (x: string) => `${x.slice(8, 10)}.`;
-  const m = (x: string) => `${x.slice(5, 7)}.`;
-  return from.slice(5, 7) === to.slice(5, 7) ? `${d(from)}–${d(to)}${m(to)}` : `${d(from)}${m(from)}–${d(to)}${m(to)}`;
+  return dayRange(from, to);
 }
 
 /** Sportklassen, die im Zeitraum vorkommen (für Stapel und Legende). */
@@ -107,8 +103,7 @@ export function classesIn(block: PeriodBlock): SportClass[] {
 
 /** Monatsname mit Jahr aus `2026-11`. */
 export function monthTitle(period: string): string {
-  const d = new Date(`${period}-15T12:00:00Z`);
-  return new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+  return monthYear(`${period}-15`);
 }
 
 export type Dashboard = DashboardStatsResponse["data"];

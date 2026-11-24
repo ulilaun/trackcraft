@@ -17,10 +17,9 @@ import { Problem } from "../../components/Problem";
 import { SportIcon } from "../../components/SportIcon";
 import { useConfig } from "../../hooks/useConfig";
 import { t, type TextKey } from "../../i18n";
-import { addDays, localDate, num } from "../../utils/format";
+import { addDays, dayDate, dayMonth, localDate, num, WEEK, weekdayShort } from "../../utils/format";
 import { FormChart, LoadChart } from "../form/FormPage";
 import { STATE_CLASS, chartPoints, formState, signed } from "../form/formModel";
-import { germanDate } from "../seasons/seasonModel";
 import { GoalDialog } from "./GoalDialog";
 import { goalFacts, nextGoal } from "./goalModel";
 import { SuggestDialog } from "./SuggestDialog";
@@ -28,7 +27,6 @@ import { UnitDialog } from "./UnitDialog";
 import { canMove, useMoveUnit } from "./useMoveUnit";
 import { WEEKS, defaultStart, hm, isoWeek, weekDays, weekMonotony } from "./planModel";
 
-const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const BORDER: Record<PlannedUnit["status"], string> = {
   planned: "border-l-accent",
   done: "border-l-good",
@@ -148,9 +146,9 @@ export function PlanPage() {
       <Card title={t("plan.weeks")}>
         <div className="grid gap-px overflow-hidden rounded-lg border border-line bg-line lg:grid-cols-[88px_repeat(7,minmax(0,1fr))_120px]" data-testid="plan-calendar">
           <div className="hidden bg-card-2 lg:block" />
-          {WEEKDAYS.map((w) => (
-            <div key={w} className="hidden bg-card-2 px-2 py-1 text-center text-[11px] font-semibold text-muted lg:block">
-              {w}
+          {WEEK.map((i) => (
+            <div key={i} className="hidden bg-card-2 px-2 py-1 text-center text-[11px] font-semibold text-muted lg:block">
+              {weekdayShort(i)}
             </div>
           ))}
           <div className="hidden bg-card-2 px-2 py-1 text-center text-[11px] font-semibold text-muted lg:block">{t("plan.week")}</div>
@@ -164,7 +162,7 @@ export function PlanPage() {
               <div key={days[0]} className="contents">
                 <div className="bg-card-2 px-2 py-2 text-xs text-muted">
                   <b className="block text-sm text-text">{t("plan.kw", { n: isoWeek(days[0]!) })}</b>
-                  {germanDate(days[0]!).slice(0, 6)}–{germanDate(days[6]!).slice(0, 6)}
+                  {dayMonth(days[0]!)}–{dayMonth(days[6]!)}
                 </div>
                 {days.map((d, i) => {
                   const dayUnits = units.filter((u) => u.date === d);
@@ -174,7 +172,7 @@ export function PlanPage() {
                       key={d}
                       role="button"
                       tabIndex={0}
-                      aria-label={t("plan.dayAdd", { date: germanDate(d) })}
+                      aria-label={t("plan.dayAdd", { date: dayDate(d) })}
                       data-day={d}
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest("[data-unit],[data-act],[data-goal]")) return;
@@ -201,8 +199,8 @@ export function PlanPage() {
                       className={`relative grid min-h-10 cursor-pointer lg:min-h-24 content-start gap-1 p-1.5 hover:bg-card-2 ${d < today ? "bg-card/80" : "bg-card"} ${d === today ? "ring-2 ring-inset ring-accent" : ""} ${over === d && dragged && dragged.date !== d ? "bg-accent/15 outline-2 outline-dashed -outline-offset-2 outline-accent" : ""}`}
                     >
                       <span className="text-[11px] text-muted">
-                        <span className="lg:hidden">{WEEKDAYS[i]} </span>
-                        {germanDate(d).slice(0, 6)}
+                        <span className="lg:hidden">{weekdayShort(i)} </span>
+                        {dayMonth(d)}
                       </span>
                       {dayUnits.map((u) => (
                         <button
@@ -304,7 +302,7 @@ export function PlanPage() {
               {state(f.current.form)}
             </div>
             <div className="rounded-lg border border-line bg-card-2 px-3 py-2">
-              <div className="text-xs text-muted">{goal ? t("plan.tile.formGoal", { date: germanDate(goal.date) }) : t("plan.tile.noGoal")}</div>
+              <div className="text-xs text-muted">{goal ? t("plan.tile.formGoal", { date: dayDate(goal.date) }) : t("plan.tile.noGoal")}</div>
               <div className="num text-xl font-bold">{atGoal ? signed(atGoal.form) : "–"}</div>
               {atGoal && state(atGoal.form)}
             </div>

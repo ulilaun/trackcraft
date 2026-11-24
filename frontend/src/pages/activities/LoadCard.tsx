@@ -1,8 +1,7 @@
 import type { ActivityLoad, HrZoneSet } from "../../api/client";
 import { Card } from "../../components/Card";
 import { t, type TextKey } from "../../i18n";
-import { duration, num } from "../../utils/format";
-import { germanDate } from "../seasons/seasonModel";
+import { dayDate, duration, num } from "../../utils/format";
 
 function zoneSetName(s: HrZoneSet): string {
   return s.sport_class ? t(`sport.${s.sport_class}` as TextKey) : t("zones.general");
@@ -27,7 +26,7 @@ export function LoadCard({ load }: { load: ActivityLoad | null | undefined }) {
     <Card>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">{t("load.title")}</h2>
-        {z && <span className="text-xs text-muted">{t("load.zoneSet", { name: zoneSetName(z), date: germanDate(z.valid_from) })}</span>}
+        {z && <span className="text-xs text-muted">{t("load.zoneSet", { name: zoneSetName(z), date: dayDate(z.valid_from) })}</span>}
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>

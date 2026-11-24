@@ -1,7 +1,7 @@
 // Statistikseite nach RFC-0006 „Statistik“: Auswahl, Kachelreihen und Balken, reine Logik ohne React.
 import type { MonthBucket, RecordItem, Season, SportClass, StatisticsSummary, WeekBucket } from "../../api/client";
 import { t } from "../../i18n";
-import { addDays, num, pace } from "../../utils/format";
+import { addDays, dayDate, monthLong, monthShort, num, pace } from "../../utils/format";
 import { seasonRange } from "../seasons/seasonModel";
 import { SPORT_CLASSES, zeroBySport } from "../../utils/sports";
 
@@ -75,7 +75,7 @@ export interface Resolved {
 /** Zeitraum der Auswahl; ohne Saisons oder bei unbekannter Saison das laufende Jahr. */
 export function resolve(period: Period, seasons: Season[], defaultId: string | null, currentYear: number): Resolved {
   if (period.kind === "range") {
-    const title = `${period.from ? germanDay(period.from) : "…"} – ${period.to ? germanDay(period.to) : "…"}`;
+    const title = `${period.from ? dayDate(period.from) : "…"} – ${period.to ? dayDate(period.to) : "…"}`;
     return { from: period.from || null, to: period.to || null, season: null, year: currentYear, title };
   }
   if (period.kind === "season") {
@@ -84,11 +84,6 @@ export function resolve(period: Period, seasons: Season[], defaultId: string | n
   }
   const year = period.kind === "year" ? period.year : currentYear;
   return { from: `${year}-01-01`, to: `${year}-12-31`, season: null, year, title: t("stats.yearTitle", { year }) };
-}
-
-function germanDay(d: string): string {
-  const [y, m, dd] = d.split("-");
-  return `${dd}.${m}.${y}`;
 }
 
 /** Query für `GET /stats` bzw. `GET /stats/periods`. */
@@ -123,9 +118,6 @@ export interface StackBar extends Record<SportClass, number> {
   title: string;
 }
 
-const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-const LONG_MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-
 function nextMonth(m: string): string {
   const [y, mm] = m.split("-").map(Number) as [number, number];
   return mm === 12 ? `${y + 1}-01` : `${y}-${String(mm + 1).padStart(2, "0")}`;
@@ -146,7 +138,7 @@ export function monthBars(buckets: MonthBucket[], value: "distance" | "time", fr
   for (let m = first; m <= last && out.length < 120; m = nextMonth(m)) {
     const idx = Number(m.slice(5)) - 1;
     const sameYear = first.slice(0, 4) === last.slice(0, 4);
-    out.push(empty(m, sameYear ? (MONTHS[idx] ?? m) : `${MONTHS[idx] ?? ""} ${m.slice(2, 4)}`, `${LONG_MONTHS[idx] ?? ""} ${m.slice(0, 4)}`));
+    out.push(empty(m, sameYear ? monthShort(idx) : `${monthShort(idx)} ${m.slice(2, 4)}`, `${monthLong(idx)} ${m.slice(0, 4)}`));
   }
   for (const b of buckets) {
     const bar = out.find((x) => x.key === b.month);
@@ -171,7 +163,7 @@ export function weekBars(buckets: WeekBucket[], from?: string | null, to?: strin
   for (let m = first; m <= last && out.length < 160; m = addDays(m, 7)) {
     const week = byStart.get(m) ?? isoWeekName(m);
     const n = week.split("-W")[1] ?? "";
-    out.push(empty(m, String(Number(n)), t("stats.weekTitle", { n: Number(n), from: germanDay(m), to: germanDay(addDays(m, 6)) })));
+    out.push(empty(m, String(Number(n)), t("stats.weekTitle", { n: Number(n), from: dayDate(m), to: dayDate(addDays(m, 6)) })));
   }
   for (const b of buckets) {
     const bar = out.find((x) => x.key === b.week_start);

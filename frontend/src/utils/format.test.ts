@@ -1,4 +1,27 @@
-import { addDays, dateTime, duration, hoursMinutes, km, localDate, megabytes, num, pace, parseDuration, segmentTime, speed } from "./format";
+import { afterEach } from "vitest";
+import { resetLocaleForTests, setLocale } from "../i18n";
+import {
+  addDays,
+  dateOnly,
+  dateTime,
+  dayDate,
+  dayMonth,
+  dayRange,
+  duration,
+  hoursMinutes,
+  km,
+  localDate,
+  megabytes,
+  monthLong,
+  monthShort,
+  monthYear,
+  num,
+  pace,
+  parseDuration,
+  segmentTime,
+  speed,
+  weekdayShort,
+} from "./format";
 
 describe("Formate (RFC-0006)", () => {
   it("Zahlen mit Komma und Tausenderpunkt", () => {
@@ -63,5 +86,40 @@ describe("Segmentzeiten", () => {
     expect(segmentTime(3_725_990)).toBe("1:02:05,9");
     expect(segmentTime(59_999)).toBe("0:59,9");
     expect(segmentTime(null)).toBe("–");
+  });
+});
+
+describe("Formate nach Gebietsschema (#42)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+    resetLocaleForTests();
+  });
+
+  it("de-DE bleibt beim bisherigen Aussehen", () => {
+    expect(dateTime("2026-03-04T13:05:00Z", "Europe/Berlin")).toBe("04.03.26 14:05");
+    expect(dateTime("2026-03-04T13:05:00Z", "Europe/Berlin", true)).toBe("04.03.2026 14:05");
+    expect(dateOnly("2026-03-04T13:05:00Z", "Europe/Berlin", true)).toBe("04.03.2026");
+    expect(dayDate("2026-11-24")).toBe("24.11.2026");
+    expect(dayMonth("2026-11-24")).toBe("24.11.");
+    expect([dayRange("2026-11-23", "2026-11-29"), dayRange("2026-11-30", "2026-12-06")]).toEqual(["23.–29.11.", "30.11.–06.12."]);
+    expect([0, 2, 6].map(weekdayShort)).toEqual(["Mo", "Mi", "So"]);
+    expect([monthShort(2), monthShort(4), monthLong(2)]).toEqual(["Mär", "Mai", "März"]);
+    expect(monthYear("2026-11-15")).toBe("November 2026");
+  });
+
+  it("en-US: Zahlen, Datum, 12-Stunden-Uhr, Namen", () => {
+    setLocale({ format: "en-US" });
+    expect(num(1234.5, 1)).toBe("1,234.5");
+    expect(segmentTime(3_725_990)).toBe("1:02:05.9");
+    expect(dateTime("2026-03-04T13:05:00Z", "Europe/Berlin")).toBe("03/04/26 02:05 PM");
+    expect(dayDate("2026-11-24")).toBe("11/24/2026");
+    expect([0, 6].map(weekdayShort)).toEqual(["Mon", "Sun"]);
+    expect(monthShort(2)).toBe("Mar");
+  });
+
+  it("Sprache und Format getrennt: englische Texte mit deutschem Format", () => {
+    setLocale({ language: "en", format: "de-DE" });
+    expect(num(1234.5, 1)).toBe("1.234,5");
+    expect(dayDate("2026-11-24")).toBe("24.11.2026");
   });
 });

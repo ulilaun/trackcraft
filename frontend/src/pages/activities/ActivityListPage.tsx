@@ -17,9 +17,9 @@ import { ActivitySportIcon } from "../../components/SportIcon";
 import { useConfig } from "../../hooks/useConfig";
 import { t, type TextKey } from "../../i18n";
 import { useSeasons } from "../seasons/useSeasons";
-import { germanDate, seasonRange } from "../seasons/seasonModel";
+import { seasonRange } from "../seasons/seasonModel";
 import { segmentPath } from "../segments/segmentModel";
-import { dateTime, duration, hoursMinutes, km, localDate, num, speed } from "../../utils/format";
+import { dateTime, dayDate, duration, hoursMinutes, km, localDate, num, speed } from "../../utils/format";
 import {
   PAGE_SIZE,
   SPORT_CLASSES,
@@ -49,9 +49,9 @@ function periodText(z: ListPeriod, season: { start_date: string; end_date: strin
     case "season":
       return season ? seasonRange(season) : "";
     case "range":
-      if (z.from && z.to) return `${germanDate(z.from)} – ${germanDate(z.to)}`;
-      if (z.from) return t("list.rangeFrom", { day: germanDate(z.from) });
-      if (z.to) return t("list.rangeTo", { day: germanDate(z.to) });
+      if (z.from && z.to) return `${dayDate(z.from)} – ${dayDate(z.to)}`;
+      if (z.from) return t("list.rangeFrom", { day: dayDate(z.from) });
+      if (z.to) return t("list.rangeTo", { day: dayDate(z.to) });
       return t("list.allTime");
   }
 }

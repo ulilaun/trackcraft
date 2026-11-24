@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { FORMAT_KEY, LANGUAGE_KEY, resetLocaleForTests, setLocale } from "../../i18n";
 import { chooseOption } from "../../components/chooseOption.test-helper";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -146,12 +147,36 @@ describe("Einstellungen als Master-Detail", () => {
     window.localStorage.clear();
     resetThemeForTests();
     setup("/einstellungen/darstellung");
-    const group = screen.getByRole("radiogroup", { name: "Darstellung" });
+    const group = screen.getByRole("radiogroup", { name: "Design" });
     expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual(["Hell", "Dunkel", "Wie System"]);
     expect(within(group).getByRole("radio", { name: "Wie System" })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(within(group).getByRole("radio", { name: "Dunkel" }));
     expect(within(group).getByRole("radio", { name: "Dunkel" })).toHaveAttribute("aria-checked", "true");
     expect(window.localStorage.getItem(THEME_KEY)).toBe("dark");
+  });
+
+  it("Darstellung: Sprache und Format wählen, Wahl wird im Browser gespeichert", () => {
+    window.localStorage.clear();
+    resetLocaleForTests();
+    setup("/einstellungen/darstellung");
+    const language = screen.getByRole("combobox", { name: "Sprache" });
+    const format = screen.getByRole("combobox", { name: "Datum und Zahlen" });
+    expect(language).toHaveValue("auto");
+    expect(within(language).getByRole("option", { name: "Automatisch (Deutsch)" })).toBeInTheDocument();
+    expect(within(format).getByRole("option", { name: "Wie die Sprache (24.11.2026 · 1.234,5)" })).toBeInTheDocument();
+    expect(within(format).getByRole("option", { name: "11/24/2026 · 1,234.5" })).toBeInTheDocument();
+    act(() => {
+      fireEvent.change(language, { target: { value: "en" } });
+    });
+    expect(window.localStorage.getItem(LANGUAGE_KEY)).toBe("en");
+    // Englisch ist noch unvollständig: Hinweis, fehlende Texte auf Deutsch
+    expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en");
+    expect(screen.getByText("Not fully translated yet, missing texts appear in German.")).toBeInTheDocument();
+    act(() => {
+      fireEvent.change(screen.getByRole("combobox", { name: "Dates and numbers" }), { target: { value: "en-US" } });
+    });
+    expect(window.localStorage.getItem(FORMAT_KEY)).toBe("en-US");
+    act(() => setLocale({ language: "auto", format: "auto" }));
   });
 });
 
