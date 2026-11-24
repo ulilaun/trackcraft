@@ -1685,7 +1685,7 @@ components:
         segment:
           type: object
           description: Nur in `listActivityEfforts`, Kurzangaben für die Segmenttabelle des Aktivitätsdetails (RFC-0006)
-          required: [kind, category, sport_class, length_m, elevation_gain_m, average_grade_pct, ranked_count]
+          required: [kind, category, sport_class, length_m, elevation_gain_m, average_grade_pct, ranked_count, best_ms]
           properties:
             kind: {$ref: '#/components/schemas/SegmentKind'}
             category: {oneOf: [{$ref: '#/components/schemas/SegmentCategory'}, {type: 'null'}]}
@@ -1694,6 +1694,7 @@ components:
             elevation_gain_m: {type: [number, 'null'], minimum: 0}
             average_grade_pct: {type: [number, 'null'], description: 'Aus Start- und Zielhöhe der Referenz, eine Nachkommastelle'}
             ranked_count: {type: integer, minimum: 0, description: 'Gewertete Versuche des Segments, für „Rang n von m“'}
+            best_ms: {type: [integer, 'null'], minimum: 0, description: 'Heutige Bestzeit des Segments bzw. der Strecke'}
     EffortListMeta:
       type: object
       required: [calculation]

@@ -340,19 +340,46 @@ describe("Aktivitätsdetail", () => {
     expect(screen.getByText("Erstellen-Dialog segment")).toBeInTheDocument();
   });
 
-  it("sperrt „Strecke erstellen“, wenn die Aktivität schon zu einer Strecke passt", async () => {
+  it("bietet „Strecke erstellen“ an, solange die Aktivität zu keiner Strecke passt", async () => {
     setup("a1");
     const route = await screen.findByRole("button", { name: "Strecke erstellen" });
     await vi.waitFor(() => expect(route).toBeEnabled());
+    expect(screen.getByText("Passt zu keiner Strecke.")).toBeInTheDocument();
     fireEvent.click(route);
     expect(screen.getByText("Erstellen-Dialog route")).toBeInTheDocument();
   });
 
-  it("verweist auf die passende Strecke statt eine zweite anzulegen", async () => {
-    efforts = [effort({ segment_id: "r1", segment_name: "Hausrunde", status: "not_ranked", not_ranked_reason: "ambiguous_geometry", rank: null, record_kind: null, segment: { kind: "route", category: "loop", sport_class: "cycling", length_m: 25_000, elevation_gain_m: 300, average_grade_pct: 0, ranked_count: 3 } })];
+  it("zeigt die passende Strecke oben statt in der Segmentliste", async () => {
+    const routeInfo = { kind: "route" as const, category: "loop" as const, sport_class: "cycling" as const, length_m: 25_000, elevation_gain_m: 300, average_grade_pct: 0, ranked_count: 3, best_ms: 3_000_000 };
+    efforts = [
+      effort({ id: "r", segment_id: "r1", segment_name: "Hausrunde", rank: 2, record_kind: null, improvement_ms: null, duration_ms: 3_100_000, segment: routeInfo }),
+      effort(),
+    ];
     setup("a1");
-    expect(await screen.findByText("„Hausrunde“")).toHaveAttribute("href", "/strecken/r1");
-    expect(screen.getByRole("button", { name: "Strecke erstellen" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Segment erstellen" })).toBeEnabled();
+    const top = within(await screen.findByRole("region", { name: "Strecke" }));
+    expect(await top.findByRole("link", { name: /Hausrunde/ })).toHaveAttribute("href", "/strecken/r1");
+    expect(top.getByText("Rang 2 von 3 · Bestzeit 50:00,0")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Strecke erstellen" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Segmente" })).getByRole("button", { name: "Segment erstellen" })).toBeEnabled();
+    // Segmenttabelle und Kennzahl ohne Strecke
+    expect(screen.getAllByText("Hausrunde")).toHaveLength(1);
+    expect(screen.getByTestId("kpi-segments")).toHaveTextContent(/Segmente\s*1\s*davon 1 PRs/);
+  });
+
+  it("zeigt höchstens drei Top-Ergebnisse, Bestzeiten zuerst", async () => {
+    efforts = [
+      effort({ id: "a", segment_id: "sa", segment_name: "Platz drei", rank: 3, record_kind: null, improvement_ms: null }),
+      effort({ id: "b", segment_id: "sb", segment_name: "Platz zwei", rank: 2, record_kind: null, improvement_ms: null }),
+      effort({ id: "c", segment_id: "sc", segment_name: "Zweiter zwei", rank: 2, record_kind: null, improvement_ms: null }),
+      effort({ id: "d", segment_id: "sd", segment_name: "Bestzeit", record_kind: "first_best" }),
+    ];
+    setup("a1");
+    const region = within(await screen.findByRole("region", { name: "Segmente" }));
+    await vi.waitFor(() => expect(region.getAllByRole("link")).toHaveLength(3));
+    expect(region.getAllByRole("link").map((l) => l.textContent)).toEqual([
+      expect.stringContaining("Bestzeit"),
+      expect.stringContaining("Platz zwei"),
+      expect.stringContaining("Zweiter zwei"),
+    ]);
   });
 });

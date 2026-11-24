@@ -422,6 +422,8 @@ export interface Effort {
     elevation_gain_m: number | null;
     average_grade_pct: number | null;
     ranked_count: number;
+    /** Heutige Bestzeit des Segments bzw. der Strecke */
+    best_ms?: number | null;
   };
 }
 

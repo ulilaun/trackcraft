@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { subSportLabel } from "../../utils/sports";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Flag, Pencil, Route as RouteIcon, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import {
   ApiError,
   apiGet,
@@ -27,7 +27,7 @@ import { DeleteDialog } from "./DeleteDialog";
 import { EditDialog } from "./EditDialog";
 import { LoadCard } from "./LoadCard";
 import { PlannedUnitCard } from "./PlannedUnitCard";
-import { EffortTable, TopResults } from "./SegmentEfforts";
+import { EffortTable, isRoute, TopResults } from "./SegmentEfforts";
 import { hasPosition, mergeSections, pointRange, trackStartMs } from "./trackModel";
 
 /** Woher die Detailseite geöffnet wurde (RFC-0006 „Navigation“). */
@@ -93,7 +93,8 @@ export function ActivityDetailPage() {
     [hoverEffort, points, t0],
   );
   const effortList = efforts.data?.data ?? [];
-  const matchedRoute = effortList.find((e) => e.segment?.kind === "route");
+  // Segmenttabelle und Kennzahl nur mit Segmenten, Strecken stehen oben in den Top-Ergebnissen
+  const segmentEfforts = useMemo(() => (efforts.data?.data ?? []).filter((e) => !isRoute(e)), [efforts.data]);
 
   const back =
     origin.from ? (
@@ -171,36 +172,6 @@ export function ActivityDetailPage() {
               <Pencil size={14} />
               {t("detail.edit")}
             </button>
-            <button
-              type="button"
-              className={textButton}
-              disabled={!a.has_position || !cfg}
-              title={a.has_position ? undefined : t("create.noGps")}
-              onClick={() => setDialog("segment")}
-            >
-              <Flag size={14} />
-              {t("detail.createSegment")}
-            </button>
-            <span className="flex flex-col items-end gap-0.5">
-              <button
-                type="button"
-                className={textButton}
-                disabled={!a.has_position || !cfg || !!matchedRoute || !efforts.isSuccess}
-                title={a.has_position ? undefined : t("create.noGps")}
-                onClick={() => setDialog("route")}
-              >
-                <RouteIcon size={14} />
-                {t("detail.createRoute")}
-              </button>
-              {matchedRoute && (
-                <span className="text-xs text-muted">
-                  {t("detail.routeMatched")}{" "}
-                  <Link to={`/strecken/${matchedRoute.segment_id}`} state={{ from: "activity", activityId: a.id }} className="text-accent hover:underline">
-                    „{matchedRoute.segment_name}“
-                  </Link>
-                </span>
-              )}
-            </span>
             <button type="button" className={textButton} onClick={() => setDialog("delete")}>
               <Trash2 size={14} />
               {t("detail.delete")}
@@ -209,7 +180,8 @@ export function ActivityDetailPage() {
         </div>
       </Card>
 
-      <TopResults efforts={effortList} />
+      {/* Ohne GPS gibt es weder Strecken noch Segmente */}
+      {a.has_position && <TopResults efforts={effortList} loaded={efforts.isSuccess} canCreate={!!cfg} onCreate={setDialog} />}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="grid grid-cols-2 content-start gap-4 lg:col-span-5">
@@ -236,11 +208,13 @@ export function ActivityDetailPage() {
           {/* Segmente flach über beide Spalten (Uli 22.11.2026) */}
           <section className="col-span-2 flex items-baseline gap-3 rounded-card border border-line bg-card px-4 py-2.5 shadow-sm" data-testid="kpi-segments">
             <span className="text-xs font-medium text-muted">{t("detail.kpi.segments")}</span>
-            <span className="num text-lg font-semibold">{efforts.isSuccess ? effortList.length : "–"}</span>
+            <span className="num text-lg font-semibold">{efforts.isSuccess ? segmentEfforts.length : "–"}</span>
             <span className="text-xs text-muted">
               {efforts.data?.meta.calculation.status === "running"
                 ? t("efforts.calculating")
-                : t("detail.kpi.segmentsPrs", { count: a.segment_success_count })}
+                : t("detail.kpi.segmentsPrs", {
+                    count: efforts.isSuccess ? segmentEfforts.filter((e) => e.record_kind != null).length : a.segment_success_count,
+                  })}
             </span>
           </section>
         </div>
@@ -276,7 +250,7 @@ export function ActivityDetailPage() {
       ) : (
         efforts.isSuccess && (
           <EffortTable
-            efforts={effortList}
+            efforts={segmentEfforts}
             running={running}
             calculating={efforts.data.meta.calculation.status === "running"}
             onHover={setHoverEffort}

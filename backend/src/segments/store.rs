@@ -875,13 +875,21 @@ pub async fn activity_efforts(cfg: &Validated, db: &Db, activity_id: &str) -> an
 }
 
 /// Kurzangaben zum Segment für die Segmenttabelle des Aktivitätsdetails (RFC-0006): Art, Sportklasse, Länge,
-/// Aufstieg mit Hysterese, Steigung aus Start- und Zielhöhe, Zahl der gewerteten Versuche für „Rang n von m“.
+/// Aufstieg mit Hysterese, Steigung aus Start- und Zielhöhe, Zahl der gewerteten Versuche für „Rang n von m“,
+/// heutige Bestzeit (Streckenteil der Top-Ergebnisse).
 async fn effort_segment(cfg: &Validated, conn: &mut SqliteConnection, id: &str, ranked: usize) -> anyhow::Result<Value> {
     let r = sqlx::query(sqlx::AssertSqlSafe(format!(
         "SELECT kind, sport_class, length_m, reference, reference_point_count, {CATEGORY_SQL} AS category FROM segments WHERE id = ?"
     )))
     .bind(id)
-    .fetch_one(conn)
+    .fetch_one(&mut *conn)
+    .await?;
+    let best_ms: Option<i64> = sqlx::query_scalar(
+        "SELECT min(duration_ms) FROM segment_efforts WHERE segment_id = ? AND status = 'valid' \
+         AND calculation_version_id = (SELECT id FROM calculation_versions WHERE status = 'published')",
+    )
+    .bind(id)
+    .fetch_one(&mut *conn)
     .await?;
     let pts = track::decode(&r.get::<Vec<u8>, _>("reference"), Some(r.get::<i64, _>("reference_point_count") as usize))?;
     let length: f64 = r.get("length_m");
@@ -895,6 +903,7 @@ async fn effort_segment(cfg: &Validated, conn: &mut SqliteConnection, id: &str, 
         "elevation_gain_m": elevation.map(|e| e.gain_m),
         "average_grade_pct": grade,
         "ranked_count": ranked,
+        "best_ms": best_ms,
     }))
 }
 
