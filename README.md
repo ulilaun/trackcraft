@@ -4,7 +4,7 @@
 
 **Deine Trainingsdaten auf deinem eigenen Rechner.** TrackCraft ist eine selbst gehostete Trainingsplattform für FIT- und GPX-Dateien: Aktivitäten importieren, auf der Karte ansehen, eigene Segmente und Strecken anlegen, Bestzeiten über Jahre und Saisons verfolgen, Belastung und Form beobachten und das Training bis zum nächsten Ziel planen. Ohne Cloud, ohne Konto, im eigenen Heimnetz.
 
-Stand: Version 0.8 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
+Stand: Version 0.9 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaet-dunkel.png">
