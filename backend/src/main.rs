@@ -73,6 +73,24 @@ enum Cmd {
 enum DemoAction {
     /// Datenbank der Konfiguration als Demo-Datenbank kennzeichnen (nur dann verschiebt [demo] enabled die Daten)
     Mark,
+    /// Demo zum Ausprobieren starten: Daten, Zertifikat und Konfiguration in einem eigenen Ordner, ohne Installation
+    Start {
+        /// Ordner der Demo (Vorgabe: %LOCALAPPDATA%\TrackCraft-Demo bzw. ~/.local/share/trackcraft-demo)
+        #[arg(long)]
+        dir: Option<std::path::PathBuf>,
+        /// Entpackte Demo-Datenbank (Vorgabe: Ordner demo-daten neben dem Programm)
+        #[arg(long)]
+        source: Option<std::path::PathBuf>,
+        /// HTTPS-Port auf 127.0.0.1
+        #[arg(long, default_value_t = 8443)]
+        port: u16,
+        /// Mit frischen Demo-Daten beginnen (bisherige Änderungen in der Demo gehen verloren)
+        #[arg(long)]
+        reset: bool,
+        /// Browser nicht öffnen
+        #[arg(long)]
+        no_browser: bool,
+    },
 }
 
 #[cfg(windows)]
@@ -117,6 +135,9 @@ fn main() -> ExitCode {
         #[cfg(target_os = "linux")]
         Some(Cmd::Cert { new_ca, names }) => platform::linux::setup::cert_command(new_ca, names),
         Some(Cmd::Demo { action: DemoAction::Mark }) => commands::demo_mark(&config::config_path()),
+        Some(Cmd::Demo { action: DemoAction::Start { dir, source, port, reset, no_browser } }) => {
+            demo_workspace(dir, source, port).and_then(|ws| commands::demo_start(ws, reset, !no_browser))
+        }
         #[cfg(windows)]
         Some(Cmd::Uninstall) => platform::windows::setup::uninstall(),
         #[cfg(windows)]
@@ -138,6 +159,32 @@ fn main() -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+fn demo_workspace(
+    dir: Option<std::path::PathBuf>,
+    source: Option<std::path::PathBuf>,
+    port: u16,
+) -> anyhow::Result<trackcraft::demo::Workspace> {
+    use anyhow::Context;
+    let exe_dir = std::env::current_exe()?.parent().context("Programmordner unbekannt")?.to_path_buf();
+    let dir = match dir {
+        Some(d) => d,
+        None => {
+            #[cfg(windows)]
+            let base = std::env::var_os("LOCALAPPDATA").map(std::path::PathBuf::from).context("LOCALAPPDATA ist nicht gesetzt")?;
+            #[cfg(not(windows))]
+            let base =
+                std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".local/share")).context("HOME ist nicht gesetzt")?;
+            base.join(if cfg!(windows) { "TrackCraft-Demo" } else { "trackcraft-demo" })
+        }
+    };
+    Ok(trackcraft::demo::Workspace {
+        dir: std::path::absolute(dir)?,
+        source: std::path::absolute(source.unwrap_or_else(|| exe_dir.join("demo-daten")))?,
+        web: exe_dir.join("web"),
+        port,
+    })
 }
 
 /// Konsole (Windows-Diagnose) und Container: gleiche Konfiguration, gleiche Prüfungen.

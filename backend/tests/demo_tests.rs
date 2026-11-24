@@ -194,3 +194,45 @@ async fn startup_with_demo_refuses_real_data_and_shifts_demo_data() {
     assert_eq!(v["data"]["demo"], true);
     started.db.close().await;
 }
+
+#[test]
+fn workspace_copies_demo_data_once_and_writes_valid_config() {
+    let tmp = tempfile::tempdir().unwrap();
+    let source = tmp.path().join("demo-daten");
+    std::fs::create_dir_all(source.join("database")).unwrap();
+    std::fs::create_dir_all(source.join("activities").join("2026")).unwrap();
+    std::fs::write(source.join("database").join("trackcraft.db"), b"demo").unwrap();
+    std::fs::write(source.join("activities").join("2026").join("a.gpx"), b"<gpx/>").unwrap();
+    let web = tmp.path().join("web");
+    std::fs::create_dir_all(&web).unwrap();
+    std::fs::write(web.join("index.html"), b"<html/>").unwrap();
+    let ws = demo::Workspace { dir: tmp.path().join("Demo Ordner"), source, web, port: 18999 };
+
+    ws.prepare(false).unwrap();
+    let db = ws.dir.join("data").join("database").join("trackcraft.db");
+    assert_eq!(std::fs::read(&db).unwrap(), b"demo");
+    assert!(ws.dir.join("data").join("activities").join("2026").join("a.gpx").is_file());
+    assert!(ws.dir.join("tls").join("server.pem").is_file());
+    let cfg = config::load(&ws.config_file()).unwrap();
+    assert!(cfg.raw.demo.enabled);
+    assert_eq!(cfg.raw.server.allowed_origins, vec!["https://localhost:18999".to_string()]);
+    assert_eq!(cfg.raw.server.listen, "127.0.0.1:18999");
+
+    // Zweiter Start behält die Demo-Daten (samt Verschiebung und eigenen Änderungen), --reset beginnt neu
+    std::fs::write(&db, b"geaendert").unwrap();
+    ws.prepare(false).unwrap();
+    assert_eq!(std::fs::read(&db).unwrap(), b"geaendert");
+    ws.prepare(true).unwrap();
+    assert_eq!(std::fs::read(&db).unwrap(), b"demo");
+}
+
+#[test]
+fn workspace_without_demo_data_fails_clearly() {
+    let tmp = tempfile::tempdir().unwrap();
+    let web = tmp.path().join("web");
+    std::fs::create_dir_all(&web).unwrap();
+    std::fs::write(web.join("index.html"), b"<html/>").unwrap();
+    let ws = demo::Workspace { dir: tmp.path().join("demo"), source: tmp.path().join("fehlt"), web, port: 18999 };
+    let e = ws.prepare(false).unwrap_err().to_string();
+    assert!(e.contains("Demo-Datenbank fehlt"), "{e}");
+}

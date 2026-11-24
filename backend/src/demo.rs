@@ -9,11 +9,15 @@
 //! Nicht verschoben werden die Originaldateien im Aktivitätenordner, Protokoll-, Import- und Auftragszeiten sowie der
 //! Geburtstag.
 
+use std::fs;
+use std::path::{Path, PathBuf};
+
 use anyhow::{Context, bail};
 use chrono::{Days, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::Row;
 
+use crate::cert;
 use crate::db::{self, Db};
 use crate::domain::track;
 
@@ -161,6 +165,102 @@ pub async fn shift_to(db: &Db, tz: Tz, today: NaiveDate) -> anyhow::Result<Optio
     db::bump_revision(&mut tx, now).await?;
     tx.commit().await?;
     Ok(Some(Shifted { days, activities: activities.len(), last_day: target }))
+}
+
+/// Ordner einer Demo zum Ausprobieren (`trackcraft demo start`, Windows `demo.cmd`).
+#[derive(Debug, Clone)]
+pub struct Workspace {
+    /// Hier liegen Konfiguration, Zertifikat und Daten; außerhalb davon wird nichts geschrieben.
+    pub dir: PathBuf,
+    /// Entpackte Demo-Datenbank (`database/trackcraft.db`, `activities/`), nur beim ersten Start kopiert.
+    pub source: PathBuf,
+    /// Weboberfläche (Ordner mit `index.html`).
+    pub web: PathBuf,
+    pub port: u16,
+}
+
+impl Workspace {
+    pub fn config_file(&self) -> PathBuf {
+        self.dir.join("trackcraft.toml")
+    }
+
+    pub fn url(&self) -> String {
+        format!("https://localhost:{}", self.port)
+    }
+
+    fn data(&self) -> PathBuf {
+        self.dir.join("data")
+    }
+
+    /// Kopiert beim ersten Mal die Demo-Daten, legt ein eigenes Zertifikat an (keinem Gerät bekannt, daher die
+    /// Browserwarnung) und schreibt die Konfiguration. `reset` beginnt mit frischen Demo-Daten.
+    pub fn prepare(&self, reset: bool) -> anyhow::Result<()> {
+        if !self.web.join("index.html").is_file() {
+            bail!("Weboberfläche fehlt: {}", self.web.display());
+        }
+        fs::create_dir_all(&self.dir).with_context(|| format!("{} lässt sich nicht anlegen", self.dir.display()))?;
+        let data = self.data();
+        if reset && data.exists() {
+            fs::remove_dir_all(&data).with_context(|| format!("{} lässt sich nicht löschen", data.display()))?;
+        }
+        if !data.join("database").join("trackcraft.db").is_file() {
+            let db = self.source.join("database").join("trackcraft.db");
+            if !db.is_file() {
+                bail!("Demo-Datenbank fehlt: {}", db.display());
+            }
+            let tmp = self.dir.join("data.neu");
+            if tmp.exists() {
+                fs::remove_dir_all(&tmp)?;
+            }
+            copy_tree(&self.source.join("database"), &tmp.join("database"))?;
+            copy_tree(&self.source.join("activities"), &tmp.join("activities"))?;
+            if data.exists() {
+                fs::remove_dir_all(&data)?;
+            }
+            fs::rename(&tmp, &data)?;
+        }
+        let files = cert::Managed::in_config_dir(&self.dir);
+        cert::ensure(&files, &["localhost".to_string()], false, "Demo")?;
+
+        let s = |p: &Path| toml::Value::String(p.display().to_string()).to_string();
+        let text = format!(
+            "# Von `trackcraft demo start` geschrieben, wird bei jedem Start ersetzt.\n\
+             [server]\nlisten = \"127.0.0.1:{port}\"\nallowed_origins = [\"{url}\"]\nstatic_dir = {web}\n\n\
+             [tls]\ncert_file = {cert}\nkey_file = {key}\n\n\
+             [paths]\ndatabase_dir = {database}\nactivities_dir = {activities}\nlogs_dir = {logs}\n\n\
+             [backup]\ntarget_dir = {backup}\nmigration_dir = {migration}\n\n\
+             [demo]\nenabled = true\n",
+            port = self.port,
+            url = self.url(),
+            web = s(&self.web),
+            cert = s(&files.server_cert),
+            key = s(&files.server_key),
+            database = s(&data.join("database")),
+            activities = s(&data.join("activities")),
+            logs = s(&data.join("logs")),
+            backup = s(&self.dir.join("sicherung")),
+            migration = s(&data.join("backups")),
+        );
+        fs::write(self.config_file(), text).with_context(|| format!("{} lässt sich nicht schreiben", self.config_file().display()))?;
+        Ok(())
+    }
+}
+
+fn copy_tree(from: &Path, to: &Path) -> anyhow::Result<()> {
+    fs::create_dir_all(to).with_context(|| format!("{} lässt sich nicht anlegen", to.display()))?;
+    if !from.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(from).with_context(|| format!("{} lässt sich nicht lesen", from.display()))? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_tree(&entry.path(), &target)?;
+        } else {
+            fs::copy(entry.path(), &target).with_context(|| format!("{} lässt sich nicht kopieren", entry.path().display()))?;
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
