@@ -2,9 +2,15 @@
 
 # TrackCraft
 
+<p align="center"><b>Eigene Segmente und Bestenlisten wie bei Strava – rückwirkend über alle Aktivitäten, mit Garmin-Import, ohne Cloud und ohne Abo.</b></p>
+
+<p align="center"><a href="README.en.md">English</a> · <a href="#ausprobieren">In zwei Minuten ausprobieren</a> · <a href="#installation">Installation</a> · <a href="#häufige-fragen">Häufige Fragen</a></p>
+
 **Deine Trainingsdaten auf deinem eigenen Rechner.** TrackCraft ist eine selbst gehostete Trainingsplattform für FIT- und GPX-Dateien: Aktivitäten importieren, auf der Karte ansehen, eigene Segmente und Strecken anlegen, Bestzeiten über Jahre und Saisons verfolgen, Belastung und Form beobachten und das Training bis zum nächsten Ziel planen. Ohne Cloud, ohne Konto, im eigenen Heimnetz.
 
-Stand: Version 0.9 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
+Stand: Version 0.9 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch, eine englische Oberfläche ist für v1.0 geplant. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat bewusst **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
+
+**Ausprobieren ohne Installation:** Die [Demo](#ausprobieren) mit erfundenen Mallorca-Daten läuft unter Windows per Doppelklick oder mit einem `docker compose`-Befehl.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaet-dunkel.png">
@@ -63,7 +69,7 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 - Bedienbar am PC, Tablet und Handy, helles und dunkles Design.
 - Eine Datenbank (SQLite) und die unveränderten Originaldateien; jede Kennzahl lässt sich aus den Originalen neu berechnen.
 
-**Noch nicht enthalten** (geplant bis v1.0): tägliche Sicherung und Wiederherstellung aus der Oberfläche, Export. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
+**Noch nicht enthalten** (geplant bis v1.0, siehe [Meilenstein](../../milestones)): tägliche Sicherung und Wiederherstellung aus der Oberfläche, Export aller Daten, englische Oberfläche. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
 
 ## Sicherheit: nur fürs Heimnetz
 
@@ -108,6 +114,38 @@ attribution = "© OpenStreetMap-Mitwirkende, Kacheln: Beispielanbieter"
 ```
 
 **Ortsvorschlag:** Findet TrackCraft keinen bekannten Ort in der Nähe des Starts, fragt der Server den Dienst Nominatim von OpenStreetMap (`nominatim.openstreetmap.org`) mit der auf gut 10 m gerundeten Startkoordinate. Das lässt sich unter Einstellungen → Orte abschalten; mit `[places] nominatim_url` geht auch eine eigene Nominatim-Instanz.
+
+## Häufige Fragen
+
+**Warum gibt es kein Login?**
+Bewusste Entscheidung für V1: TrackCraft ist für eine Person im eigenen Netz gebaut. Von unterwegs erreichst du es
+über ein VPN wie Tailscale oder WireGuard, nicht über eine Portfreigabe. So bleibt die Angriffsfläche klein und es
+gibt kein Passwort, das verloren gehen kann. Mehrere Benutzer mit Anmeldung sind als
+[Erweiterung](../../issues/39) beschrieben.
+
+**Ist das ein Strava-Ersatz?**
+Für die eigene Auswertung ja: Segmente, Bestenlisten, Statistik, Form und Planung. Für Soziales nein, es gibt keine
+Freunde, Kudos oder öffentlichen Bestenlisten. Deine Segmente gelten nur für deine eigenen Aktivitäten, dafür
+rückwirkend für alle, auch die von vor zehn Jahren.
+
+**Wie kommen meine alten Aktivitäten hinein?**
+Per Garmin Connect (persönlicher API-Schlüssel, holt die ganze Historie) oder als FIT- und GPX-Dateien per
+Drag-and-drop, etwa aus dem Datenexport einer anderen Plattform (gepackte Dateien vorher entpacken). Duplikate
+erkennt TrackCraft selbst.
+
+**Wie sichere ich meine Daten?**
+Alles steckt in einem Datenordner: eine SQLite-Datenbank und die unveränderten Originaldateien. Diesen Ordner
+sicherst du mit deinem gewohnten Werkzeug, die Anleitungen zeigen wie. Vor jeder Datenbankmigration legt
+TrackCraft selbst eine Kopie an. Tägliche Sicherung, Wiederherstellung und Export aus der Oberfläche kommen mit v1.0.
+
+**Was verlässt mein Netz?**
+Nur die Abrufe von Kartenkacheln (Browser → OpenStreetMap oder dein Anbieter), der abschaltbare Ortsvorschlag
+(Server → Nominatim, gerundete Startkoordinate) und, falls eingerichtet, der Abruf bei Garmin Connect. Keine
+Telemetrie, keine Konten, keine Cloud.
+
+**Läuft es auf einem Raspberry Pi oder NAS?**
+Offiziell bisher auf x86-64 (Windows, Linux, Docker). Ein Proxmox-Container mit Debian reicht völlig aus, arm64 für
+den Raspberry Pi ist als [Erweiterung](../../issues/7) beschrieben.
 
 ## Fragen, Fehler und Beiträge
 
