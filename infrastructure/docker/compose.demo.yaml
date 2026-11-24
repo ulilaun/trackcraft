@@ -46,7 +46,8 @@ services:
       demo-web:
         condition: service_completed_successfully
     read_only: true
-    tmpfs: [/tmp]
+    # /data ist im Image ein VOLUME; die Demo nutzt es nicht. Ohne Einbindung bliebe nach `down` ein anonymes Volume übrig.
+    tmpfs: [/tmp, /data]
     volumes:
       - demo:/demo
       - web:/web:ro
