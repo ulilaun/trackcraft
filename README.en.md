@@ -8,12 +8,12 @@
 
 **Your training data on your own machine.** TrackCraft is a self-hosted training platform for FIT and GPX files: import activities, view them on a map, draw your own segments and routes, track personal bests across years and seasons, follow training load and form, and plan your training up to your next goal. No cloud, no account, inside your home network.
 
-Status: version 0.9 (pre-release on the way to v1.0). **The user interface and the documentation are currently German only**; an English interface is planned for v1.0. TrackCraft is built for **one person** in their home network and deliberately has **no login** (see [Security](#security-home-network-only)).
+Status: version 0.9 (pre-release on the way to v1.0). **The user interface is available in English and German** (Settings → Appearance, with date and number format chosen separately); the documentation is mostly German. TrackCraft is built for **one person** in their home network and deliberately has **no login** (see [Security](#security-home-network-only)).
 
 **Try it without installing:** the [demo](#try-it) with made-up rides on Mallorca starts with a double-click on Windows or with a single `docker compose` command.
 
 <p align="center"><img src="docs/screenshots/segment-erstellen.gif" width="720" alt="Animation: a climb is marked on the map and elevation profile of a ride and saved as a segment. TrackCraft matches it against all activities and shows the history of best times."></p>
-<p align="center"><sub>Mark a segment, save it, done: TrackCraft instantly finds it in every past ride (German UI).</sub></p>
+<p align="center"><sub>Mark a segment, save it, done: TrackCraft instantly finds it in every past ride (shown with the German UI).</sub></p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/aktivitaet-dunkel.png">
@@ -59,7 +59,7 @@ All screenshots show made-up sample data on Mallorca ([scripts/demo](scripts/dem
 - Works on desktop, tablet and phone, light and dark theme.
 - One SQLite database plus your unchanged original files; every figure can be recomputed from the originals.
 
-**Not yet included** (planned for v1.0, see [milestone](../../milestones)): daily backup and restore from the UI, export of all data, English interface. Ideas for later are described as [issues](../../issues) (in German).
+**Not yet included** (planned for v1.0, see [milestone](../../milestones)): daily backup and restore from the UI, export of all data. Ideas for later are described as [issues](../../issues) (in German).
 
 ## Security: home network only
 

@@ -21,7 +21,8 @@ Pull Requests bitte **erst nach Absprache im Issue**: kurz beschreiben, was du �
 Dann gilt:
 
 - **Spec first:** Verhalten steht zuerst im passenden RFC bzw. in [docs/api/openapi.yaml](docs/api/openapi.yaml) ([Spezifikation](docs/README.md)), Code und Doku ändern sich im selben Pull Request.
-- **Deutsch** für Oberfläche, Doku, Commit-Nachrichten und Kommentare; Bezeichner im Code englisch.
+- **Deutsch** für Doku, Commit-Nachrichten und Kommentare; Bezeichner im Code englisch.
+- **Oberfläche zweisprachig:** Neue Texte kommen als Schlüssel in `frontend/src/i18n/de.json` und `en.json`, nie fest ins JSX; Datum und Zahlen nur über `frontend/src/utils/format.ts`. Die Tests prüfen beides.
 - Ein Thema je Pull Request, mit Tests für neues Verhalten.
 - Vor dem Pull Request lokal prüfen (wie in der CI):
 

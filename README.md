@@ -8,7 +8,7 @@
 
 **Deine Trainingsdaten auf deinem eigenen Rechner.** TrackCraft ist eine selbst gehostete Trainingsplattform für FIT- und GPX-Dateien: Aktivitäten importieren, auf der Karte ansehen, eigene Segmente und Strecken anlegen, Bestzeiten über Jahre und Saisons verfolgen, Belastung und Form beobachten und das Training bis zum nächsten Ziel planen. Ohne Cloud, ohne Konto, im eigenen Heimnetz.
 
-Stand: Version 0.9 (Vorabversion auf dem Weg zu v1.0). Oberfläche und Dokumentation sind auf Deutsch, eine englische Oberfläche ist für v1.0 geplant. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat bewusst **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
+Stand: Version 0.9 (Vorabversion auf dem Weg zu v1.0). Die Oberfläche gibt es auf Deutsch und Englisch (Einstellungen → Darstellung, Datum und Zahlen getrennt wählbar), die Dokumentation auf Deutsch. TrackCraft ist für **eine Person** im eigenen Heimnetz gedacht und hat bewusst **kein Login** (siehe [Sicherheit](#sicherheit-nur-fürs-heimnetz)).
 
 **Ausprobieren ohne Installation:** Die [Demo](#ausprobieren) mit erfundenen Mallorca-Daten läuft unter Windows per Doppelklick oder mit einem `docker compose`-Befehl.
 
@@ -72,7 +72,7 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 - Bedienbar am PC, Tablet und Handy, helles und dunkles Design.
 - Eine Datenbank (SQLite) und die unveränderten Originaldateien; jede Kennzahl lässt sich aus den Originalen neu berechnen.
 
-**Noch nicht enthalten** (geplant bis v1.0, siehe [Meilenstein](../../milestones)): tägliche Sicherung und Wiederherstellung aus der Oberfläche, Export aller Daten, englische Oberfläche. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
+**Noch nicht enthalten** (geplant bis v1.0, siehe [Meilenstein](../../milestones)): tägliche Sicherung und Wiederherstellung aus der Oberfläche, Export aller Daten. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
 
 ## Sicherheit: nur fürs Heimnetz
 

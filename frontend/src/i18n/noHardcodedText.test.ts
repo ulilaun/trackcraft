@@ -65,7 +65,7 @@ describe("Texte im Komponenten-Code", () => {
       readdirSync(dir).flatMap((f) => {
         const p = path.join(dir, f);
         if (statSync(p).isDirectory()) return all(p);
-        return /\.tsx?$/.test(p) && !p.includes(".test.") ? [p] : [];
+        return /\.tsx?$/.test(p) && !p.includes(".test.") && !p.endsWith("test-setup.ts") ? [p] : [];
       });
     const hits = all(SRC)
       .filter((f) => !f.includes(`${path.sep}i18n${path.sep}`) && !f.endsWith(path.join("utils", "format.ts")))

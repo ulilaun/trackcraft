@@ -1553,6 +1553,7 @@ components:
         max_gain: {type: integer, minimum: 3, maximum: 7, description: 'Höchster Fitnessanstieg je Woche'}
         recovery_weeks: {type: boolean, description: 'Jede vierte Woche Entlastung (3:1)'}
         intensity: {type: string, enum: [polarized, base]}
+        language: {type: string, enum: [de, en], default: de, description: 'Sprache der Titel vorgeschlagener Einheiten (Oberfläche); wird nicht gemerkt'}
     SuggestionResponse:
       type: object
       required: [data]

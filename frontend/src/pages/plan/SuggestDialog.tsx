@@ -5,7 +5,7 @@ import { apiPost, type PlanGoal, type SuggestionApplyResponse, type SuggestionIn
 import { Dialog, primaryButton, secondaryButton } from "../../components/Dialog";
 import { useFlash } from "../../components/Flash";
 import { Problem } from "../../components/Problem";
-import { t, type TextKey } from "../../i18n";
+import { language, t, type TextKey } from "../../i18n";
 import { addDays, dayDate, dayMonth, num, WEEK, weekdayShort } from "../../utils/format";
 import { SPORT_CLASSES } from "../../utils/sports";
 import { FormChart } from "../form/FormPage";
@@ -32,7 +32,8 @@ export function SuggestDialog({ goal, saved, onClose }: { goal: PlanGoal; saved:
   }));
   const [texts, setTexts] = useState<string[]>(() => start.minutes.map(String));
   const problem = inputProblem(texts);
-  const req = useMemo(() => requestInput(base, texts), [base, texts]);
+  // Titel der Vorschläge in der Sprache der Oberfläche
+  const req = useMemo(() => ({ ...requestInput(base, texts), language: language() }), [base, texts]);
   // Kurz warten, damit nicht jeder Tastendruck rechnet
   const [debounced, setDebounced] = useState(req);
   useEffect(() => {
