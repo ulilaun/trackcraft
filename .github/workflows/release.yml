@@ -160,6 +160,7 @@ jobs:
           d="trackcraft-$v-docker"
           mkdir -p "dist/$d/config"
           sed "s/\${TRACKCRAFT_VERSION}/$v/g" infrastructure/docker/compose.yaml > "dist/$d/compose.yaml"
+          sed "s/\${TRACKCRAFT_VERSION}/$v/g" infrastructure/docker/compose.demo.yaml > "dist/$d/compose.demo.yaml"
           cp infrastructure/docker/nginx.conf infrastructure/docker/BETRIEB.md LICENSE "dist/$d/"
           cp backend/config/trackcraft.container.example.toml "dist/$d/config/"
           (cd dist && zip -qr "$d.zip" "$d")

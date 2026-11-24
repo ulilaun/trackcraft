@@ -206,7 +206,7 @@ fn workspace_copies_demo_data_once_and_writes_valid_config() {
     let web = tmp.path().join("web");
     std::fs::create_dir_all(&web).unwrap();
     std::fs::write(web.join("index.html"), b"<html/>").unwrap();
-    let ws = demo::Workspace { dir: tmp.path().join("Demo Ordner"), source, web, port: 18999 };
+    let ws = demo::Workspace { dir: tmp.path().join("Demo Ordner"), source, web, port: 18999, container: false };
 
     ws.prepare(false).unwrap();
     let db = ws.dir.join("data").join("database").join("trackcraft.db");
@@ -217,6 +217,10 @@ fn workspace_copies_demo_data_once_and_writes_valid_config() {
     assert!(cfg.raw.demo.enabled);
     assert_eq!(cfg.raw.server.allowed_origins, vec!["https://localhost:18999".to_string()]);
     assert_eq!(cfg.raw.server.listen, "127.0.0.1:18999");
+    let in_container = demo::Workspace { container: true, ..ws.clone() };
+    in_container.prepare(false).unwrap();
+    assert_eq!(config::load(&ws.config_file()).unwrap().raw.server.listen, "0.0.0.0:18999");
+    ws.prepare(false).unwrap();
 
     // Zweiter Start behält die Demo-Daten (samt Verschiebung und eigenen Änderungen), --reset beginnt neu
     std::fs::write(&db, b"geaendert").unwrap();
@@ -232,7 +236,7 @@ fn workspace_without_demo_data_fails_clearly() {
     let web = tmp.path().join("web");
     std::fs::create_dir_all(&web).unwrap();
     std::fs::write(web.join("index.html"), b"<html/>").unwrap();
-    let ws = demo::Workspace { dir: tmp.path().join("demo"), source: tmp.path().join("fehlt"), web, port: 18999 };
+    let ws = demo::Workspace { dir: tmp.path().join("demo"), source: tmp.path().join("fehlt"), web, port: 18999, container: false };
     let e = ws.prepare(false).unwrap_err().to_string();
     assert!(e.contains("Demo-Datenbank fehlt"), "{e}");
 }

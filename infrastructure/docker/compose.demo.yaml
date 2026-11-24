@@ -1,0 +1,60 @@
+# TrackCraft-Demo mit erfundenen Daten auf Mallorca (Issue #41). Zum Ausprobieren, nicht für den Betrieb.
+#
+#   docker compose -f compose.demo.yaml up       dann https://localhost:8443 öffnen
+#   docker compose -f compose.demo.yaml down -v  beenden und alles entfernen
+#
+# Der Browser warnt vor dem Zertifikat. Das ist erwartet: Die Demo erstellt beim ersten Start ein eigenes Zertifikat,
+# das kein Gerät kennt. Weiter über „Erweitert“ und „Weiter zu localhost“, nur für diese Demo-Adresse.
+#
+# Eigenes Compose-Projekt mit eigenem Volume und eigenem Port: Eine TrackCraft-Installation (compose.yaml) bleibt
+# unberührt. Anderer Port: DEMO_PORT=9443 docker compose -f compose.demo.yaml up
+# Die Version steht ausgeschrieben; im Release-Paket ersetzt der Release-Workflow ${TRACKCRAFT_VERSION}.
+name: trackcraft-demo
+
+services:
+  # Lädt beim ersten Start die Demo-Datenbank dieses Releases von GitHub
+  demo-daten:
+    image: alpine:3.22
+    volumes:
+      - demo:/demo
+    command:
+      - sh
+      - -euc
+      - |
+        if [ ! -f /demo/quelle/database/trackcraft.db ]; then
+          echo "Demo-Datenbank wird geladen ..."
+          wget -q -O /tmp/demo.zip https://github.com/ulilaun/trackcraft/releases/download/v${TRACKCRAFT_VERSION}/trackcraft-${TRACKCRAFT_VERSION}-demo.zip
+          rm -rf /demo/quelle.neu && mkdir -p /demo/quelle.neu
+          unzip -q /tmp/demo.zip -d /demo/quelle.neu
+          mv /demo/quelle.neu /demo/quelle
+        fi
+        chown -R 10001:10001 /demo
+
+  # Weboberfläche aus dem Frontend-Image; das Demo-Backend liefert sie selbst aus (wie unter Windows)
+  demo-web:
+    image: ghcr.io/ulilaun/trackcraft-frontend:${TRACKCRAFT_VERSION}
+    user: "0"
+    volumes:
+      - web:/web
+    entrypoint: ["sh", "-euc", "rm -rf /web/* && cp -r /usr/share/nginx/html/. /web/"]
+
+  trackcraft-demo:
+    image: ghcr.io/ulilaun/trackcraft-backend:${TRACKCRAFT_VERSION}
+    depends_on:
+      demo-daten:
+        condition: service_completed_successfully
+      demo-web:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs: [/tmp]
+    volumes:
+      - demo:/demo
+      - web:/web:ro
+    command: ["demo", "start", "--container", "--dir", "/demo/lauf", "--source", "/demo/quelle", "--web", "/web",
+              "--port", "${DEMO_PORT:-8443}"]
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8443}:${DEMO_PORT:-8443}"   # nur auf diesem Rechner erreichbar
+
+volumes:
+  demo:
+  web:

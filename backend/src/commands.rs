@@ -28,14 +28,22 @@ pub fn demo_start(ws: crate::demo::Workspace, reset: bool, open_browser: bool) -
     println!();
     println!("TrackCraft-Demo mit erfundenen Daten auf Mallorca");
     println!("  Adresse:  {url}");
-    println!("  Ordner:   {}", ws.dir.display());
+    if !ws.container {
+        println!("  Ordner:   {}", ws.dir.display());
+    }
     println!();
     println!("Der Browser warnt beim ersten Aufruf vor dem Zertifikat (z. B. \"Verbindung ist nicht privat\").");
     println!("Das ist bei der Demo erwartet: Das Zertifikat hat diese Demo selbst erstellt, kein Gerät kennt es.");
     println!("Weiter über \"Erweitert\" und \"Weiter zu localhost\". Nur für diese Demo-Adresse so bestätigen.");
     println!();
-    println!("Beenden mit Strg+C oder durch Schließen dieses Fensters. Neu beginnen: mit --reset starten.");
-    println!("Entfernen: diesen Ordner löschen. Eine eigene TrackCraft-Installation bleibt unberührt.");
+    if ws.container {
+        println!("Beenden: docker compose -f compose.demo.yaml down");
+        println!("Entfernen samt Demo-Daten: docker compose -f compose.demo.yaml down -v");
+        println!("Eine eigene TrackCraft-Installation bleibt unberührt (eigenes Projekt, eigenes Volume).");
+    } else {
+        println!("Beenden mit Strg+C oder durch Schließen dieses Fensters. Neu beginnen: mit --reset starten.");
+        println!("Entfernen: diesen Ordner löschen. Eine eigene TrackCraft-Installation bleibt unberührt.");
+    }
     println!();
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     runtime.block_on(crate::server::run(cfg, crate::server::os_shutdown_signal(), move |addr| {
