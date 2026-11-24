@@ -81,15 +81,21 @@ enum DemoAction {
         /// Entpackte Demo-Datenbank (Vorgabe: Ordner demo-daten neben dem Programm)
         #[arg(long)]
         source: Option<std::path::PathBuf>,
-        /// HTTPS-Port auf 127.0.0.1
+        /// HTTPS-Port auf 127.0.0.1 (Adresse https://localhost:PORT)
         #[arg(long, default_value_t = 8443)]
         port: u16,
+        /// Ordner der Weboberfläche (Vorgabe: web neben dem Programm)
+        #[arg(long)]
+        web: Option<std::path::PathBuf>,
         /// Mit frischen Demo-Daten beginnen (bisherige Änderungen in der Demo gehen verloren)
         #[arg(long)]
         reset: bool,
         /// Browser nicht öffnen
         #[arg(long)]
         no_browser: bool,
+        /// Im Container (compose.demo.yaml): auf allen Schnittstellen lauschen, kein Browser, Hinweise für Docker
+        #[arg(long)]
+        container: bool,
     },
 }
 
@@ -135,8 +141,8 @@ fn main() -> ExitCode {
         #[cfg(target_os = "linux")]
         Some(Cmd::Cert { new_ca, names }) => platform::linux::setup::cert_command(new_ca, names),
         Some(Cmd::Demo { action: DemoAction::Mark }) => commands::demo_mark(&config::config_path()),
-        Some(Cmd::Demo { action: DemoAction::Start { dir, source, port, reset, no_browser } }) => {
-            demo_workspace(dir, source, port).and_then(|ws| commands::demo_start(ws, reset, !no_browser))
+        Some(Cmd::Demo { action: DemoAction::Start { dir, source, port, web, reset, no_browser, container } }) => {
+            demo_workspace(dir, source, web, port, container).and_then(|ws| commands::demo_start(ws, reset, !no_browser && !container))
         }
         #[cfg(windows)]
         Some(Cmd::Uninstall) => platform::windows::setup::uninstall(),
@@ -164,7 +170,9 @@ fn main() -> ExitCode {
 fn demo_workspace(
     dir: Option<std::path::PathBuf>,
     source: Option<std::path::PathBuf>,
+    web: Option<std::path::PathBuf>,
     port: u16,
+    container: bool,
 ) -> anyhow::Result<trackcraft::demo::Workspace> {
     use anyhow::Context;
     let exe_dir = std::env::current_exe()?.parent().context("Programmordner unbekannt")?.to_path_buf();
@@ -182,8 +190,9 @@ fn demo_workspace(
     Ok(trackcraft::demo::Workspace {
         dir: std::path::absolute(dir)?,
         source: std::path::absolute(source.unwrap_or_else(|| exe_dir.join("demo-daten")))?,
-        web: exe_dir.join("web"),
+        web: std::path::absolute(web.unwrap_or_else(|| exe_dir.join("web")))?,
         port,
+        container,
     })
 }
 

@@ -69,6 +69,24 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 
 TrackCraft hat in V1 **kein Login**. Wer die Oberfläche erreicht, darf alles lesen, ändern und löschen. Deshalb gehört TrackCraft ins eigene LAN oder hinter ein VPN (z. B. Tailscale oder WireGuard), **nie per Portfreigabe ins Internet**. Schutz im Browser über HTTPS, Host- und Origin-Prüfung und eine strenge Content-Security-Policy (ADR-0012, RFC-0011). Sicherheitslücken bitte wie in [SECURITY.md](SECURITY.md) beschrieben melden.
 
+## Ausprobieren
+
+Eine Demo mit den erfundenen Mallorca-Daten von oben läuft ohne Installation auf dem eigenen Rechner. Die Daten werden
+beim Start so verschoben, dass die letzte Aktivität gestern war. Ein Hinweisband zeigt, dass es eine Demo ist. Eine
+eigene TrackCraft-Installation bleibt unberührt.
+
+- **Windows:** `trackcraft-<version>-windows-demo.zip` aus dem [neuesten Release](https://github.com/ulilaun/trackcraft/releases/latest)
+  entpacken und `demo.cmd` doppelklicken. Keine Administratorrechte nötig. Der Browser öffnet sich mit
+  <https://localhost:8443>. Neu beginnen, Port und Entfernen stehen in `DEMO.md`.
+- **Docker:** `compose.demo.yaml` aus `trackcraft-<version>-docker.zip` nehmen und
+  `docker compose -f compose.demo.yaml up` ausführen, dann <https://localhost:8443> öffnen. Die Demo-Datenbank wird
+  beim ersten Start aus dem Release geladen. Beenden und alles entfernen: `docker compose -f compose.demo.yaml down -v`.
+
+**Zertifikatswarnung:** Der Browser warnt beim ersten Aufruf („Ihre Verbindung ist nicht privat“). Das ist bei der
+Demo erwartet: Sie erstellt beim ersten Start ein eigenes Zertifikat, das kein Gerät kennt. Weiter über **Erweitert**
+und **Weiter zu localhost**, nur für diese Demo-Adresse. Bei der richtigen [Installation](#installation) gibt es
+diese Warnung nicht.
+
 ## Installation
 
 Fertige Pakete gibt es unter [Releases](../../releases), jeweils mit `SHA256SUMS.txt`.

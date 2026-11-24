@@ -89,3 +89,11 @@ docker compose up -d
 ## Deinstallieren
 
 `docker compose down` entfernt die Container und das Netz. Der Ordner mit `config` und `data` (Trainings- und Positionsdaten) bleibt stehen und wird nur von Hand gelöscht; die Images entfernt `docker image rm`.
+
+## Demo
+
+`compose.demo.yaml` startet eine Demo mit erfundenen Daten als eigenes Compose-Projekt `trackcraft-demo` (eigene
+Volumes, Port 8443 nur auf 127.0.0.1). Sie lädt beim ersten Start `trackcraft-<version>-demo.zip` aus dem Release,
+liefert die Oberfläche selbst aus und verwendet ein selbst erstelltes Zertifikat (der Browser warnt, das ist erwartet).
+Beenden und entfernen: `docker compose -f compose.demo.yaml down -v`. Die Installation nach `compose.yaml` bleibt
+unberührt.

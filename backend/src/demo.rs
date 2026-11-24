@@ -177,6 +177,8 @@ pub struct Workspace {
     /// Weboberfläche (Ordner mit `index.html`).
     pub web: PathBuf,
     pub port: u16,
+    /// Im Container: auf allen Schnittstellen lauschen (Docker veröffentlicht den Port nur auf 127.0.0.1 des Hosts).
+    pub container: bool,
 }
 
 impl Workspace {
@@ -225,11 +227,12 @@ impl Workspace {
         let s = |p: &Path| toml::Value::String(p.display().to_string()).to_string();
         let text = format!(
             "# Von `trackcraft demo start` geschrieben, wird bei jedem Start ersetzt.\n\
-             [server]\nlisten = \"127.0.0.1:{port}\"\nallowed_origins = [\"{url}\"]\nstatic_dir = {web}\n\n\
+             [server]\nlisten = \"{host}:{port}\"\nallowed_origins = [\"{url}\"]\nstatic_dir = {web}\n\n\
              [tls]\ncert_file = {cert}\nkey_file = {key}\n\n\
              [paths]\ndatabase_dir = {database}\nactivities_dir = {activities}\nlogs_dir = {logs}\n\n\
              [backup]\ntarget_dir = {backup}\nmigration_dir = {migration}\n\n\
              [demo]\nenabled = true\n",
+            host = if self.container { "0.0.0.0" } else { "127.0.0.1" },
             port = self.port,
             url = self.url(),
             web = s(&self.web),
