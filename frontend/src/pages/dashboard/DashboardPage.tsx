@@ -48,9 +48,10 @@ const TINT: Record<SportClass, string> = {
 
 function Kpi({ label, value, unit, className = "" }: { label: string; value: string; unit?: string; className?: string }) {
   return (
-    <div className={`min-w-0 ${className}`}>
-      <div className="text-xs text-muted">{label}</div>
-      <div className="num text-lg font-semibold">
+    // Beschriftung einzeilig und notfalls gekürzt, Wert immer ganz (längere Texte, z. B. Englisch, überlappten sonst)
+    <div className={`min-w-0 ${className}`} title={`${label}: ${value}${unit ? ` ${unit}` : ""}`}>
+      <div className="truncate text-xs text-muted">{label}</div>
+      <div className="num whitespace-nowrap text-lg font-semibold">
         {value}
         {unit && <span className="ml-1 text-xs font-normal text-muted">{unit}</span>}
       </div>
@@ -98,12 +99,13 @@ function FeedItem({ a, timeZone, map, plan }: { a: Activity; timeZone?: string; 
             {[dateTime(a.start_time, timeZone, true), subLabel(a.sport_class, a.sub_sport), a.location].filter(Boolean).join(" · ")}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {/* Fünf Werte erst bei breiter Karte, sonst drei (Werte sollen nie überlappen) */}
+        <div className="grid grid-cols-3 gap-x-3 gap-y-2 xl:grid-cols-5">
           <Kpi label={t("detail.kpi.distance")} value={km(a.distance_m)} unit="km" />
           <Kpi label={t("detail.kpi.time")} value={duration(a.total_time_ms)} />
           <Kpi label={t(running ? "detail.kpi.pace" : "detail.kpi.avg")} value={avg.value} unit={avg.unit} />
-          <Kpi label={t("detail.kpi.gain")} value={a.elevation_gain_m == null ? "–" : num(a.elevation_gain_m)} unit="m" className="hidden sm:block" />
-          <Kpi label={t("dashboard.hr")} value={a.avg_heart_rate_bpm == null ? "–" : String(a.avg_heart_rate_bpm)} unit="bpm" className="hidden sm:block" />
+          <Kpi label={t("detail.kpi.gain")} value={a.elevation_gain_m == null ? "–" : num(a.elevation_gain_m)} unit="m" className="hidden xl:block" />
+          <Kpi label={t("dashboard.hr")} value={a.avg_heart_rate_bpm == null ? "–" : String(a.avg_heart_rate_bpm)} unit="bpm" className="hidden xl:block" />
         </div>
         {plan && (
           <div>

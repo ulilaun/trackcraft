@@ -48,6 +48,15 @@ pub enum Intensity {
     Base,
 }
 
+/// Sprache der Titel vorgeschlagener Einheiten (Sprache der Oberfläche).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Language {
+    #[default]
+    De,
+    En,
+}
+
 /// Eingaben der Planungshilfe; die zuletzt übernommenen merkt sich TrackCraft.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -63,6 +72,9 @@ pub struct Input {
     /// Jede vierte Woche Entlastung (3:1)
     pub recovery_weeks: bool,
     pub intensity: Intensity,
+    /// Sprache der Titel; wird nicht gemerkt
+    #[serde(default, skip_serializing)]
+    pub language: Language,
 }
 
 fn invalid(field: &'static str, code: &'static str, message: &'static str) -> Error {
@@ -271,10 +283,11 @@ fn make_unit(ctx: &Context, input: &Input, slot: &Slot, phase: Phase, f: f64) ->
     let (title, zones): (String, [u32; ZONES]) = match slot.kind {
         Kind::Easy | Kind::Long => {
             let d = round5(want).clamp(MIN_UNIT, slot.avail);
+            let en = input.language == Language::En;
             let (share, title) = match (slot.kind, phase) {
-                (Kind::Long, _) => (0.1, "Lange Einheit"),
-                (_, Phase::Recovery) => (0.4, "Locker"),
-                _ => (0.15, "Grundlage"),
+                (Kind::Long, _) => (0.1, if en { "Long session" } else { "Lange Einheit" }),
+                (_, Phase::Recovery) => (0.4, if en { "Easy" } else { "Locker" }),
+                _ => (0.15, if en { "Endurance" } else { "Grundlage" }),
             };
             let z1 = round5(d as f64 * share).clamp(5, d);
             (title.to_string(), [z1, d - z1, 0, 0, 0])
@@ -287,7 +300,8 @@ fn make_unit(ctx: &Context, input: &Input, slot: &Slot, phase: Phase, f: f64) ->
             let reps = (main / 9).clamp(2, max_reps);
             let z4 = reps * 6;
             let z2 = 10 + (main - z4);
-            (format!("Intervalle {reps}×6 min"), [15, z2, 0, z4, 0])
+            let word = if input.language == Language::En { "Intervals" } else { "Intervalle" };
+            (format!("{word} {reps}×6 min"), [15, z2, 0, z4, 0])
         }
     };
     let minutes: u32 = zones.iter().sum();
@@ -716,6 +730,7 @@ mod tests {
             max_gain: 5,
             recovery_weeks: true,
             intensity: Intensity::Polarized,
+            language: Language::De,
         }
     }
 
@@ -802,6 +817,22 @@ mod tests {
         // Die feste lange Einheit ist ein harter Tag: Samstag davor keine lange Einheit und keine Intervalle
         assert!(r.units.iter().filter(|(u, _)| u.date == day(sunday, -1)).all(|(u, _)| !hard_title(u)));
         assert!(r.forecast.iter().find(|v| v.date == sunday).unwrap().load.total > 0.0);
+    }
+
+    #[test]
+    fn titles_follow_the_language() {
+        let s = settings();
+        let today = NaiveDate::from_ymd_opt(2026, 11, 23).unwrap();
+        let c = ctx(today, day(today, 30), Vec::new(), &[], &s);
+        let de = suggest(&c, &input()).unwrap();
+        let en = suggest(&c, &Input { language: Language::En, ..input() }).unwrap();
+        assert_eq!(de.units.len(), en.units.len());
+        let german = ["Lange Einheit", "Locker", "Grundlage", "Intervalle"];
+        let english = ["Long session", "Easy", "Endurance", "Intervals"];
+        assert!(de.units.iter().all(|(u, _)| german.iter().any(|g| u.title.starts_with(g))));
+        assert!(en.units.iter().all(|(u, _)| english.iter().any(|g| u.title.starts_with(g))));
+        // Die Sprache wird nicht gemerkt
+        assert!(!serde_json::to_string(&Input { language: Language::En, ..input() }).unwrap().contains("language"));
     }
 
     #[test]

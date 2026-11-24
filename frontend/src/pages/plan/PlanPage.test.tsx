@@ -335,7 +335,7 @@ describe("Seite Plan", () => {
     // Monotonie über 2 rot markiert
     expect(within(within(preview).getByTestId("suggest-weeks")).getByText("50")).toHaveClass("text-danger");
     const firstPreview = writes.find((w) => w.url === "/api/v1/plan/suggestion");
-    expect(firstPreview?.body).toEqual({ goal_id: "g1", sport_class: "cycling", max_gain: 4, recovery_weeks: false, intensity: "polarized", minutes: [0, 45, 0, 45, 0, 90, 60] });
+    expect(firstPreview?.body).toEqual({ goal_id: "g1", sport_class: "cycling", max_gain: 4, recovery_weeks: false, intensity: "polarized", minutes: [0, 45, 0, 45, 0, 90, 60], language: "de" });
 
     // Ungültige Minuten: Meldung, kein Übernehmen
     fireEvent.change(within(dialog).getByLabelText("Minuten am Mo"), { target: { value: "abc" } });
@@ -353,6 +353,7 @@ describe("Seite Plan", () => {
         recovery_weeks: false,
         intensity: "polarized",
         minutes: [30, 45, 0, 45, 0, 90, 60],
+        language: "de",
       }),
     );
     expect(await screen.findByText("2 Einheiten übernommen.")).toBeInTheDocument();

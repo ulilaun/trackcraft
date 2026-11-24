@@ -968,6 +968,8 @@ export interface SuggestionInput {
   max_gain: number;
   recovery_weeks: boolean;
   intensity: "polarized" | "base";
+  /** Sprache der Titel vorgeschlagener Einheiten (wird nicht gemerkt) */
+  language?: "de" | "en";
 }
 
 export type PlanPhase = "build" | "recovery" | "taper";

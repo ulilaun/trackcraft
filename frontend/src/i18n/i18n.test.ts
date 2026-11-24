@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import de from "./de.json";
 import en from "./en.json";
-import { FORMAT_KEY, LANGUAGE_KEY, getLocale, resetLocaleForTests, resolveFormat, resolveLanguage, setLocale, t, tn } from ".";
+import { COMPLETE_LANGUAGES, FORMAT_KEY, LANGUAGE_KEY, getLocale, resetLocaleForTests, resolveFormat, resolveLanguage, setLocale, t, tn } from ".";
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
@@ -22,6 +22,13 @@ describe("Sprachdateien", () => {
     }
   });
 
+  it("vollständige Sprachen haben jeden Schlüssel von de.json", () => {
+    const dicts: Record<string, Record<string, string>> = { de, en };
+    for (const lang of COMPLETE_LANGUAGES) {
+      expect(Object.keys(de).filter((k) => !(k in dicts[lang]!)), `fehlt in ${lang}.json`).toEqual([]);
+    }
+  });
+
   it("jede Mehrzahl hat eine Form _other", () => {
     for (const key of Object.keys(de)) {
       const m = key.match(/^(.*)_(zero|one|two|few|many)$/);
@@ -31,10 +38,11 @@ describe("Sprachdateien", () => {
 });
 
 describe("t und tn", () => {
-  it("fällt bei fehlender Übersetzung auf Deutsch zurück", () => {
+  it("liest die gewählte Sprache", () => {
+    expect(t("detail.edit")).toBe("Bearbeiten");
     setLocale({ language: "en" });
     expect(t("nav.activities")).toBe("Activities");
-    expect(t("detail.edit")).toBe("Bearbeiten");
+    expect(t("detail.edit")).toBe("Edit");
   });
 
   it("wählt die Mehrzahlform nach der Sprache", () => {
@@ -46,9 +54,10 @@ describe("t und tn", () => {
 });
 
 describe("Sprach- und Formatwahl", () => {
-  it("„Automatisch“ nimmt nur vollständige Sprachen, sonst Deutsch", () => {
+  it("„Automatisch“ nimmt die erste vollständige Sprache des Browsers, sonst Deutsch", () => {
     expect(resolveLanguage("auto", ["fr-FR", "de-AT"])).toBe("de");
-    expect(resolveLanguage("auto", ["en-US"])).toBe("de"); // Englisch noch unvollständig (#59)
+    expect(resolveLanguage("auto", ["fr-FR", "en-US", "de-DE"])).toBe("en");
+    expect(resolveLanguage("auto", ["fr-FR", "it"])).toBe("de");
     expect(resolveLanguage("en", ["de-DE"])).toBe("en");
   });
 

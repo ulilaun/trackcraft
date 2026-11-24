@@ -169,9 +169,10 @@ describe("Einstellungen als Master-Detail", () => {
       fireEvent.change(language, { target: { value: "en" } });
     });
     expect(window.localStorage.getItem(LANGUAGE_KEY)).toBe("en");
-    // Englisch ist noch unvollständig: Hinweis, fehlende Texte auf Deutsch
+    // Englisch ist vollständig: kein Hinweis auf fehlende Texte
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en");
-    expect(screen.getByText("Not fully translated yet, missing texts appear in German.")).toBeInTheDocument();
+    expect(screen.queryByText("Not fully translated yet, missing texts appear in German.")).not.toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: "Theme" })).toHaveTextContent("Light");
     act(() => {
       fireEvent.change(screen.getByRole("combobox", { name: "Dates and numbers" }), { target: { value: "en-US" } });
     });

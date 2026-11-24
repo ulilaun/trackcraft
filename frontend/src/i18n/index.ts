@@ -15,8 +15,8 @@ export type FormatChoice = "auto" | "de-DE" | "en-GB" | "en-US";
 
 export const LANGUAGES: Language[] = ["de", "en"];
 export const FORMATS: Exclude<FormatChoice, "auto">[] = ["de-DE", "en-GB", "en-US"];
-/** Sprachen, die „Automatisch“ wählen darf. Englisch kommt dazu, sobald die Übersetzung vollständig ist (#59). */
-export const COMPLETE_LANGUAGES: Language[] = ["de"];
+/** Sprachen, die „Automatisch“ wählen darf; ein Test prüft, dass sie alle Schlüssel von `de.json` haben. */
+export const COMPLETE_LANGUAGES: Language[] = ["de", "en"];
 
 export const LANGUAGE_KEY = "trackcraft.language";
 export const FORMAT_KEY = "trackcraft.format";
