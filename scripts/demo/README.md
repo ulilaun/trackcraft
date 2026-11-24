@@ -10,6 +10,7 @@ Erfundene Trainingsdaten auf Mallorca für Screenshots und Vorführungen, ohne e
 | `build_demo_db.py` | Baut die Demo-Datenbank des Releases (`trackcraft-<version>-demo.zip`): frische Instanz auf Port 18443, `make_demo.py`, `seed_demo.py`, dann `trackcraft demo mark` (Kennzeichen, nur damit verschiebt `[demo] enabled` die Daten). Braucht `openssl`. Etwa 15 Minuten. |
 | `package_windows_demo.py` | Packt die portable Windows-Demo (`trackcraft-<version>-windows-demo.zip`) aus dem Windows-ZIP und dem Demo-ZIP: `trackcraft.exe`, `web/`, `demo-daten/`, `demo.cmd`, `DEMO.md`. `demo.cmd` ruft `trackcraft demo start` auf: Daten, selbst erstelltes Zertifikat und Konfiguration in `%LOCALAPPDATA%\TrackCraft-Demo`, Port 8443 nur auf 127.0.0.1, ohne Administratorrechte. |
 | `screenshots.mjs` | Fotografiert Dashboard, Aktivitätenliste, Aktivität, Segment, Statistik und eine Tablet-Ansicht, hell und dunkel, nach `docs/screenshots/`, und prüft danach, dass keine Hauptseite bei 360 px Breite seitlich scrollt (sonst Exit-Code 1). |
+| `segment_gif.mjs` | Nimmt das GIF `docs/screenshots/segment-erstellen.gif` fürs README auf: auf einer Fahrt Pollença–Lluc einen Anstieg markieren, als Segment anlegen, Auswertung abwarten, Bestenliste zeigen. Legt das Segment wirklich an, braucht also eine frisch zurückgesetzte Demo: `trackcraft demo start --reset --no-browser`, dann `npm run segment-gif`. Bildgröße, Abschnitt und Kontrollbilder über `GIF_SCALE`, `GIF_FROM`/`GIF_TO`, `GIF_FRAMES_DIR`. |
 
 ## Ablauf
 
