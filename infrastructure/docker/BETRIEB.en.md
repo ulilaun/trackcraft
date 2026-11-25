@@ -63,14 +63,18 @@ On a Synology, the DSM reverse proxy does this (Control Panel → Login Portal �
 
 ## Backup
 
-> **No daily backup yet:** so far TrackCraft only backs up the database itself before a schema migration (`data/backups`). The daily backup to the backup target and restoring from the interface come with a later version. Until then back up yourself: `docker compose stop`, copy the folders `data/database` and `data/activities`, `docker compose start`.
+TrackCraft backs up daily from the time in `[backup] daily_time` (default 03:00) to the backup target, but only if something changed since the last backup and the target is reachable. If the container is not running at that time, TrackCraft makes up the attempt once after starting. The **Backup** page shows status, errors and the existing backups and has a “Back up now” button.
+
+Each backup is a folder `trackcraft-<date>-<time>-s<schema>-c<counter>` in the target with `trackcraft.db`, the original files (`originals`), a copy of the configuration and `manifest.json` with size and SHA-256 of every file. TrackCraft verifies each backup in the target after copying; the last five are kept, older ones are removed only after a new success. Backups are not encrypted: protect the target from access by others. A target on the same computer does not protect against losing that computer. Restoring from the interface comes with a later version.
+
+The backup target is mounted as `/backup-target` in `compose.yaml` (adjust the line `/pfad/zum/sicherungsziel`), the configuration says `target_dir = "/backup-target"`. The container runs as user 10001; the folder must be writable for it, e.g. `sudo chown 10001:10001 /path/to/backup-target`.
 
 ## Update
 
 1. In `compose.yaml`, enter the new exact version for both images (never `latest`).
 2. `docker compose pull` and `docker compose up -d`.
 
-Configuration and data stay; before a schema migration TrackCraft backs up the database to `data/backups`. New required keys are listed in the release notes.
+Configuration and data stay; before a schema migration TrackCraft makes a full backup in `data/backups` and, if reachable, copies it to the backup target. New required keys are listed in the release notes.
 
 ## Rollback
 
@@ -79,7 +83,7 @@ An older image does not start against a newer schema and then changes nothing. E
 ```bash
 docker compose down
 mkdir -p after-update && mv data/database/trackcraft.db* after-update/
-cp data/backups/trackcraft-vor-migration-v<old>-v<new>.db data/database/trackcraft.db
+cp data/backups/trackcraft-vor-migration-v<old>-v<new>/trackcraft.db data/database/trackcraft.db
 sudo chown 10001:10001 data/database/trackcraft.db
 docker compose up -d
 ```

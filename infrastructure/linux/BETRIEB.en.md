@@ -89,15 +89,11 @@ If new names lie outside the previous CA, the command creates a new CA; then ins
 
 ## Backup target
 
-> **No daily backup yet:** so far TrackCraft only backs up the database itself before a schema migration (`/var/lib/trackcraft/backups`). The daily backup to the backup target and restoring from the interface come with a later version. Until then back up yourself, e.g.:
->
-> ```bash
-> sudo systemctl stop trackcraft
-> sudo tar -czf /mnt/trackcraft-backup/trackcraft-$(date +%F).tgz -C /var/lib/trackcraft database activities
-> sudo systemctl start trackcraft
-> ```
->
-> Proxmox users can back up the whole container instead (vzdump, mode “Stop” or “Snapshot”).
+TrackCraft backs up daily from the time in `[backup] daily_time` (default 03:00) to the backup target, but only if something changed since the last backup and the target is reachable. If the computer is not running at that time, TrackCraft makes up the attempt once after starting. The **Backup** page shows status, errors and the existing backups and has a “Back up now” button.
+
+Each backup is a folder `trackcraft-<date>-<time>-s<schema>-c<counter>` in the target with `trackcraft.db`, the original files (`originals`), a copy of the configuration and `manifest.json` with size and SHA-256 of every file. TrackCraft verifies each backup in the target after copying; the last five are kept, older ones are removed only after a new success. Backups are not encrypted: protect the target from access by others. A target on the same computer does not protect against losing that computer. Restoring from the interface comes with a later version.
+
+Proxmox users can additionally back up the whole container (vzdump, mode “Stop” or “Snapshot”).
 
 Mount a NAS share on the Proxmox host and pass it into the container as a bind mount, or mount it directly in the container (e.g. CIFS in `/etc/fstab`). Enter the path in `[backup] target_dir` and run `setup.sh` again: it makes the folder writable for the service and adds it to the systemd unit.
 
@@ -129,7 +125,7 @@ Data and original files are platform-independent; the database only stores relat
 1. Download, verify and unpack the new package as in section 1. Keep the previous one.
 2. `sudo ./setup.sh` from the new folder.
 
-`setup` detects the installation, stops the service, replaces program and user interface, renews the certificate if needed and starts again. Configuration and data stay; before a schema migration TrackCraft backs up the database to `/var/lib/trackcraft/backups`.
+`setup` detects the installation, stops the service, replaces program and user interface, renews the certificate if needed and starts again. Configuration and data stay; before a schema migration TrackCraft makes a full backup in `/var/lib/trackcraft/backups` and, if reachable, copies it to the backup target.
 
 ## Rollback
 
@@ -139,7 +135,7 @@ An older program does not start against a newer schema and then changes nothing.
 sudo systemctl stop trackcraft
 cd /var/lib/trackcraft
 sudo mkdir -p /root/after-update && sudo mv database/trackcraft.db* /root/after-update/
-sudo cp backups/trackcraft-vor-migration-v<old>-v<new>.db database/trackcraft.db
+sudo cp backups/trackcraft-vor-migration-v<old>-v<new>/trackcraft.db database/trackcraft.db
 sudo chown trackcraft:trackcraft database/trackcraft.db
 sudo systemctl start trackcraft
 ```

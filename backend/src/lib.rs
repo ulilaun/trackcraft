@@ -3,6 +3,7 @@
 pub mod activities;
 pub mod api;
 pub mod audit;
+pub mod backup;
 pub mod calculation;
 pub mod cert;
 pub mod commands;

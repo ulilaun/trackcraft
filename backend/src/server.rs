@@ -30,7 +30,8 @@ where
     let started = startup::prepare(&cfg).await?;
     let db = started.db.clone();
     let garmin = Arc::new(crate::garmin::Runner::default());
-    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: garmin.clone() });
+    let backup = Arc::new(crate::backup::Runner::default());
+    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: garmin.clone(), backup: backup.clone() });
 
     // Aufbewahrung stündlich (C12); der erste Lauf war beim Start.
     let (mcfg, mdb) = (cfg.clone(), db.clone());
@@ -53,6 +54,9 @@ where
 
     // Abruf aus Garmin Connect
     let garmin_task = tokio::spawn(crate::garmin::scheduler(cfg.clone(), db.clone(), garmin));
+
+    // Tägliche Sicherung und „Jetzt sichern“ (#57)
+    let backup_task = tokio::spawn(crate::backup::scheduler(cfg.clone(), db.clone(), backup));
 
     let handle: Handle<SocketAddr> = Handle::new();
     let watcher = handle.clone();
@@ -84,6 +88,7 @@ where
     worker.abort();
     load_task.abort();
     garmin_task.abort();
+    backup_task.abort();
     db.close().await;
     drop(started);
     result.with_context(|| format!("Port {addr} lässt sich nicht öffnen oder der Server brach ab"))?;

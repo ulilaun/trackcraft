@@ -86,9 +86,11 @@ Wer ein eigenes Zertifikat nutzen will, trägt dessen Pfade in `[tls]` ein; Trac
 
 ## Sicherungsziel
 
-> **Noch keine tägliche Sicherung:** TrackCraft legt bisher nur vor einer Schemamigration selbst eine Sicherung der Datenbank an (`data\backups`). Die tägliche Sicherung ins Sicherungsziel und die Wiederherstellung aus der Oberfläche kommen mit einer späteren Version. Bis dahin selbst sichern: Dienst stoppen, `C:\ProgramData\TrackCraft\data\database` und `data\activities` als Administrator kopieren (z. B. mit `robocopy … /E`), Dienst starten.
+TrackCraft sichert täglich ab der Uhrzeit in `[backup] daily_time` (Vorgabe 03:00) ins Sicherungsziel, aber nur, wenn sich seit der letzten Sicherung etwas geändert hat und das Ziel erreichbar ist. Läuft der PC um diese Zeit nicht, holt TrackCraft den Versuch nach dem Start einmal nach. Die Seite **Sicherung** zeigt Status, Fehler und die vorhandenen Stände und hat den Knopf „Jetzt sichern“.
 
-Das Ziel lässt sich trotzdem schon eintragen; `trackcraft.exe check-config` meldet, ob es erreichbar ist.
+Je Stand entsteht im Ziel ein Ordner `trackcraft-<datum>-<uhrzeit>-s<schema>-c<zähler>` mit `trackcraft.db`, den Originaldateien (`originals`), einer Kopie der Konfiguration und `manifest.json` mit Größe und SHA-256 jeder Datei. TrackCraft prüft jeden Stand nach dem Kopieren im Ziel; die letzten fünf bleiben, ältere entfernt es erst nach einem neuen Erfolg. Sicherungen sind unverschlüsselt: das Ziel vor fremdem Zugriff schützen. Ein Ziel auf demselben Rechner schützt nicht gegen dessen Verlust. Das Wiederherstellen aus der Oberfläche folgt mit einer späteren Version.
+
+`trackcraft.exe check-config` meldet, ob das Ziel erreichbar ist.
 
 - USB-Laufwerk oder zweite Platte: Pfad in `[backup] target_dir`, z. B. `'E:\TrackCraft-Sicherung'`. Ist der Ordner beim `setup` vorhanden, erhält der Dienst Schreibrecht.
 - Netzwerkfreigabe (z. B. auf einem NAS): als UNC-Pfad `'\\nas\backup\trackcraft'`, nie als Laufwerksbuchstabe. Der Dienst greift als Computerkonto zu; ein NAS ohne Domäne kennt dieses Konto nicht. Dann den Dienst unter einem lokalen Konto laufen lassen, das auf dem NAS mit gleichem Namen und Passwort Schreibrecht auf die Freigabe hat (Dienste → TrackCraft → Anmelden), und diesem Konto dieselben Rechte auf `C:\ProgramData\TrackCraft\data` und Lesen auf `config` geben.
@@ -112,7 +114,7 @@ Das Ziel lässt sich trotzdem schon eintragen; `trackcraft.exe check-config` mel
 1. Neues ZIP herunterladen, prüfen und entpacken wie in Abschnitt 1. Das bisherige ZIP aufbewahren.
 2. `setup.cmd` aus dem neuen Ordner doppelklicken.
 
-`setup` erkennt die vorhandene Installation, stoppt den Dienst, ersetzt das Programm im bisherigen Installationsordner, erneuert das Zertifikat bei Bedarf, prüft die Konfiguration und startet den Dienst wieder. Konfiguration und Daten bleiben unberührt; vor einer Schemamigration legt TrackCraft selbst eine Sicherung in `data\backups` an. Neue Pflichtschlüssel nennen die Release Notes.
+`setup` erkennt die vorhandene Installation, stoppt den Dienst, ersetzt das Programm im bisherigen Installationsordner, erneuert das Zertifikat bei Bedarf, prüft die Konfiguration und startet den Dienst wieder. Konfiguration und Daten bleiben unberührt; vor einer Schemamigration legt TrackCraft selbst eine Vollsicherung in `data\backups` an und kopiert sie, wenn erreichbar, ins Sicherungsziel. Neue Pflichtschlüssel nennen die Release Notes.
 
 ## Rollback
 
@@ -122,7 +124,7 @@ Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann ni
 2. Startet sie nicht, weil schon migriert wurde, die Datenbank von vor der Migration zurückholen (als Administrator):
    1. `trackcraft.exe service stop`
    2. In `C:\ProgramData\TrackCraft\data\database` die Dateien `trackcraft.db`, `trackcraft.db-wal` und `trackcraft.db-shm` in einen anderen Ordner verschieben.
-   3. `C:\ProgramData\TrackCraft\data\backups\trackcraft-vor-migration-v<alt>-v<neu>.db` als `trackcraft.db` nach `data\database` kopieren.
+   3. `C:\ProgramData\TrackCraft\data\backups\trackcraft-vor-migration-v<alt>-v<neu>\trackcraft.db` nach `data\database` kopieren.
    4. `trackcraft.exe service start`
 
    Änderungen seit dem Update fehlen danach; die Originaldateien in `data\activities` bleiben, wie sie sind.

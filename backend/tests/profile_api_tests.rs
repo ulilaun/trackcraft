@@ -29,7 +29,7 @@ async fn fixture() -> Fixture {
     let started = startup::prepare(&cfg).await.unwrap();
     let db = started.db.clone();
     drop(started);
-    let app = api::router(AppState { cfg: Arc::new(cfg), db: db.clone(), garmin: Default::default() });
+    let app = api::router(AppState { cfg: Arc::new(cfg), db: db.clone(), garmin: Default::default(), backup: Default::default() });
     Fixture { _dir: dir, app, db }
 }
 

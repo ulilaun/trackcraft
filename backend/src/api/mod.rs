@@ -1,6 +1,7 @@
 //! HTTP-Schicht: Router unter `/api/v1`, Browserschutz, Security-Header und (Windows) Frontend-Auslieferung.
 
 pub mod activities;
+pub mod backup;
 pub mod error;
 pub mod garmin;
 pub mod guard;
@@ -55,6 +56,8 @@ pub struct AppState {
     pub db: Db,
     /// Garmin-Abruf
     pub garmin: Arc<crate::garmin::Runner>,
+    /// Sicherung (#57)
+    pub backup: Arc<crate::backup::Runner>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -114,6 +117,9 @@ pub fn router(state: AppState) -> Router {
         .route("/jobs/{id}", get(segments::get_job))
         .route("/jobs/{id}/retry", post(segments::retry_job))
         .route("/import/jobs", get(import::list))
+        .route("/backups", get(backup::list).post(backup::start))
+        .route("/backups/status", get(backup::status))
+        .route("/operations/{id}", get(backup::operation))
         .route("/garmin", get(garmin::get).patch(garmin::update))
         .route("/garmin/sync", post(garmin::sync_now))
         .route("/garmin/activities", get(garmin::list))

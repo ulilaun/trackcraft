@@ -11,6 +11,7 @@ import {
   hoursMinutes,
   km,
   localDate,
+  fileSize,
   megabytes,
   monthLong,
   monthShort,
@@ -29,6 +30,8 @@ describe("Formate (RFC-0006)", () => {
     expect(km(136210)).toBe("136,21");
     expect(km(null)).toBe("–");
     expect(megabytes(1.5 * 1024 * 1024)).toBe("1,5");
+    expect(fileSize(285 * 1024 * 1024)).toBe("285,0 MB");
+    expect(fileSize(2.5 * 1024 ** 3)).toBe("2,5 GB");
   });
 
   it("Dauer h:mm:ss bzw. m:ss", () => {

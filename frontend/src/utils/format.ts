@@ -124,6 +124,12 @@ export function megabytes(bytes: number): string {
   return num(bytes / 1024 / 1024, 1);
 }
 
+/** Dateigröße mit Einheit: unter 1 GB in MB, sonst in GB, je eine Nachkommastelle. */
+export function fileSize(bytes: number): string {
+  const gb = bytes / 1024 ** 3;
+  return gb >= 1 ? `${num(gb, 1)} GB` : `${megabytes(bytes)} MB`;
+}
+
 /** Pace `m:ss` je km aus km/h; 3600 / Schnitt, auf ganze Sekunden gerundet (RFC-0006). */
 export function pace(kmh: number | null | undefined): string {
   if (kmh == null || !(kmh > 0)) return "–";

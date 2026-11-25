@@ -165,7 +165,7 @@ async fn fixture(acts: Vec<Act>) -> Fixture {
     let db = started.db.clone();
     drop(started);
     let runner = Arc::new(Runner::default());
-    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: runner.clone() });
+    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: runner.clone(), backup: Default::default() });
     Fixture { _dir: dir, cfg, db, app, runner, mock }
 }
 

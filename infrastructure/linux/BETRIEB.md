@@ -87,15 +87,11 @@ Liegen neue Namen außerhalb der bisherigen CA, legt der Befehl eine neue CA an;
 
 ## Sicherungsziel
 
-> **Noch keine tägliche Sicherung:** TrackCraft legt bisher nur vor einer Schemamigration selbst eine Sicherung der Datenbank an (`/var/lib/trackcraft/backups`). Die tägliche Sicherung ins Sicherungsziel und die Wiederherstellung aus der Oberfläche kommen mit einer späteren Version. Bis dahin selbst sichern, z. B.:
->
-> ```bash
-> sudo systemctl stop trackcraft
-> sudo tar -czf /mnt/trackcraft-sicherung/trackcraft-$(date +%F).tgz -C /var/lib/trackcraft database activities
-> sudo systemctl start trackcraft
-> ```
->
-> Proxmox-Nutzer können stattdessen den ganzen Container sichern (vzdump, Modus „Stopp“ oder „Snapshot“).
+TrackCraft sichert täglich ab der Uhrzeit in `[backup] daily_time` (Vorgabe 03:00) ins Sicherungsziel, aber nur, wenn sich seit der letzten Sicherung etwas geändert hat und das Ziel erreichbar ist. Läuft der Rechner um diese Zeit nicht, holt TrackCraft den Versuch nach dem Start einmal nach. Die Seite **Sicherung** zeigt Status, Fehler und die vorhandenen Stände und hat den Knopf „Jetzt sichern“.
+
+Je Stand entsteht im Ziel ein Ordner `trackcraft-<datum>-<uhrzeit>-s<schema>-c<zähler>` mit `trackcraft.db`, den Originaldateien (`originals`), einer Kopie der Konfiguration und `manifest.json` mit Größe und SHA-256 jeder Datei. TrackCraft prüft jeden Stand nach dem Kopieren im Ziel; die letzten fünf bleiben, ältere entfernt es erst nach einem neuen Erfolg. Sicherungen sind unverschlüsselt: das Ziel vor fremdem Zugriff schützen. Ein Ziel auf demselben Rechner schützt nicht gegen dessen Verlust. Das Wiederherstellen aus der Oberfläche folgt mit einer späteren Version.
+
+Proxmox-Nutzer können zusätzlich den ganzen Container sichern (vzdump, Modus „Stopp“ oder „Snapshot“).
 
 Eine NAS-Freigabe auf dem Proxmox-Host einhängen und per Bind-Mount in den Container geben, oder im Container direkt einhängen (z. B. CIFS in `/etc/fstab`). Den Pfad in `[backup] target_dir` eintragen und `setup.sh` erneut ausführen: Es macht den Ordner für den Dienst beschreibbar und trägt ihn in die systemd-Unit ein.
 
@@ -127,7 +123,7 @@ Daten und Originaldateien sind plattformunabhängig, die Datenbank speichert nur
 1. Neues Paket laden, prüfen und entpacken wie in Abschnitt 1. Das bisherige aufbewahren.
 2. `sudo ./setup.sh` aus dem neuen Ordner.
 
-`setup` erkennt die Installation, stoppt den Dienst, ersetzt Programm und Oberfläche, erneuert bei Bedarf das Zertifikat und startet wieder. Konfiguration und Daten bleiben; vor einer Schemamigration legt TrackCraft eine Sicherung in `/var/lib/trackcraft/backups` an.
+`setup` erkennt die Installation, stoppt den Dienst, ersetzt Programm und Oberfläche, erneuert bei Bedarf das Zertifikat und startet wieder. Konfiguration und Daten bleiben; vor einer Schemamigration legt TrackCraft eine Vollsicherung in `/var/lib/trackcraft/backups` an und kopiert sie, wenn erreichbar, ins Sicherungsziel.
 
 ## Rollback
 
@@ -137,7 +133,7 @@ Ein älteres Programm startet nicht gegen ein neueres Schema und ändert dann ni
 sudo systemctl stop trackcraft
 cd /var/lib/trackcraft
 sudo mkdir -p /root/nach-update && sudo mv database/trackcraft.db* /root/nach-update/
-sudo cp backups/trackcraft-vor-migration-v<alt>-v<neu>.db database/trackcraft.db
+sudo cp backups/trackcraft-vor-migration-v<alt>-v<neu>/trackcraft.db database/trackcraft.db
 sudo chown trackcraft:trackcraft database/trackcraft.db
 sudo systemctl start trackcraft
 ```

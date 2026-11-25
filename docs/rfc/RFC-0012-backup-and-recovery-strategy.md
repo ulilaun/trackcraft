@@ -75,6 +75,42 @@ Letzter Prüfversuch/Grund, letzte erfolgreiche Sicherung samt Revision, aussteh
 
 Kein garantiertes Datenverlustfenster: Änderungen seit der letzten erfolgreichen Sicherung können verloren gehen, ein USB-Ziel kann fehlen, ein Ziel auf demselben Rechner geht bei dessen Verlust mit verloren.
 
-Manifest-/Format-/Hashverfahren, Versionkompatibilität, Umschalten/Rollback, Platzprüfung, Tokens/Operationen, Revisionspersistenz und Tests offen. Restore unter anderen Berechnungsparametern technisch mit versionierter Neuberechnung koordinieren.
+Offen bis zum Restore-Schritt von #57: Versionkompatibilität beim Einspielen, Umschalten/Rollback, Platzprüfung und Vorschau-Tokens. Format, Hashverfahren, Vorgänge und Revisionspersistenz siehe „Umsetzung“. Restore unter anderen Berechnungsparametern technisch mit versionierter Neuberechnung koordinieren.
 
 Cloudziele/automatische Restoretests spätere Optionen, keine Zusage. Keine Exportfunktion durch Betriebsbackup.
+
+## Umsetzung (#57, Schemaversion 21)
+
+Entscheidungen Uli 25.11.2026: ein Ordner je Stand, Wiederherstellen per internem Neustart, Umsetzung in zwei Schritten
+(erst Sicherung, dann Restore).
+
+**Format `trackcraft-backup`, Version 1.** Je Stand ein Ordner `trackcraft-<JJJJMMTT>-<HHMMSS>-s<schema>-c<zähler>`
+(Ortszeit der Anwendungszeitzone, Schemaversion, Änderungszähler aus `data_state`) mit `trackcraft.db` (per `VACUUM
+INTO`), `trackcraft.toml` (Referenzkopie, nie automatisch aktiviert), `originals/<relativer Pfad>` und `manifest.json`.
+Das Manifest nennt Formatkennung und -version, Erstellzeit, Anlass (`daily`, `manual`, `migration`), App- und
+Schemaversion, den Parameterhash der Neuberechnung samt Zeitzone, den Datenstand (Bestands-, Revisions-,
+Vorgänger-ID, Zähler), Anzahl Aktivitäten und Segmente und je Datei relativen Pfad (`/`), Größe und SHA-256. Eine neuere
+Formatversion lehnt das Programm ab.
+
+**Ablauf.** Ziel vorhanden und beschreibbar? (Der Zielordner wird nie angelegt: fehlt er, fehlt das Laufwerk.)
+Änderung seit der letzten erfolgreichen Sicherung (andere Revision oder anderer Parameterstand)? Dann belegt der
+Vorgang die einzige schreibende Verbindung, erzeugt die Datenbankkopie und harte Links auf die referenzierten Originale
+im Staging (gleiches Laufwerk, sonst Kopie) und gibt die Verbindung wieder frei. Ohne Sperre werden die Originale
+gegen ihre gespeicherte Prüfsumme gehasht, das Manifest geschrieben, alles nach `<name>.partial` im Ziel kopiert, dort
+erneut gelesen und gegen das Manifest geprüft und erst dann umbenannt. Danach Aufbewahrung: die neuesten fünf
+gültigen Stände bleiben; ungültige oder fremde Ordner werden nicht angefasst, `.partial`-Reste entfernt.
+
+**Sicherung vor Migration** im selben Format in `migration_dir` als `trackcraft-vor-migration-v<alt>-v<neu>` (nur die
+letzte bleibt), Originale dort als harte Links; ist das Ziel erreichbar, zusätzlich als regulärer Stand dorthin kopiert
+(zählt zu den fünf). Die Kopie ins Ziel darf scheitern, die lokale Sicherung nicht.
+
+**Zustand.** `backup_state` hält die letzte erfolgreiche Sicherung (Zeit, Stand, Revision, Zähler, Parameterstand) und
+den Tag des letzten täglichen Versuchs; ein Neustart nach der Uhrzeit holt den heutigen Versuch einmal nach, nicht
+öfter. `operations` hält jeden Vorgang (`queued`, `running`, `done`, `failed`) mit Phase (`checking`, `staging`,
+`copying`, `cleanup`) und Ergebnis (`created`, `skipped_no_changes`, `skipped_target_unavailable`, `failed`); beim
+Start offene Vorgänge enden als `failed` mit `operation_interrupted`. Erfolg und Fehler schreiben einen Audit-Eintrag.
+Vorgänge werden wie das Audit-Protokoll ein Jahr aufbewahrt.
+
+**API.** `GET /backups/status`, `GET /backups`, `POST /backups` (Jetzt sichern, 202 mit Vorgang), `GET /operations/{id}`.
+Die Liste prüft Manifest, Vorhandensein und Größe der Dateien; die Prüfsummen werden beim Erstellen im Ziel und vor
+einem Restore geprüft.
