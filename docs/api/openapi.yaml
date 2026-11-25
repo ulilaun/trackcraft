@@ -1055,6 +1055,12 @@ paths:
       description: |
         Prüft Integrität, Formatkompatibilität und sichere Pfade des gewählten Stands und vergleicht ihn mit dem aktuellen Datenstand.
         Der `preview_token` bindet die Bestätigung an Sicherung und geprüften aktuellen Stand.
+        Vollständig heißt: Manifest, Größe und SHA-256 jeder Datei, `PRAGMA integrity_check` der gesicherten Datenbank und jedes
+        dort verzeichnete Original im Stand (oder als fehlend vermerkt). Das kann bei großen Ständen einige Sekunden dauern.
+        Fehler: 404 `backup_not_found` (nur Namen aus `GET /backups`, kein Pfad), 400 `backup_invalid` bzw.
+        `backup_incompatible` (Format oder Schema neuer als das Programm) mit `details.reason`.
+        Warnungen (`warnings[].code`): `restore_older`, `restore_not_comparable`, `restore_schema_migration`,
+        `restore_missing_originals`, `restore_recalculation`. Bei leerem aktuellem Bestand ist keine Zustimmung nötig.
       requestBody:
         required: true
         content:
@@ -1071,7 +1077,10 @@ paths:
       summary: Restore ausführen (vollständiger fachlicher Ersatz, kein Merge)
       description: |
         Hat sich der aktuelle Stand seit der Vorschau geändert, antwortet das Backend mit 409 `restore_preview_stale`
-        und der Client prüft erneut. Während des Umschaltens sind Schreibzugriffe gesperrt (503 `write_locked`).
+        und der Client prüft erneut. Fehlt die nötige Zustimmung, 400 `acknowledgement_required`; läuft schon ein Vorgang,
+        409 `operation_running`. Der Vorgang prüft erneut, stellt den Stand im Staging bereit (migriert ältere Schemas) und
+        startet TrackCraft intern neu; währenddessen ist der Server kurz nicht erreichbar. Danach zeigt `GET /operations/{id}`
+        `done`/`restored`, bei gescheiterter Funktionsprüfung `rolled_back` (alter Bestand wieder aktiv) oder `failed`.
       requestBody:
         required: true
         content:
@@ -1149,7 +1158,7 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
     Conflict:
-      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `hr_zone_set_date_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`).
+      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `hr_zone_set_date_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `acknowledgement_required` (400), `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`).
       content:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
@@ -2736,7 +2745,7 @@ components:
         kind: {type: string, enum: [backup, restore]}
         trigger: {type: string, enum: [daily, manual]}
         status: {type: string, enum: [queued, running, done, failed, rolled_back]}
-        phase: {type: [string, 'null'], description: 'Aktuelle Phase; Sicherung: `checking`, `staging`, `copying`, `cleanup`. Restore später z. B. `switching`, `verifying`'}
+        phase: {type: [string, 'null'], description: 'Aktuelle Phase; Sicherung: `checking`, `staging`, `copying`, `cleanup`. Restore: `checking`, `staging`, `migrating`, `switching`'}
         backup_id: {type: [string, 'null'], description: 'Erstellter bzw. verwendeter Stand'}
         outcome: {type: [string, 'null'], enum: [created, skipped_no_changes, skipped_target_unavailable, restored, failed, null]}
         error:

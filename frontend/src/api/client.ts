@@ -1092,7 +1092,7 @@ export interface Operation {
   kind: "backup" | "restore";
   trigger: "daily" | "manual";
   status: "queued" | "running" | "done" | "failed" | "rolled_back";
-  phase: "checking" | "staging" | "copying" | "cleanup" | null;
+  phase: "checking" | "staging" | "copying" | "cleanup" | "migrating" | "switching" | null;
   outcome: BackupOutcome | "restored" | null;
   error: { code: string; message: string } | null;
   backup_id: string | null;
@@ -1102,4 +1102,19 @@ export interface Operation {
 
 export interface OperationResponse {
   data: Operation;
+}
+
+export type RestoreComparison = "older" | "same" | "newer" | "not_comparable";
+
+export interface RestorePreview {
+  preview_token: string;
+  backup: BackupEntry;
+  current: { revision_id: string | null; activity_count: number; segment_count: number; is_empty: boolean };
+  comparison: RestoreComparison;
+  requires_acknowledgement: boolean;
+  warnings: { code: string; message: string }[];
+}
+
+export interface RestorePreviewResponse {
+  data: RestorePreview;
 }

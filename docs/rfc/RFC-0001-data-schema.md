@@ -313,6 +313,7 @@ CREATE TABLE data_state (
 | Statistik und Aktivitätsrekorde (RFC-0009, C4) | nicht gespeichert, bei Abfrage aus `activities` und dem veröffentlichten Stand berechnet |
 | Datenstandsidentität für Sicherung/Restore (ADR-0014, RFC-0012) | `data_state` (genau eine Zeile) |
 | Sicherungsstatus und Vorgänge (RFC-0012, #57) | `backup_state` (genau eine Zeile), `operations`; offene Vorgänge enden beim Start als `failed` (`operation_interrupted`) |
+| Vergleich beim Wiederherstellen: älter/neuer nur über bekannte Vorgänger (RFC-0012) | `revision_history` (Schemaversion 22), jede neue Revision mit Vorgänger und Zähler |
 
 ## 4. Offene Punkte
 

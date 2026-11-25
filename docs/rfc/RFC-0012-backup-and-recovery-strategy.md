@@ -75,7 +75,7 @@ Letzter Prüfversuch/Grund, letzte erfolgreiche Sicherung samt Revision, aussteh
 
 Kein garantiertes Datenverlustfenster: Änderungen seit der letzten erfolgreichen Sicherung können verloren gehen, ein USB-Ziel kann fehlen, ein Ziel auf demselben Rechner geht bei dessen Verlust mit verloren.
 
-Offen bis zum Restore-Schritt von #57: Versionkompatibilität beim Einspielen, Umschalten/Rollback, Platzprüfung und Vorschau-Tokens. Format, Hashverfahren, Vorgänge und Revisionspersistenz siehe „Umsetzung“. Restore unter anderen Berechnungsparametern technisch mit versionierter Neuberechnung koordinieren.
+Umgesetzt mit #57, siehe „Umsetzung“. Offen: eine Platzprüfung vor dem Bereitstellen (bisher scheitert das Kopieren ohne Folgen, wenn der Platz fehlt). Restore unter anderen Berechnungsparametern technisch mit versionierter Neuberechnung koordinieren.
 
 Cloudziele/automatische Restoretests spätere Optionen, keine Zusage. Keine Exportfunktion durch Betriebsbackup.
 
@@ -114,3 +114,21 @@ Vorgänge werden wie das Audit-Protokoll ein Jahr aufbewahrt.
 **API.** `GET /backups/status`, `GET /backups`, `POST /backups` (Jetzt sichern, 202 mit Vorgang), `GET /operations/{id}`.
 Die Liste prüft Manifest, Vorhandensein und Größe der Dateien; die Prüfsummen werden beim Erstellen im Ziel und vor
 einem Restore geprüft.
+
+**Wiederherstellen** (Schemaversion 22, Teil 2). Vergleich über `revision_history` (jede Revision mit Vorgänger, auch im
+Stand gesichert): gleich, wenn die Revisionen übereinstimmen; älter, wenn die Revision des Stands im Verlauf der laufenden
+Daten steht; neuer, wenn die laufende Revision im Verlauf des Stands steht; sonst nicht vergleichbar (auch andere
+Bestands-ID oder Stand ohne Verlauf). Zustimmung bei älter und nicht vergleichbar, außer der Bestand ist leer.
+Vorschau-Token = Stand-ID + Hash aus Stand-ID, SHA-256 des Manifests und laufender Revision; stimmt es nicht mehr, 409.
+
+Ablauf: Vollprüfung im Ziel (Prüfsummen, `integrity_check`, Originale gegen Datenbank) → Kopie ins Staging mit erneuter
+Prüfung → dort migrieren, `backup_state` und `operations` der laufenden Datenbank übernehmen, neue Revision vom Stand aus,
+Audit → Merker `database_dir/wiederherstellung.json` → interner Neustart: Server und Hintergrundaufgaben enden, Datenbank
+wird geschlossen, Sperrdatei frei, der Start läuft erneut im selben Prozess. Beim Start vor dem Öffnen der Datenbank
+schaltet `apply_pending` in Schritten um, jeder im Merker vermerkt und wiederholbar: alte Datenbank und alte Originale nach
+`database_dir/vor-wiederherstellung/`, neue Originale und Datenbank an ihren Platz. Hat sich die laufende Revision vor dem
+Umschalten geändert, wird nichts ersetzt. Danach Start mit Funktionsprüfung (`quick_check`, Anzahl Aktivitäten wie im
+Manifest, alle Originale vorhanden); scheitert sie oder der Start, nimmt `rollback` anhand des Schritts zurück und der Start
+läuft mit dem alten Bestand (Vorgang `rolled_back`). Ein Absturz mitten im Umschalten setzt beim nächsten Start fort. Der
+alte Bestand bleibt bis zum nächsten Wiederherstellen liegen. Regelmäßige Sicherungen, Migrationssicherung und TOML werden
+nicht ersetzt.
