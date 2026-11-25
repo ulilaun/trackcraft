@@ -450,7 +450,7 @@ async fn prepare_staged_db(current: &Db, file: &Path, op: &str, backup_id: &str)
         let mut tx = staged.writer.begin().await?;
         sqlx::query(
             "UPDATE backup_state SET last_success_at_ms = ?, last_success_name = ?, last_success_revision_id = ?, \
-             last_success_counter = ?, last_success_parameters = ?, daily_last_date = ? WHERE id = 1",
+             last_success_counter = ?, last_success_parameters = ?, daily_last_date = ?, daily_time = ?, keep = ? WHERE id = 1",
         )
         .bind(state.get::<Option<i64>, _>("last_success_at_ms"))
         .bind(state.get::<Option<String>, _>("last_success_name"))
@@ -458,6 +458,8 @@ async fn prepare_staged_db(current: &Db, file: &Path, op: &str, backup_id: &str)
         .bind(state.get::<Option<i64>, _>("last_success_counter"))
         .bind(state.get::<Option<String>, _>("last_success_parameters"))
         .bind(state.get::<Option<String>, _>("daily_last_date"))
+        .bind(state.get::<Option<String>, _>("daily_time"))
+        .bind(state.get::<Option<i64>, _>("keep"))
         .execute(&mut *tx)
         .await?;
         sqlx::query("DELETE FROM operations").execute(&mut *tx).await?;

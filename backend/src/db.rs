@@ -31,6 +31,7 @@ pub const MIGRATIONS: &[(i64, &str)] = &[
     (20, include_str!("../migrations/0020_demo_state.sql")),
     (21, include_str!("../migrations/0021_backup_state.sql")),
     (22, include_str!("../migrations/0022_revision_history.sql")),
+    (23, include_str!("../migrations/0023_backup_settings.sql")),
 ];
 
 /// Schemaversion dieses Programms.

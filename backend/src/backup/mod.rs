@@ -182,6 +182,22 @@ pub struct State {
     pub last_success_counter: Option<i64>,
     pub last_success_parameters: Option<String>,
     pub daily_last_date: Option<String>,
+    /// In der Oberfläche gesetzte Uhrzeit; `None` = `[backup] daily_time`
+    pub daily_time: Option<String>,
+    /// In der Oberfläche gesetzte Aufbewahrung; `None` = fünf
+    pub keep: Option<i64>,
+}
+
+impl State {
+    /// Wirksame Uhrzeit des täglichen Versuchs.
+    pub fn daily_time(&self, cfg: &Validated) -> String {
+        self.daily_time.clone().unwrap_or_else(|| cfg.raw.backup.daily_time.clone())
+    }
+
+    /// Wirksame Zahl aufbewahrter Stände.
+    pub fn keep(&self) -> usize {
+        self.keep.map_or(format::KEEP, |k| k.clamp(1, format::KEEP_MAX) as usize)
+    }
 }
 
 pub async fn load_state(db: &Db) -> anyhow::Result<State> {
@@ -193,7 +209,28 @@ pub async fn load_state(db: &Db) -> anyhow::Result<State> {
         last_success_counter: r.get("last_success_counter"),
         last_success_parameters: r.get("last_success_parameters"),
         daily_last_date: r.get("daily_last_date"),
+        daily_time: r.get("daily_time"),
+        keep: r.get("keep"),
     })
+}
+
+/// Änderung der Einstellungen; äußeres `None` = unverändert, inneres `None` = zurück auf die Vorgabe.
+#[derive(Debug, Default)]
+pub struct SettingsChange {
+    pub daily_time: Option<Option<String>>,
+    pub keep: Option<Option<i64>>,
+}
+
+pub async fn update_settings(db: &Db, change: &SettingsChange) -> anyhow::Result<()> {
+    let mut tx = db.writer.begin().await?;
+    if let Some(t) = &change.daily_time {
+        sqlx::query("UPDATE backup_state SET daily_time = ? WHERE id = 1").bind(t).execute(&mut *tx).await?;
+    }
+    if let Some(k) = change.keep {
+        sqlx::query("UPDATE backup_state SET keep = ? WHERE id = 1").bind(k).execute(&mut *tx).await?;
+    }
+    tx.commit().await?;
+    Ok(())
 }
 
 /// Ein Vorgang (`Operation` im Vertrag).
@@ -385,7 +422,8 @@ async fn run(cfg: &Validated, db: &Db, id: &str, trigger: Trigger) -> anyhow::Re
         tokio::task::spawn_blocking(move || format::copy_stand(&src, &dst, &n)).await??;
         set_phase(db, id, "cleanup").await;
         let t = target.clone();
-        let removed = tokio::task::spawn_blocking(move || format::retention(&t)).await??;
+        let keep = state.keep();
+        let removed = tokio::task::spawn_blocking(move || format::retention(&t, keep)).await??;
         if !removed.is_empty() {
             tracing::info!(?removed, "Ältere Sicherungsstände entfernt");
         }
@@ -427,7 +465,7 @@ pub async fn scheduler(cfg: Arc<Validated>, db: Db, runner: Arc<Runner>) {
         let now = chrono::Utc::now().with_timezone(&cfg.timezone).naive_local();
         match load_state(&db).await {
             // Die Demo sichert nicht täglich; „Jetzt sichern“ geht auch dort.
-            Ok(s) if !cfg.raw.demo.enabled && daily_due(&cfg.raw.backup.daily_time, now, s.daily_last_date.as_deref()) => {
+            Ok(s) if !cfg.raw.demo.enabled && daily_due(&s.daily_time(&cfg), now, s.daily_last_date.as_deref()) => {
                 if runner.attempt(&cfg, &db, Trigger::Daily).await.is_some()
                     && let Err(e) = mark_daily(&db, &now.date().format("%Y-%m-%d").to_string()).await
                 {
@@ -487,9 +525,13 @@ pub async fn before_migration(cfg: &Validated, db: &Db, from: i64, to: i64) -> a
             let local = chrono::Utc::now().with_timezone(&cfg.timezone).naive_local();
             let stand = format::stand_name(local, from, counter);
             let src = final_dir.clone();
+            // Vor Migration 23 gibt es die Spalte noch nicht: dann gilt die Vorgabe.
+            let keep: Option<i64> =
+                sqlx::query_scalar("SELECT keep FROM backup_state WHERE id = 1").fetch_optional(&db.reader).await.ok().flatten().flatten();
+            let keep = State { keep, ..Default::default() }.keep();
             let copied = tokio::task::spawn_blocking(move || {
                 let p = format::copy_stand(&src, &target, &stand)?;
-                format::retention(&target)?;
+                format::retention(&target, keep)?;
                 Ok::<_, anyhow::Error>(p)
             })
             .await?;

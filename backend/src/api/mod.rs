@@ -119,6 +119,7 @@ pub fn router(state: AppState) -> Router {
         .route("/import/jobs", get(import::list))
         .route("/backups", get(backup::list).post(backup::start))
         .route("/backups/status", get(backup::status))
+        .route("/backups/settings", patch(backup::update_settings))
         .route("/operations/{id}", get(backup::operation))
         .route("/restores/preview", post(backup::preview))
         .route("/restores", post(backup::restore))

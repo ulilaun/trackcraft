@@ -14,7 +14,7 @@ Bei externem Ziel regelmäßige Trennung/Rotation und Restoretest ohne die urspr
 
 Das Sicherungsformat ist plattformunabhängig: Pfade im Manifest und in der Datenbank sind relativ mit `/` als Trenner, eine unter Windows erstellte Sicherung lässt sich unter Docker wiederherstellen und umgekehrt. Die TOML-Referenzkopie enthält plattformabhängige Pfade und wird ohnehin nicht automatisch aktiviert.
 
-Letzte fünf erfolgreiche validierte vollständige Stände unabhängig vom Alter; überzählige älteste erst nach erfolgreichem neuen Stand entfernen. Fehler/Überspringen keine Retention-Löschung, weniger als fünf alle behalten.
+Letzte fünf (Vorgabe; auf der Seite Sicherung 1 bis 30) erfolgreiche validierte vollständige Stände unabhängig vom Alter; überzählige älteste erst nach erfolgreichem neuen Stand entfernen. Fehler/Überspringen keine Retention-Löschung, weniger als eingestellt alle behalten. Eine geringere Zahl wirkt erst bei der nächsten erfolgreichen Sicherung.
 
 Unverschlüsselt, Sicherungsziel physisch und zugriffsseitig schützen: Trainings-/Positions-/Gesundheits-/Profildaten sowie Konfiguration lesbar. HTTPS unabhängig Pflicht.
 
@@ -22,7 +22,7 @@ Fachliches Löschen verändert historische Sicherungen nicht rückwirkend; Resto
 
 ## Automatischer Sicherungsversuch
 
-Initial täglich 03:00, konfigurierte Anwendungszeitzone. Nach lokalem konsistentem Stand prüfen: sicherungsrelevante Änderung seit erfolgreicher Sicherung und Ziel vorhanden/beschreibbar?
+Initial täglich 03:00 bzw. `[backup] daily_time`, konfigurierte Anwendungszeitzone; auf der Seite Sicherung änderbar (Datenbank führt, `backup_state.daily_time`). Nach lokalem konsistentem Stand prüfen: sicherungsrelevante Änderung seit erfolgreicher Sicherung und Ziel vorhanden/beschreibbar?
 
 Nur dann sichern. Keine Änderung/Ziel fehlt: überspringen ohne Erfolg vorzutäuschen. Erste Sicherung ohne Basis ausstehend. Bearbeiten/Löschen und tatsächliche Benutzerprofiländerungen zählen, unveränderter Profilabgleich/Logs/Backupprüfungen nicht.
 
@@ -97,12 +97,12 @@ Formatversion lehnt das Programm ab.
 Vorgang die einzige schreibende Verbindung, erzeugt die Datenbankkopie und harte Links auf die referenzierten Originale
 im Staging (gleiches Laufwerk, sonst Kopie) und gibt die Verbindung wieder frei. Ohne Sperre werden die Originale
 gegen ihre gespeicherte Prüfsumme gehasht, das Manifest geschrieben, alles nach `<name>.partial` im Ziel kopiert, dort
-erneut gelesen und gegen das Manifest geprüft und erst dann umbenannt. Danach Aufbewahrung: die neuesten fünf
+erneut gelesen und gegen das Manifest geprüft und erst dann umbenannt. Danach Aufbewahrung: die neuesten fünf (bzw. eingestellten)
 gültigen Stände bleiben; ungültige oder fremde Ordner werden nicht angefasst, `.partial`-Reste entfernt.
 
 **Sicherung vor Migration** im selben Format in `migration_dir` als `trackcraft-vor-migration-v<alt>-v<neu>` (nur die
 letzte bleibt), Originale dort als harte Links; ist das Ziel erreichbar, zusätzlich als regulärer Stand dorthin kopiert
-(zählt zu den fünf). Die Kopie ins Ziel darf scheitern, die lokale Sicherung nicht.
+(zählt zu den aufbewahrten Ständen). Die Kopie ins Ziel darf scheitern, die lokale Sicherung nicht.
 
 **Zustand.** `backup_state` hält die letzte erfolgreiche Sicherung (Zeit, Stand, Revision, Zähler, Parameterstand) und
 den Tag des letzten täglichen Versuchs; ein Neustart nach der Uhrzeit holt den heutigen Versuch einmal nach, nicht

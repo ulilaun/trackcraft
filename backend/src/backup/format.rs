@@ -32,8 +32,9 @@ pub const DB_FILE: &str = "trackcraft.db";
 pub const TOML_FILE: &str = "trackcraft.toml";
 pub const ORIGINALS: &str = "originals";
 pub const PARTIAL: &str = ".partial";
-/// Aufbewahrung: die letzten fünf erfolgreichen Stände (ADR-0014).
+/// Aufbewahrung: Vorgabe fünf erfolgreiche Stände (ADR-0014), in der Oberfläche 1 bis 30.
 pub const KEEP: usize = 5;
+pub const KEEP_MAX: i64 = 30;
 const PREFIX: &str = "trackcraft-";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -412,9 +413,9 @@ pub fn list(target: &Path) -> anyhow::Result<Vec<StandInfo>> {
     Ok(out)
 }
 
-/// Aufbewahrung nach einem erfolgreichen Stand: die neuesten `KEEP` gültigen Stände bleiben, ältere gültige werden
+/// Aufbewahrung nach einem erfolgreichen Stand: die neuesten `keep` gültigen Stände bleiben, ältere gültige werden
 /// entfernt; dazu Reste abgebrochener Läufe (`.partial`). Ungültige oder fremde Ordner bleiben unangetastet.
-pub fn retention(target: &Path) -> anyhow::Result<Vec<String>> {
+pub fn retention(target: &Path, keep: usize) -> anyhow::Result<Vec<String>> {
     let mut removed = vec![];
     for entry in fs::read_dir(target)? {
         let entry = entry?;
@@ -425,7 +426,7 @@ pub fn retention(target: &Path) -> anyhow::Result<Vec<String>> {
         }
     }
     let valid: Vec<StandInfo> = list(target)?.into_iter().filter(|s| s.problem.is_none()).collect();
-    for s in valid.iter().skip(KEEP) {
+    for s in valid.iter().skip(keep.max(1)) {
         fs::remove_dir_all(target.join(&s.name)).with_context(|| format!("Alter Stand {} lässt sich nicht entfernen", s.name))?;
         removed.push(s.name.clone());
     }

@@ -6,9 +6,9 @@ Status: Akzeptierte Regeln, konsolidiert am 2026-10-29 (Piggy 007).
 
 V1 enthält genau eine Sicherungsart: eine Vollsicherung in ein per TOML konfiguriertes Verzeichnis, wahlweise externes USB-Laufwerk, zweite Platte oder Netzwerkfreigabe (z. B. auf der DS214). Einzige Ausnahme: vor jeder Schemamigration eine lokale Vollsicherung (nur die letzte bleibt), zusätzlich ins Ziel kopiert, falls erreichbar; die Kopie zählt zu den fünf Ständen. Scheitert die lokale Migrationssicherung, startet das Backend nicht. Snapshots von Synology oder Windows (Schattenkopien, Dateiversionsverlauf) sind nicht Teil der Definition. Bei externem Ziel bleiben regelmäßige Trennung beziehungsweise Rotation und ein Wiederherstellungstest ohne die ursprünglichen Datenträger des TrackCraft-Hosts vorgesehen. Ein Ziel auf demselben Rechner (zweite Platte) schützt nicht gegen Verlust des Rechners; dieses Risiko ist zu dokumentieren.
 
-Täglich initial 03:00 in der konfigurierten Anwendungszeitzone prüfen, nur bei geänderten Daten und vorhandenem beschreibbarem Ziel sichern. Ein verpasster heutiger Termin kann nach Backendstart einmal nachgeholt werden. „Jetzt sichern“ manuell auf der Seite Backup/Restore, mit denselben Prüfungen. Keine parallelen Läufe, übersprungene Versuche sind kein Erfolg.
+Täglich initial 03:00 in der konfigurierten Anwendungszeitzone prüfen (Uhrzeit auf der Seite Sicherung änderbar, Uli 25.11.2026), nur bei geänderten Daten und vorhandenem beschreibbarem Ziel sichern. Ein verpasster heutiger Termin kann nach Backendstart einmal nachgeholt werden. „Jetzt sichern“ manuell auf der Seite Backup/Restore, mit denselben Prüfungen. Keine parallelen Läufe, übersprungene Versuche sind kein Erfolg.
 
-Unverschlüsselt in V1, Sicherungsziel physisch und zugriffsseitig schützen. Nur letzte fünf erfolgreiche validierte vollständige Stände behalten; ältere erst nach erfolgreicher neuer Sicherung bereinigen.
+Unverschlüsselt in V1, Sicherungsziel physisch und zugriffsseitig schützen. Nur die letzten erfolgreichen validierten vollständigen Stände behalten, Vorgabe fünf, auf der Seite Sicherung 1 bis 30 (Uli 25.11.2026); ältere erst nach erfolgreicher neuer Sicherung bereinigen.
 
 ## Konsistenter Stand
 
