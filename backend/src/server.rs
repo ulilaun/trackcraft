@@ -3,18 +3,23 @@
 use std::future::Future;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use anyhow::Context;
 use axum_server::Handle;
 use axum_server::tls_rustls::RustlsConfig;
+use tokio::sync::Notify;
 
 use crate::api::{self, AppState};
 use crate::config::Validated;
 use crate::{startup, tls};
 
 /// Startet TrackCraft vollständig und läuft, bis `shutdown` endet.
-/// `on_listening` wird mit der tatsächlichen Adresse aufgerufen, sobald der Port offen ist.
+/// `on_listening` wird mit der tatsächlichen Adresse aufgerufen, sobald der Port zum ersten Mal offen ist.
+///
+/// Fordert ein Vorgang den internen Neustart an (Wiederherstellen, #57), fährt der Server geordnet herunter, schließt
+/// die Datenbank, gibt die Sperrdatei frei und durchläuft den Start erneut; der Prozess bleibt dabei bestehen.
 pub async fn run<S, L>(cfg: Validated, shutdown: S, on_listening: L) -> anyhow::Result<()>
 where
     S: Future<Output = ()> + Send + 'static,
@@ -27,7 +32,40 @@ where
         None => None,
     };
 
-    let started = startup::prepare(&cfg).await?;
+    let stop = Arc::new(Notify::new());
+    let stopped = Arc::new(AtomicBool::new(false));
+    let (s, f) = (stop.clone(), stopped.clone());
+    tokio::spawn(async move {
+        shutdown.await;
+        tracing::info!("Beenden angefordert");
+        f.store(true, Ordering::SeqCst);
+        s.notify_waiters();
+    });
+
+    let mut on_listening = Some(on_listening);
+    loop {
+        let restart = serve_once(&cfg, tls.clone(), &stop, &stopped, &mut on_listening).await?;
+        if !restart || stopped.load(Ordering::SeqCst) {
+            break;
+        }
+        tracing::info!("Interner Neustart");
+    }
+    tracing::info!("TrackCraft beendet");
+    Ok(())
+}
+
+/// Ein Durchlauf von Start bis Beenden; `true`, wenn ein interner Neustart angefordert war.
+async fn serve_once<L>(
+    cfg: &Arc<Validated>,
+    tls: Option<Arc<rustls::ServerConfig>>,
+    stop: &Arc<Notify>,
+    stopped: &Arc<AtomicBool>,
+    on_listening: &mut Option<L>,
+) -> anyhow::Result<bool>
+where
+    L: FnOnce(SocketAddr) + Send + 'static,
+{
+    let started = startup::prepare(cfg).await?;
     let db = started.db.clone();
     let garmin = Arc::new(crate::garmin::Runner::default());
     let backup = Arc::new(crate::backup::Runner::default());
@@ -56,19 +94,34 @@ where
     let garmin_task = tokio::spawn(crate::garmin::scheduler(cfg.clone(), db.clone(), garmin));
 
     // Tägliche Sicherung und „Jetzt sichern“ (#57)
-    let backup_task = tokio::spawn(crate::backup::scheduler(cfg.clone(), db.clone(), backup));
+    let backup_task = tokio::spawn(crate::backup::scheduler(cfg.clone(), db.clone(), backup.clone()));
 
     let handle: Handle<SocketAddr> = Handle::new();
-    let watcher = handle.clone();
-    tokio::spawn(async move {
-        if let Some(addr) = watcher.listening().await {
-            on_listening(addr);
+    if let Some(cb) = on_listening.take() {
+        let watcher = handle.clone();
+        tokio::spawn(async move {
+            if let Some(addr) = watcher.listening().await {
+                cb(addr);
+            }
+        });
+    }
+    let restart = Arc::new(AtomicBool::new(false));
+    let (stopper, stop, stopped, r) = (handle.clone(), stop.clone(), stopped.clone(), restart.clone());
+    let control = tokio::spawn(async move {
+        tokio::select! {
+            // Auch ein Beenden zwischen Prüfen und Warten geht nicht verloren: höchstens eine halbe Sekunde später.
+            _ = async {
+                while !stopped.load(Ordering::SeqCst) {
+                    tokio::select! {
+                        _ = stop.notified() => {}
+                        _ = tokio::time::sleep(Duration::from_millis(500)) => {}
+                    }
+                }
+            } => {}
+            _ = backup.restart_requested() => {
+                r.store(true, Ordering::SeqCst);
+            }
         }
-    });
-    let stopper = handle.clone();
-    tokio::spawn(async move {
-        shutdown.await;
-        tracing::info!("Beenden angefordert");
         stopper.graceful_shutdown(Some(Duration::from_secs(10)));
     });
 
@@ -84,16 +137,20 @@ where
             axum_server::bind(addr).handle(handle).serve(service).await
         }
     };
+    control.abort();
     maintenance.abort();
     worker.abort();
     load_task.abort();
     garmin_task.abort();
     backup_task.abort();
+    // Abgebrochene Aufgaben geben ihre Verbindungen frei, bevor die Datenbank geschlossen wird.
+    for t in [maintenance, worker, load_task, garmin_task, backup_task] {
+        let _ = t.await;
+    }
     db.close().await;
     drop(started);
     result.with_context(|| format!("Port {addr} lässt sich nicht öffnen oder der Server brach ab"))?;
-    tracing::info!("TrackCraft beendet");
-    Ok(())
+    Ok(restart.load(Ordering::SeqCst))
 }
 
 /// Strg+C in der Konsole, SIGTERM im Container.

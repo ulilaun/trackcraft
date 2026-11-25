@@ -2,6 +2,7 @@
 //! Das Wiederherstellen folgt in einem eigenen Schritt.
 
 use axum::Json;
+use axum::body::Bytes;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -9,6 +10,8 @@ use serde_json::{Value, json};
 
 use super::AppState;
 use super::error::ApiError;
+use super::import::parse_json;
+use crate::backup::restore::{self, RestoreError};
 use crate::backup::{self, Operation, format};
 use crate::import_job::timestamp;
 
@@ -127,4 +130,70 @@ pub async fn start(State(state): State<AppState>) -> Result<Response, ApiError> 
 pub async fn operation(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Value>, ApiError> {
     let op = backup::operation(&state.db, &id).await?.ok_or(OPERATION_NOT_FOUND)?;
     Ok(Json(json!({ "data": operation_json(&op) })))
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Wiederherstellen (#57 Teil 2)
+
+pub const BACKUP_NOT_FOUND: ApiError = ApiError::new(StatusCode::NOT_FOUND, "backup_not_found", "Backup not found in the backup target");
+pub const BACKUP_INVALID: ApiError = ApiError::new(StatusCode::BAD_REQUEST, "backup_invalid", "Backup is damaged or incomplete");
+pub const BACKUP_INCOMPATIBLE: ApiError =
+    ApiError::new(StatusCode::BAD_REQUEST, "backup_incompatible", "Backup is newer than this TrackCraft version");
+pub const RESTORE_PREVIEW_STALE: ApiError =
+    ApiError::new(StatusCode::CONFLICT, "restore_preview_stale", "Data or backup changed since the preview, check again");
+pub const ACKNOWLEDGEMENT_REQUIRED: ApiError =
+    ApiError::new(StatusCode::BAD_REQUEST, "acknowledgement_required", "Restoring this backup needs explicit acknowledgement");
+
+fn restore_error(e: RestoreError) -> ApiError {
+    match e {
+        RestoreError::NotFound => BACKUP_NOT_FOUND,
+        RestoreError::Invalid(m) => BACKUP_INVALID.with_details(json!({ "reason": m })),
+        RestoreError::Incompatible(m) => BACKUP_INCOMPATIBLE.with_details(json!({ "reason": m })),
+        RestoreError::Stale => RESTORE_PREVIEW_STALE,
+        RestoreError::AcknowledgementRequired => ACKNOWLEDGEMENT_REQUIRED,
+        RestoreError::Other(e) => e.into(),
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PreviewRequest {
+    backup_id: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RestoreRequest {
+    preview_token: String,
+    #[serde(default)]
+    acknowledge_warnings: bool,
+}
+
+/// `POST /restores/preview`: prüft den Stand vollständig und vergleicht ihn mit dem aktuellen Datenstand.
+pub async fn preview(State(state): State<AppState>, body: Bytes) -> Result<Json<Value>, ApiError> {
+    let req: PreviewRequest = parse_json(&body)?;
+    let p = restore::preview(&state.cfg, &state.db, &req.backup_id, true).await.map_err(restore_error)?;
+    Ok(Json(json!({ "data": {
+        "preview_token": p.token,
+        "backup": entry_json(&p.stand),
+        "current": p.current,
+        "comparison": p.comparison,
+        "requires_acknowledgement": p.requires_acknowledgement,
+        "warnings": p.warnings,
+    }})))
+}
+
+/// `POST /restores`: startet das Wiederherstellen; danach startet TrackCraft intern neu.
+pub async fn restore(State(state): State<AppState>, body: Bytes) -> Result<Response, ApiError> {
+    let req: RestoreRequest = parse_json(&body)?;
+    if state.backup.active_operation().is_some() {
+        return Err(OPERATION_RUNNING.with_details(json!({ "operation_id": state.backup.active_operation() })));
+    }
+    let backup_id =
+        restore::check_request(&state.cfg, &state.db, &req.preview_token, req.acknowledge_warnings).await.map_err(restore_error)?;
+    let Some(id) = restore::start(state.cfg.clone(), state.db.clone(), state.backup.clone(), backup_id).await? else {
+        return Err(OPERATION_RUNNING.with_details(json!({ "operation_id": state.backup.active_operation() })));
+    };
+    let op = backup::operation(&state.db, &id).await?.ok_or(ApiError::INTERNAL)?;
+    Ok((StatusCode::ACCEPTED, Json(json!({ "data": operation_json(&op) }))).into_response())
 }

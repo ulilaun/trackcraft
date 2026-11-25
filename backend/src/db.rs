@@ -30,6 +30,7 @@ pub const MIGRATIONS: &[(i64, &str)] = &[
     (19, include_str!("../migrations/0019_plan_unit_templates.sql")),
     (20, include_str!("../migrations/0020_demo_state.sql")),
     (21, include_str!("../migrations/0021_backup_state.sql")),
+    (22, include_str!("../migrations/0022_revision_history.sql")),
 ];
 
 /// Schemaversion dieses Programms.
@@ -152,12 +153,14 @@ impl Db {
 
         let state = sqlx::query("SELECT revision_id FROM data_state WHERE id = 1").fetch_optional(&mut *tx).await?;
         if state.is_none() {
+            let revision = new_id();
             sqlx::query("INSERT INTO data_state (id, dataset_id, revision_id, predecessor_revision_id, change_counter, updated_at_ms) VALUES (1, ?, ?, NULL, 0, ?)")
                 .bind(new_id())
-                .bind(new_id())
+                .bind(&revision)
                 .bind(now)
                 .execute(&mut *tx)
                 .await?;
+            record_revision(&mut tx, &revision, None, 0, now).await?;
         }
 
         let users = sqlx::query("SELECT id, display_name FROM users").fetch_all(&mut *tx).await?;
@@ -201,11 +204,37 @@ pub const DEFAULT_NICKNAME: &str = "Ich";
 
 /// Sicherungsrelevante Änderung: neue Revision des Datenstands, Zähler erhöhen (ADR-0014, RFC-0012).
 pub async fn bump_revision(conn: &mut sqlx::SqliteConnection, now_ms: i64) -> sqlx::Result<()> {
-    sqlx::query(
+    let revision = new_id();
+    let row = sqlx::query(
         "UPDATE data_state SET predecessor_revision_id = revision_id, revision_id = ?, \
-         change_counter = change_counter + 1, updated_at_ms = ? WHERE id = 1",
+         change_counter = change_counter + 1, updated_at_ms = ? WHERE id = 1 \
+         RETURNING predecessor_revision_id, change_counter",
     )
-    .bind(new_id())
+    .bind(&revision)
+    .bind(now_ms)
+    .fetch_optional(&mut *conn)
+    .await?;
+    if let Some(row) = row {
+        let predecessor: Option<String> = row.get("predecessor_revision_id");
+        record_revision(conn, &revision, predecessor.as_deref(), row.get("change_counter"), now_ms).await?;
+    }
+    Ok(())
+}
+
+/// Revision im Verlauf vermerken (Migration 22), damit ein Restore „älter“ und „neuer“ belegen kann.
+pub async fn record_revision(
+    conn: &mut sqlx::SqliteConnection,
+    revision: &str,
+    predecessor: Option<&str>,
+    counter: i64,
+    now_ms: i64,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        "INSERT OR IGNORE INTO revision_history (revision_id, predecessor_revision_id, change_counter, created_at_ms) VALUES (?, ?, ?, ?)",
+    )
+    .bind(revision)
+    .bind(predecessor)
+    .bind(counter)
     .bind(now_ms)
     .execute(conn)
     .await?;

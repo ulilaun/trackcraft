@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleAlert, CircleCheck, HardDriveDownload } from "lucide-react";
+import { CircleAlert, CircleCheck, HardDriveDownload, RotateCcw } from "lucide-react";
 import {
   apiGet,
   apiPost,
@@ -16,10 +16,14 @@ import { Problem, problemText } from "../../components/Problem";
 import { useConfig } from "../../hooks/useConfig";
 import { t, tn, type TextKey } from "../../i18n";
 import { dateTime, fileSize, num } from "../../utils/format";
+import { RestoreDialog } from "./RestoreDialog";
 import { backupState, finished, operationPollInterval, statusPollInterval, type BackupState } from "./backupModel";
 
 const primary =
   "inline-flex items-center gap-1.5 rounded-lg bg-accent-strong px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50";
+
+const restoreButton =
+  "inline-flex items-center gap-1 rounded-lg border border-line bg-card-2 px-2 py-1 text-xs text-text hover:border-accent disabled:opacity-50";
 
 const DOT: Record<BackupState, string> = {
   running: "bg-accent animate-pulse",
@@ -102,7 +106,19 @@ function StatusCard({
   );
 }
 
-function EntryRow({ e, tz, latest }: { e: BackupEntry; tz: string | undefined; latest: boolean }) {
+function EntryRow({
+  e,
+  tz,
+  latest,
+  busy,
+  onRestore,
+}: {
+  e: BackupEntry;
+  tz: string | undefined;
+  latest: boolean;
+  busy: boolean;
+  onRestore: () => void;
+}) {
   return (
     <tr className="border-b border-line align-top last:border-0">
       <td className="num whitespace-nowrap px-2 py-1.5">
@@ -134,11 +150,17 @@ function EntryRow({ e, tz, latest }: { e: BackupEntry; tz: string | undefined; l
           </span>
         )}
       </td>
+      <td className="whitespace-nowrap px-2 py-1.5 text-right">
+        <button type="button" className={restoreButton} disabled={busy || e.check_status !== "ok"} onClick={onRestore}>
+          <RotateCcw size={14} aria-hidden /> {t("restore.open")}
+        </button>
+      </td>
     </tr>
   );
 }
 
 function EntriesCard({ s, tz }: { s: BackupStatus; tz: string | undefined }) {
+  const [restoring, setRestoring] = useState<BackupEntry | null>(null);
   const list = useQuery({
     queryKey: ["backup", "list"],
     queryFn: () => apiGet<BackupListResponse>("/backups"),
@@ -165,16 +187,25 @@ function EntriesCard({ s, tz }: { s: BackupStatus; tz: string | undefined }) {
                 <th className="px-2 py-1 text-right font-medium">{t("backup.col.size")}</th>
                 <th className="px-2 py-1 text-left font-medium">{t("backup.col.version")}</th>
                 <th className="px-2 py-1 text-left font-medium">{t("backup.col.check")}</th>
+                <th className="px-2 py-1" />
               </tr>
             </thead>
             <tbody>
               {entries.map((e) => (
-                <EntryRow key={e.id} e={e} tz={tz} latest={e.id === s.last_success?.backup_id} />
+                <EntryRow
+                  key={e.id}
+                  e={e}
+                  tz={tz}
+                  latest={e.id === s.last_success?.backup_id}
+                  busy={s.running_operation_id !== null}
+                  onRestore={() => setRestoring(e)}
+                />
               ))}
             </tbody>
           </table>
         </div>
       )}
+      {restoring && <RestoreDialog entry={restoring} tz={tz} onClose={() => setRestoring(null)} />}
     </Card>
   );
 }

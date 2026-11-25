@@ -255,7 +255,7 @@ async fn interrupted_operation_ends_failed_after_restart() {
     .execute(&f.db.writer)
     .await
     .unwrap();
-    assert_eq!(trackcraft::backup::recover(&f.db).await.unwrap(), 1);
+    assert_eq!(trackcraft::backup::recover(&f.db, None).await.unwrap(), 1);
     let op = trackcraft::backup::operation(&f.db, "x").await.unwrap().unwrap();
     assert_eq!((op.status.as_str(), op.outcome.as_deref()), ("failed", Some("failed")));
     assert_eq!(op.error_code.as_deref(), Some(trackcraft::backup::ERROR_INTERRUPTED));

@@ -7,6 +7,7 @@
 //! Erfolg vermerkt; danach greift die Aufbewahrung. Jeder Versuch ist ein Vorgang in `operations`.
 
 pub mod format;
+pub mod restore;
 
 use std::fs;
 use std::path::Path;
@@ -77,6 +78,8 @@ pub struct Runner {
     /// laufender Vorgang
     current: Mutex<Option<String>>,
     wake: Notify,
+    restart: Notify,
+    restart_requested: AtomicBool,
 }
 
 impl Runner {
@@ -132,6 +135,41 @@ impl Runner {
         }
         self.running.store(false, Ordering::SeqCst);
         Some((id, outcome))
+    }
+
+    /// Belegt den Runner für einen anderen Vorgang (Wiederherstellen); `false`, wenn schon einer angefordert ist oder läuft.
+    pub fn try_begin(&self, id: &str) -> bool {
+        let Ok(q) = self.queued.lock() else {
+            return false;
+        };
+        if q.is_some() || self.running.swap(true, Ordering::SeqCst) {
+            return false;
+        }
+        if let Ok(mut g) = self.current.lock() {
+            *g = Some(id.to_string());
+        }
+        true
+    }
+
+    /// Gibt den mit [`Runner::try_begin`] belegten Runner wieder frei.
+    pub fn end(&self) {
+        if let Ok(mut g) = self.current.lock() {
+            *g = None;
+        }
+        self.running.store(false, Ordering::SeqCst);
+    }
+
+    /// Fordert den internen Neustart an (Server und Datenbank herunterfahren, Start erneut durchlaufen).
+    pub fn request_restart(&self) {
+        self.restart_requested.store(true, Ordering::SeqCst);
+        self.restart.notify_one();
+    }
+
+    /// Wartet, bis ein interner Neustart angefordert ist.
+    pub async fn restart_requested(&self) {
+        while !self.restart_requested.load(Ordering::SeqCst) {
+            self.restart.notified().await;
+        }
     }
 }
 
@@ -206,13 +244,14 @@ pub async fn last_attempt(db: &Db) -> anyhow::Result<Option<Operation>> {
 }
 
 /// Beim Start: offene Vorgänge stammen aus einem abgebrochenen Lauf und enden als fehlgeschlagen.
-pub async fn recover(db: &Db) -> anyhow::Result<u64> {
+pub async fn recover(db: &Db, keep: Option<&str>) -> anyhow::Result<u64> {
     let r = sqlx::query(
         "UPDATE operations SET status = 'failed', outcome = 'failed', phase = NULL, error_code = ?, \
-         error_message = 'Vorgang durch Neustart abgebrochen', finished_at_ms = ? WHERE status IN ('queued', 'running')",
+         error_message = 'Vorgang durch Neustart abgebrochen', finished_at_ms = ? WHERE status IN ('queued', 'running') AND id IS NOT ?",
     )
     .bind(ERROR_INTERRUPTED)
     .bind(chrono::Utc::now().timestamp_millis())
+    .bind(keep)
     .execute(&db.writer)
     .await?;
     Ok(r.rows_affected())

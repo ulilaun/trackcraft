@@ -120,6 +120,8 @@ pub fn router(state: AppState) -> Router {
         .route("/backups", get(backup::list).post(backup::start))
         .route("/backups/status", get(backup::status))
         .route("/operations/{id}", get(backup::operation))
+        .route("/restores/preview", post(backup::preview))
+        .route("/restores", post(backup::restore))
         .route("/garmin", get(garmin::get).patch(garmin::update))
         .route("/garmin/sync", post(garmin::sync_now))
         .route("/garmin/activities", get(garmin::list))
