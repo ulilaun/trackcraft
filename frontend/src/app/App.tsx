@@ -6,7 +6,7 @@ import { FlashProvider } from "../components/Flash";
 import { Header } from "../components/Header";
 import { useApplyLocale, useLocale } from "../hooks/useLocale";
 import { useApplyTheme } from "../hooks/useTheme";
-import { Placeholder } from "../pages/Placeholder";
+import { BackupPage } from "../pages/backup/BackupPage";
 import { SystemPage } from "../pages/SystemPage";
 import { ImportPage } from "../pages/import/ImportPage";
 import { ActivityDetailPage } from "../pages/activities/ActivityDetailPage";
@@ -48,7 +48,7 @@ export function App() {
                 <Route path="/form" element={<FormPage />} />
                 <Route path="/plan" element={<PlanPage />} />
                 <Route path="/import" element={<ImportPage />} />
-                <Route path="/sicherung" element={<Placeholder titleKey="nav.backup" milestone="M5" />} />
+                <Route path="/sicherung" element={<BackupPage />} />
                 <Route path="/system" element={<SystemPage />} />
                 <Route path="/einstellungen" element={<SettingsPage />} />
                 <Route path="/einstellungen/:section" element={<SettingsPage />} />

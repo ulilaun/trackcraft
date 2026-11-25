@@ -72,7 +72,7 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 - Bedienbar am PC, Tablet und Handy, helles und dunkles Design.
 - Eine Datenbank (SQLite) und die unveränderten Originaldateien; jede Kennzahl lässt sich aus den Originalen neu berechnen.
 
-**Noch nicht enthalten** (geplant bis v1.0, siehe [Meilenstein](../../milestones)): tägliche Sicherung und Wiederherstellung aus der Oberfläche, Export aller Daten. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
+**Noch nicht enthalten** (geplant bis v1.0, siehe [Meilenstein](../../milestones)): Wiederherstellung aus der Oberfläche, Export aller Daten. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
 
 ## Sicherheit: nur fürs Heimnetz
 
@@ -137,9 +137,10 @@ Drag-and-drop, etwa aus dem Datenexport einer anderen Plattform (gepackte Dateie
 erkennt TrackCraft selbst.
 
 **Wie sichere ich meine Daten?**
-Alles steckt in einem Datenordner: eine SQLite-Datenbank und die unveränderten Originaldateien. Diesen Ordner
-sicherst du mit deinem gewohnten Werkzeug, die Anleitungen zeigen wie. Vor jeder Datenbankmigration legt
-TrackCraft selbst eine Kopie an. Tägliche Sicherung, Wiederherstellung und Export aus der Oberfläche kommen mit v1.0.
+Alles steckt in einem Datenordner: eine SQLite-Datenbank und die unveränderten Originaldateien. TrackCraft
+sichert beides täglich in ein Sicherungsziel deiner Wahl (USB-Laufwerk, zweite Platte oder Netzwerkfreigabe),
+nur bei Änderungen, und behält die letzten fünf Stände; vor jeder Datenbankmigration zusätzlich.
+Wiederherstellung und Export aus der Oberfläche kommen mit v1.0.
 
 **Was verlässt mein Netz?**
 Nur die Abrufe von Kartenkacheln (Browser → OpenStreetMap oder dein Anbieter), der abschaltbare Ortsvorschlag

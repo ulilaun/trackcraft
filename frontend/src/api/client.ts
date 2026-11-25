@@ -1021,3 +1021,85 @@ export interface PlannedUnitResponse {
 export interface ActivityPlanResponse {
   data: { linked: PlannedUnit | null; candidates: PlannedUnit[] };
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Sicherung (#57)
+
+export type BackupOutcome =
+  "created" | "skipped_no_changes" | "skipped_target_unavailable" | "failed";
+export type BackupTrigger = "daily" | "manual" | "migration";
+export type TargetState = "available" | "unavailable" | "not_writable";
+
+export interface BackupStatus {
+  last_attempt: {
+    time: string;
+    outcome: BackupOutcome;
+    reason: string | null;
+    trigger: "daily" | "manual";
+    operation_id: string;
+  } | null;
+  last_success: {
+    time: string;
+    revision_id: string | null;
+    backup_id: string | null;
+    change_counter: number | null;
+  } | null;
+  pending_changes: boolean;
+  running_operation_id: string | null;
+  target: {
+    state: TargetState;
+    free_bytes: number | null;
+    path: string;
+    problem: string | null;
+  };
+  daily_time: string;
+  keep: number;
+  current: { revision_id: string; change_counter: number } | null;
+}
+
+export interface BackupStatusResponse {
+  data: BackupStatus;
+}
+
+export interface BackupEntry {
+  id: string;
+  kind: "regular" | "pre_migration";
+  trigger: BackupTrigger | null;
+  created_at: string | null;
+  revision_id: string | null;
+  format_version: number | null;
+  size_bytes: number;
+  check_status: "ok" | "failed" | "unchecked";
+  /** Manifest unlesbar oder Dateien fehlen */
+  problem: string | null;
+  activity_count: number;
+  segment_count: number;
+  original_count: number;
+  missing_original_count: number;
+  damaged_original_count: number;
+  change_counter: number | null;
+  schema_version: number | null;
+  app_version: string | null;
+}
+
+export interface BackupListResponse {
+  data: BackupEntry[];
+  meta: { target: { state: TargetState } };
+}
+
+export interface Operation {
+  id: string;
+  kind: "backup" | "restore";
+  trigger: "daily" | "manual";
+  status: "queued" | "running" | "done" | "failed" | "rolled_back";
+  phase: "checking" | "staging" | "copying" | "cleanup" | null;
+  outcome: BackupOutcome | "restored" | null;
+  error: { code: string; message: string } | null;
+  backup_id: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export interface OperationResponse {
+  data: Operation;
+}

@@ -312,11 +312,12 @@ CREATE TABLE data_state (
 | Sportart-Zuordnung pflegbar, Updates ergänzen Vorgaben einmalig (RFC-0008) | `sport_mappings`, `sub_sports`, `sport_defaults_applied`; Untertypen als Schlüssel mit Fremdschlüssel aus `activities` und `sport_mappings`, Umbenennen ändert nur `sub_sports.name`, Löschen eines verwendeten Untertyps sperrt die Anwendung (und der Fremdschlüssel) |
 | Statistik und Aktivitätsrekorde (RFC-0009, C4) | nicht gespeichert, bei Abfrage aus `activities` und dem veröffentlichten Stand berechnet |
 | Datenstandsidentität für Sicherung/Restore (ADR-0014, RFC-0012) | `data_state` (genau eine Zeile) |
+| Sicherungsstatus und Vorgänge (RFC-0012, #57) | `backup_state` (genau eine Zeile), `operations`; offene Vorgänge enden beim Start als `failed` (`operation_interrupted`) |
 
 ## 4. Offene Punkte
 
 1. Veröffentlichungsablauf von `calculation_versions` und Aufräumen alter Stände. Erste Stufe seit M2: Beim Start wird ein veröffentlichter Stand zu Algorithmus und Parametern (`parameters_hash` über Hysterese und Matching-Parameter) sichergestellt. Passt er nicht, wird ein neuer Stand vollständig berechnet und ersetzt den alten (`superseded`, dessen Hysteresewerte entfallen). Fehlende Werte werden nachgetragen, der Import trägt neue Aktivitäten direkt ein. Erledigt (C3, M3b): Den Ablauf mit Segmenten beschreibt RFC-0007; ältere Stände werden nach der Veröffentlichung des neuen sofort gelöscht.
-2. Sicherungsstatus (letzter Prüfversuch, letzte erfolgreiche Sicherung, Tageszustand) und Zustände für Restore (RFC-0012); wird mit Issue #57 (Sicherung und Wiederherstellung, v1.0) festgelegt.
+2. Erledigt (#57, Schemaversion 21): `backup_state` (letzte erfolgreiche Sicherung mit Revision und Parameterstand, Tag des letzten täglichen Versuchs) und `operations` (je Sicherungs- bzw. Restore-Vorgang Status, Phase, Ergebnis, Fehler; der letzte Prüfversuch ist der zuletzt beendete Sicherungsvorgang). Siehe RFC-0012 „Umsetzung“.
 3. ~~Ob Statistiken und Aktivitätsrekorde bei Abfrage berechnet oder gespeichert werden.~~ Entschieden (C4, 13.11.2026): bei Abfrage.
 4. Weitere Sensorwerte neben der durchschnittlichen Herzfrequenz (Verläufe, Kadenz, Leistung) sind nicht Teil von V1.
 5. Entfällt: Journalmodus, Sperrverhalten und Migrationen sind in Abschnitt 1 festgelegt (C5).

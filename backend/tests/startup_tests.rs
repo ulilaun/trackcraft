@@ -124,22 +124,34 @@ async fn migration_on_existing_data_makes_local_backup_first() {
     sqlx::raw_sql("CREATE TABLE altbestand (x INTEGER)").execute(&db.writer).await.unwrap();
     db.close().await;
 
-    // Ein älterer Rest im Migrationsordner wird ersetzt, nur die letzte bleibt.
-    std::fs::create_dir_all(&cfg.raw.backup.migration_dir).unwrap();
-    std::fs::write(cfg.raw.backup.migration_dir.join("trackcraft-vor-migration-v0-v0.db"), b"alt").unwrap();
+    // Ältere Reste im Migrationsordner (alte Einzeldatei, älterer Ordner) werden ersetzt, nur die letzte bleibt.
+    let mig = cfg.raw.backup.migration_dir.clone();
+    std::fs::create_dir_all(mig.join("trackcraft-vor-migration-v0-v1")).unwrap();
+    std::fs::write(mig.join("trackcraft-vor-migration-v0-v0.db"), b"alt").unwrap();
+    // Das Sicherungsziel ist erreichbar: die Sicherung wird zusätzlich dorthin kopiert.
+    std::fs::create_dir_all(&cfg.raw.backup.target_dir).unwrap();
 
     let started = startup::prepare(&cfg).await.unwrap();
-    let files: Vec<String> =
-        std::fs::read_dir(&cfg.raw.backup.migration_dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().to_string()).collect();
-    assert_eq!(files, vec![format!("trackcraft-vor-migration-v0-v{SCHEMA_VERSION}.db")]);
+    let files: Vec<String> = std::fs::read_dir(&mig).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().to_string()).collect();
+    assert_eq!(files, vec![format!("trackcraft-vor-migration-v0-v{SCHEMA_VERSION}")]);
     started.db.close().await;
 
-    let backup = Db::open(&cfg.raw.backup.migration_dir.join(&files[0])).await.unwrap();
+    let local = mig.join(&files[0]);
+    let m = trackcraft::backup::format::read_manifest(&local).unwrap();
+    assert_eq!(m.trigger, "migration");
+    assert_eq!(m.schema_version, 0);
+    trackcraft::backup::format::verify(&local, &m).unwrap();
+    let backup = Db::open(&local.join("trackcraft.db")).await.unwrap();
     let n: i64 =
         sqlx::query_scalar("SELECT count(*) FROM sqlite_schema WHERE name = 'altbestand'").fetch_one(&backup.reader).await.unwrap();
     assert_eq!(n, 1);
     assert_eq!(backup.schema_version().await.unwrap(), 0);
     backup.close().await;
+
+    let stands = trackcraft::backup::format::list(&cfg.raw.backup.target_dir).unwrap();
+    assert_eq!(stands.len(), 1);
+    assert_eq!(stands[0].manifest.as_ref().unwrap().schema_version, 0);
+    assert!(stands[0].problem.is_none());
 }
 
 /// Migration 6 legt `activities` und `segments` neu an. Abhängige Zeilen (Track, Versuche, Jobs) dürfen

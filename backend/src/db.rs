@@ -1,6 +1,6 @@
 //! SQLite-Betrieb nach C5 (RFC-0001): WAL, ein Schreiber, mehrere Leser, Schemaversion in `user_version`.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 use anyhow::{Context, bail};
@@ -29,6 +29,7 @@ pub const MIGRATIONS: &[(i64, &str)] = &[
     (18, include_str!("../migrations/0018_plan_goals.sql")),
     (19, include_str!("../migrations/0019_plan_unit_templates.sql")),
     (20, include_str!("../migrations/0020_demo_state.sql")),
+    (21, include_str!("../migrations/0021_backup_state.sql")),
 ];
 
 /// Schemaversion dieses Programms.
@@ -214,14 +215,4 @@ pub async fn bump_revision(conn: &mut sqlx::SqliteConnection, now_ms: i64) -> sq
 /// UUIDv7 als Text (RFC-0001).
 pub fn new_id() -> String {
     uuid::Uuid::now_v7().to_string()
-}
-
-/// Pfad der lokalen Sicherung vor Migration; es bleibt nur die letzte (RFC-0012).
-pub fn migration_backup_path(dir: &Path, from: i64, to: i64) -> PathBuf {
-    dir.join(format!("trackcraft-vor-migration-v{from}-v{to}.db"))
-}
-
-/// Prüft, dass ein Dateiname nur aus erwarteten Zeichen besteht (für Aufräumen im Migrationsordner).
-pub fn is_migration_backup(name: &str) -> bool {
-    name.starts_with("trackcraft-vor-migration-") && name.ends_with(".db")
 }

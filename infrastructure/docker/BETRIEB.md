@@ -61,14 +61,18 @@ Auf einer Synology übernimmt das der Reverse Proxy von DSM (Systemsteuerung →
 
 ## Sicherung
 
-> **Noch keine tägliche Sicherung:** TrackCraft legt bisher nur vor einer Schemamigration selbst eine Sicherung der Datenbank an (`data/backups`). Die tägliche Sicherung ins Sicherungsziel und die Wiederherstellung aus der Oberfläche kommen mit einer späteren Version. Bis dahin selbst sichern: `docker compose stop`, die Ordner `data/database` und `data/activities` kopieren, `docker compose start`.
+TrackCraft sichert täglich ab der Uhrzeit in `[backup] daily_time` (Vorgabe 03:00) ins Sicherungsziel, aber nur, wenn sich seit der letzten Sicherung etwas geändert hat und das Ziel erreichbar ist. Läuft der Container um diese Zeit nicht, holt TrackCraft den Versuch nach dem Start einmal nach. Die Seite **Sicherung** zeigt Status, Fehler und die vorhandenen Stände und hat den Knopf „Jetzt sichern“.
+
+Je Stand entsteht im Ziel ein Ordner `trackcraft-<datum>-<uhrzeit>-s<schema>-c<zähler>` mit `trackcraft.db`, den Originaldateien (`originals`), einer Kopie der Konfiguration und `manifest.json` mit Größe und SHA-256 jeder Datei. TrackCraft prüft jeden Stand nach dem Kopieren im Ziel; die letzten fünf bleiben, ältere entfernt es erst nach einem neuen Erfolg. Sicherungen sind unverschlüsselt: das Ziel vor fremdem Zugriff schützen. Ein Ziel auf demselben Rechner schützt nicht gegen dessen Verlust. Das Wiederherstellen aus der Oberfläche folgt mit einer späteren Version.
+
+Das Sicherungsziel ist in `compose.yaml` als `/backup-target` eingehängt (Zeile `/pfad/zum/sicherungsziel` anpassen), in der Konfiguration steht `target_dir = "/backup-target"`. Der Container läuft als Benutzer 10001; der Ordner muss für ihn beschreibbar sein, z. B. `sudo chown 10001:10001 /pfad/zum/sicherungsziel`.
 
 ## Update
 
 1. In `compose.yaml` bei beiden Images die neue genaue Version eintragen (nie `latest`).
 2. `docker compose pull` und `docker compose up -d`.
 
-Konfiguration und Daten bleiben; vor einer Schemamigration legt TrackCraft eine Sicherung in `data/backups` an. Neue Pflichtschlüssel nennen die Release Notes.
+Konfiguration und Daten bleiben; vor einer Schemamigration legt TrackCraft eine Vollsicherung in `data/backups` an und kopiert sie, wenn erreichbar, ins Sicherungsziel. Neue Pflichtschlüssel nennen die Release Notes.
 
 ## Rollback
 
@@ -77,7 +81,7 @@ Ein älteres Image startet nicht gegen ein neueres Schema und ändert dann nicht
 ```bash
 docker compose down
 mkdir -p nach-update && mv data/database/trackcraft.db* nach-update/
-cp data/backups/trackcraft-vor-migration-v<alt>-v<neu>.db data/database/trackcraft.db
+cp data/backups/trackcraft-vor-migration-v<alt>-v<neu>/trackcraft.db data/database/trackcraft.db
 sudo chown 10001:10001 data/database/trackcraft.db
 docker compose up -d
 ```

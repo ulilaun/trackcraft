@@ -952,7 +952,7 @@ paths:
       tags: [Sports]
       operationId: renameSubSport
       summary: Eigenen Namen oder Symbol setzen oder zurücksetzen
-      description: Ändert Name und/oder Symbol; Aktivitäten und Zuordnungen verweisen auf den Schlüssel. `name: null` setzt einen eingebauten Untertyp auf die übersetzte Bezeichnung zurück (bei eigenen `400`), `icon: null` auf das Vorgabesymbol. Mindestens eines der beiden Felder ist Pflicht.
+      description: 'Ändert Name und/oder Symbol; Aktivitäten und Zuordnungen verweisen auf den Schlüssel. `name: null` setzt einen eingebauten Untertyp auf die übersetzte Bezeichnung zurück (bei eigenen `400`), `icon: null` auf das Vorgabesymbol. Mindestens eines der beiden Felder ist Pflicht.'
       requestBody:
         required: true
         content:
@@ -1013,6 +1013,9 @@ paths:
       tags: [Backup]
       operationId: getBackupStatus
       summary: Sicherungsstatus
+      description: |
+        Letzter Prüfversuch (zuletzt beendeter Sicherungsvorgang), letzte erfolgreiche Sicherung, ausstehende
+        Änderungen, laufender Vorgang und Zustand des Sicherungsziels. Die Liste der Stände liefert `GET /backups`.
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/BackupStatusResponse'}}}}
   /backups:
@@ -1027,7 +1030,10 @@ paths:
       tags: [Backup]
       operationId: startBackup
       summary: Jetzt sichern
-      description: Gleiche Änderungs- und Zielprüfungen wie der Tageslauf. Ohne Änderung oder ohne Ziel endet der Vorgang als übersprungen, nicht als Erfolg.
+      description: |
+        Gleiche Änderungs- und Zielprüfungen wie der Tageslauf. Ohne Änderung oder ohne Ziel endet der Vorgang als übersprungen,
+        nicht als Erfolg. Der Vorgang startet als `queued` und läuft im Hintergrund; Phase und Ergebnis zeigt `GET /operations/{id}`.
+        Läuft schon ein Vorgang, antwortet das Backend mit 409 `operation_running` und `details.operation_id`.
       responses:
         '202': {description: 'Vorgang angenommen', content: {application/json: {schema: {$ref: '#/components/schemas/OperationResponse'}}}}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -2635,33 +2641,49 @@ components:
     BackupOutcome: {type: string, enum: [created, skipped_no_changes, skipped_target_unavailable, failed]}
     BackupStatus:
       type: object
-      required: [last_attempt, last_success, pending_changes, running_operation_id, target]
+      required: [last_attempt, last_success, pending_changes, running_operation_id, target, daily_time, keep, current]
       properties:
         last_attempt:
           oneOf:
             - type: 'null'
             - type: object
-              required: [time, outcome, reason]
+              required: [time, outcome, reason, trigger, operation_id]
               properties:
                 time: {$ref: '#/components/schemas/Timestamp'}
                 outcome: {$ref: '#/components/schemas/BackupOutcome'}
-                reason: {type: [string, 'null']}
+                reason: {type: [string, 'null'], description: 'Fehlertext bzw. Grund, warum das Ziel fehlt'}
+                trigger: {type: string, enum: [daily, manual]}
+                operation_id: {$ref: '#/components/schemas/Uuid'}
         last_success:
           oneOf:
             - type: 'null'
             - type: object
-              required: [time, revision_id]
+              required: [time, revision_id, backup_id, change_counter]
               properties:
                 time: {$ref: '#/components/schemas/Timestamp'}
-                revision_id: {type: string}
+                revision_id: {type: [string, 'null']}
+                backup_id: {type: [string, 'null'], description: 'Name des Stands im Sicherungsziel'}
+                change_counter: {type: [integer, 'null']}
         pending_changes: {type: boolean, description: 'Sicherungsrelevante Änderungen seit der letzten erfolgreichen Sicherung'}
         running_operation_id: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}
         target:
           type: object
-          required: [state, free_bytes]
+          required: [state, free_bytes, path, problem]
           properties:
             state: {$ref: '#/components/schemas/TargetState'}
             free_bytes: {type: [integer, 'null'], minimum: 0}
+            path: {type: string, description: 'Konfiguriertes Sicherungsziel (`[backup] target_dir`), nur zur Anzeige'}
+            problem: {type: [string, 'null']}
+        daily_time: {type: string, description: 'Uhrzeit des täglichen Versuchs (HH:MM, Anwendungszeitzone)'}
+        keep: {type: integer, minimum: 1, description: 'Aufbewahrte erfolgreiche Stände'}
+        current:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [revision_id, change_counter]
+              properties:
+                revision_id: {type: string}
+                change_counter: {type: integer, minimum: 0}
     BackupStatusResponse:
       type: object
       required: [data]
@@ -2669,17 +2691,28 @@ components:
         data: {$ref: '#/components/schemas/BackupStatus'}
     BackupEntry:
       type: object
-      required: [id, kind, created_at, revision_id, format_version, size_bytes, check_status, activity_count, segment_count]
+      description: |
+        Ein Stand im Format `trackcraft-backup` (RFC-0012). Felder aus einem unlesbaren Manifest sind `null` bzw. 0,
+        `check_status` ist dann `failed`. Die Liste prüft nur Manifest, Vorhandensein und Größe der Dateien; die Prüfsummen
+        werden beim Erstellen im Ziel und vor einem Restore geprüft.
+      required: [id, kind, trigger, created_at, revision_id, format_version, size_bytes, check_status, problem, activity_count,
+                 segment_count, original_count, change_counter, schema_version, app_version]
       properties:
-        id: {type: string, description: 'Undurchsichtige Referenz auf den Stand im Sicherungsziel (kein Dateipfad)'}
+        id: {type: string, description: 'Name des Stands im Sicherungsziel (Ordnername, kein Pfad)'}
         kind: {type: string, enum: [regular, pre_migration]}
-        created_at: {$ref: '#/components/schemas/Timestamp'}
-        revision_id: {type: string}
-        format_version: {type: integer, minimum: 1}
+        trigger: {type: [string, 'null'], enum: [daily, manual, migration, null]}
+        created_at: {oneOf: [{$ref: '#/components/schemas/Timestamp'}, {type: 'null'}]}
+        revision_id: {type: [string, 'null']}
+        format_version: {type: [integer, 'null'], minimum: 1}
         size_bytes: {type: integer, minimum: 0}
         check_status: {type: string, enum: [ok, failed, unchecked]}
+        problem: {type: [string, 'null']}
         activity_count: {type: integer, minimum: 0}
         segment_count: {type: integer, minimum: 0}
+        original_count: {type: integer, minimum: 0}
+        change_counter: {type: [integer, 'null']}
+        schema_version: {type: [integer, 'null']}
+        app_version: {type: [string, 'null']}
     BackupListResponse:
       type: object
       required: [data, meta]
@@ -2696,12 +2729,15 @@ components:
                 state: {$ref: '#/components/schemas/TargetState'}
     Operation:
       type: object
-      required: [id, kind, status, phase, outcome, error, started_at, finished_at]
+      description: Vorgänge stehen in der Datenbank (`operations`); ein beim Neustart offener Vorgang endet als `failed` mit `operation_interrupted`.
+      required: [id, kind, trigger, status, phase, outcome, error, backup_id, started_at, finished_at]
       properties:
         id: {$ref: '#/components/schemas/Uuid'}
         kind: {type: string, enum: [backup, restore]}
+        trigger: {type: string, enum: [daily, manual]}
         status: {type: string, enum: [queued, running, done, failed, rolled_back]}
-        phase: {type: [string, 'null'], description: 'Aktuelle Phase, zum Beispiel `checking`, `staging`, `copying`, `switching`, `verifying`'}
+        phase: {type: [string, 'null'], description: 'Aktuelle Phase; Sicherung: `checking`, `staging`, `copying`, `cleanup`. Restore später z. B. `switching`, `verifying`'}
+        backup_id: {type: [string, 'null'], description: 'Erstellter bzw. verwendeter Stand'}
         outcome: {type: [string, 'null'], enum: [created, skipped_no_changes, skipped_target_unavailable, restored, failed, null]}
         error:
           oneOf:

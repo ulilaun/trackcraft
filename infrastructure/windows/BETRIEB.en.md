@@ -88,9 +88,11 @@ To use your own certificate, enter its paths in `[tls]`; TrackCraft then does no
 
 ## Backup target
 
-> **No daily backup yet:** so far TrackCraft only backs up the database itself before a schema migration (`data\backups`). The daily backup to the backup target and restoring from the interface come with a later version. Until then back up yourself: stop the service, copy `C:\ProgramData\TrackCraft\data\database` and `data\activities` as administrator (e.g. with `robocopy … /E`), start the service.
+TrackCraft backs up daily from the time in `[backup] daily_time` (default 03:00) to the backup target, but only if something changed since the last backup and the target is reachable. If the PC is not running at that time, TrackCraft makes up the attempt once after starting. The **Backup** page shows status, errors and the existing backups and has a “Back up now” button.
 
-The target can already be entered; `trackcraft.exe check-config` reports whether it can be reached.
+Each backup is a folder `trackcraft-<date>-<time>-s<schema>-c<counter>` in the target with `trackcraft.db`, the original files (`originals`), a copy of the configuration and `manifest.json` with size and SHA-256 of every file. TrackCraft verifies each backup in the target after copying; the last five are kept, older ones are removed only after a new success. Backups are not encrypted: protect the target from access by others. A target on the same computer does not protect against losing that computer. Restoring from the interface comes with a later version.
+
+`trackcraft.exe check-config` reports whether the target is reachable.
 
 - USB drive or second disk: path in `[backup] target_dir`, e.g. `'E:\TrackCraft-Backup'`. If the folder exists during `setup`, the service gets write access.
 - Network share (e.g. on a NAS): as a UNC path `'\\nas\backup\trackcraft'`, never as a drive letter. The service accesses it as the computer account; a NAS without a domain does not know this account. In that case run the service under a local account that has write access to the share on the NAS with the same name and password (Services → TrackCraft → Log On), and give this account the same rights on `C:\ProgramData\TrackCraft\data` and read access on `config`.
@@ -114,7 +116,7 @@ The target can already be entered; `trackcraft.exe check-config` reports whether
 1. Download, verify and extract the new ZIP as in section 1. Keep the previous ZIP.
 2. Double-click `setup.cmd` in the new folder.
 
-`setup` detects the existing installation, stops the service, replaces the program in the existing installation folder, renews the certificate if needed, checks the configuration and starts the service again. Configuration and data are not touched; before a schema migration TrackCraft backs up the database itself to `data\backups`. New required keys are listed in the release notes.
+`setup` detects the existing installation, stops the service, replaces the program in the existing installation folder, renews the certificate if needed, checks the configuration and starts the service again. Configuration and data are not touched; before a schema migration TrackCraft makes a full backup in `data\backups` and, if reachable, copies it to the backup target. New required keys are listed in the release notes.
 
 ## Rollback
 
@@ -124,7 +126,7 @@ An older program does not start against a newer schema and then changes nothing.
 2. If it does not start because the database has already been migrated, restore the database from before the migration (as administrator):
    1. `trackcraft.exe service stop`
    2. In `C:\ProgramData\TrackCraft\data\database`, move the files `trackcraft.db`, `trackcraft.db-wal` and `trackcraft.db-shm` to another folder.
-   3. Copy `C:\ProgramData\TrackCraft\data\backups\trackcraft-vor-migration-v<old>-v<new>.db` to `data\database` as `trackcraft.db`.
+   3. Copy `C:\ProgramData\TrackCraft\data\backups\trackcraft-vor-migration-v<old>-v<new>\trackcraft.db` to `data\database`.
    4. `trackcraft.exe service start`
 
    Changes since the update are then missing; the original files in `data\activities` stay as they are.
