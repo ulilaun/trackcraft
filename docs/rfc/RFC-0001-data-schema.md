@@ -315,8 +315,8 @@ CREATE TABLE data_state (
 
 ## 4. Offene Punkte
 
-1. Veröffentlichungsablauf von `calculation_versions` und Aufräumen alter Stände. Erste Stufe seit M2: Beim Start wird ein veröffentlichter Stand zu Algorithmus und Parametern (`parameters_hash` über Hysterese und Matching-Parameter) sichergestellt. Passt er nicht, wird ein neuer Stand vollständig berechnet und ersetzt den alten (`superseded`, dessen Hysteresewerte entfallen). Fehlende Werte werden nachgetragen, der Import trägt neue Aktivitäten direkt ein. Den vollständigen Ablauf mit Segmenten legt C3 in M3 fest.
-2. Sicherungsstatus (letzter Prüfversuch, letzte erfolgreiche Sicherung, Tageszustand) und Zustände für Restore (RFC-0012).
+1. Veröffentlichungsablauf von `calculation_versions` und Aufräumen alter Stände. Erste Stufe seit M2: Beim Start wird ein veröffentlichter Stand zu Algorithmus und Parametern (`parameters_hash` über Hysterese und Matching-Parameter) sichergestellt. Passt er nicht, wird ein neuer Stand vollständig berechnet und ersetzt den alten (`superseded`, dessen Hysteresewerte entfallen). Fehlende Werte werden nachgetragen, der Import trägt neue Aktivitäten direkt ein. Erledigt (C3, M3b): Den Ablauf mit Segmenten beschreibt RFC-0007; ältere Stände werden nach der Veröffentlichung des neuen sofort gelöscht.
+2. Sicherungsstatus (letzter Prüfversuch, letzte erfolgreiche Sicherung, Tageszustand) und Zustände für Restore (RFC-0012); wird mit Issue #57 (Sicherung und Wiederherstellung, v1.0) festgelegt.
 3. ~~Ob Statistiken und Aktivitätsrekorde bei Abfrage berechnet oder gespeichert werden.~~ Entschieden (C4, 13.11.2026): bei Abfrage.
 4. Weitere Sensorwerte neben der durchschnittlichen Herzfrequenz (Verläufe, Kadenz, Leistung) sind nicht Teil von V1.
 5. Entfällt: Journalmodus, Sperrverhalten und Migrationen sind in Abschnitt 1 festgelegt (C5).

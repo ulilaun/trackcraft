@@ -246,4 +246,4 @@ def decode(b, expected_count=None):
 ## 12. Offene Punkte
 
 1. Erledigt (08.11.2026, M1a): Der Rust-Codec (`backend/src/domain/track.rs`) besteht den Testvektor, die Pflicht- und Fehlerfälle und ist für 300 Zufallsfälle bytegleich mit der Referenzimplementierung oben, die der Test direkt aus diesem Dokument ausführt.
-2. Ob die gleichmäßige Ausdünnung nach Index (`max_points`, RFC-0003) für Karte und Höhenprofil ausreicht oder ein geometrieerhaltendes Verfahren nötig wird.
+2. Entschieden (25.11.2026, C2): Die gleichmäßige Ausdünnung nach Index (`max_points`, RFC-0003; `[maps] track_max_points`, Vorgabe 2000, RFC-0021) reicht für Karte und Höhenprofil in V1. Ein geometrieerhaltendes Verfahren kommt nur, wenn sich im Betrieb sichtbare Mängel zeigen.
