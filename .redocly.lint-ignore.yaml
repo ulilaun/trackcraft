@@ -1,0 +1,8 @@
+# Bewusste Ausnahmen für den Redocly-Linter (redocly.yaml), je mit Grund.
+docs/api/openapi.yaml:
+  # Das Feld steht in den Eigenschaften der Hülle; `then` verlangt es nur bei action=replace.
+  no-required-schema-properties-undefined:
+    - '#/components/schemas/SessionDecision/then/required/0'
+  # 403 des Browserschutzes gilt für jede Operation und steht deshalb nur in info.description (RFC-0011).
+  no-unused-components:
+    - '#/components/responses/Forbidden'

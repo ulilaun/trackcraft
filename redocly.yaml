@@ -1,0 +1,11 @@
+# Prüfregeln für den Schnittstellenvertrag docs/api/openapi.yaml (RFC-0003, Issue #5).
+# CI: npx @redocly/cli lint (Version im Workflow fest). Warnungen gelten als Fehler (recommended-strict).
+extends:
+  - recommended-strict
+
+rules:
+  # Kein App-Login (RFC-0003): Operationen haben bewusst kein security-Objekt.
+  security-defined: off
+  # Lesende Operationen ohne Parameter haben keinen fachlichen 4xx-Fall. 403/415 des Browserschutzes stehen
+  # gesammelt in info.description statt an jeder Operation.
+  operation-4xx-response: off

@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+pub mod contract;
+
 use std::path::{Path, PathBuf};
 
 use trackcraft::config::{self, Validated};

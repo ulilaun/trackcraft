@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: TrackCraft API
   version: 1.0.0-draft
+  license:
+    name: AGPL-3.0-or-later
+    identifier: AGPL-3.0-or-later
   summary: Lokale REST-Schnittstelle der TrackCraft-Plattform (V1)
   description: |
     Vertrag der Schnittstelle zwischen Frontend und Backend. Fachregeln stehen in den RFCs,
@@ -19,11 +22,17 @@ servers:
   - url: /api/v1
 tags:
   - name: System
+    description: Zustand, Version, Systeminfo und Konfiguration für die Oberfläche
   - name: Activities
+    description: Aktivitätenliste, Detail, Ändern, Löschen, Trackdaten (RFC-0006, RFC-0017)
   - name: Import
+    description: Hochladen, Vorschau und Entscheidung je Session (RFC-0008)
   - name: Segments
+    description: Segmente und Strecken, Bestenlisten, Versuche (RFC-0002, RFC-0016)
   - name: Statistics
+    description: Summen, Rekorde und Dashboard (RFC-0006 „Statistik“, RFC-0018)
   - name: Seasons
+    description: Frei benannte Zeiträume für Bestenliste und Statistik
   - name: Profile
     description: Profil des einzigen Benutzers; die Datenbank ist führend
   - name: Load
@@ -35,9 +44,11 @@ tags:
   - name: Garmin
     description: Abruf aus Garmin Connect über die persönliche Garmin-API (RFC-0008 Abschnitt 10)
   - name: Backup
+    description: Sicherung, Sicherungsstatus und Wiederherstellung (RFC-0013)
   - name: Export
     description: Gesamtexport und Downloads je Aktivität (RFC-0019)
   - name: Jobs
+    description: Hintergrundaufträge und lange Operationen
 paths:
   /health:
     get:
@@ -346,6 +357,7 @@ paths:
       - {name: scope, in: query, required: false, schema: {type: string, enum: [this, following], default: this}, description: 'following = auch die offenen Einheiten derselben Serie nach diesem Tag'}
       responses:
         '204': {description: 'Gelöscht'}
+        '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
   /plan/units/{id}/activity:
     parameters:
@@ -1410,6 +1422,8 @@ components:
             session_index: 0
             processing_status: done
             segment_success_count: 3
+            load: 182.4
+            load_method: samples
             created_at: '2026-10-22T19:02:11.412Z'
             updated_at: '2026-10-22T19:02:11.412Z'
             revision: 1
@@ -1594,7 +1608,7 @@ components:
             units: {type: array, items: {$ref: '#/components/schemas/PlannedUnit'}}
             goals: {type: array, items: {$ref: '#/components/schemas/PlanGoal'}, description: 'Alle Ziele nach Datum'}
             zones_configured: {type: boolean}
-            assistant: {oneOf: [{$ref: '#/components/schemas/SuggestionInput'}, {type: 'null'}], description: 'Zuletzt übernommene Eingaben der Planungshilfe'}
+            assistant: {oneOf: [{$ref: '#/components/schemas/SuggestionSettings'}, {type: 'null'}], description: 'Zuletzt übernommene Eingaben der Planungshilfe'}
     PlanTemplateInput:
       type: object
       additionalProperties: false
@@ -1639,6 +1653,17 @@ components:
         recovery_weeks: {type: boolean, description: 'Jede vierte Woche Entlastung (3:1)'}
         intensity: {type: string, enum: [polarized, base]}
         language: {type: string, enum: [de, en], default: de, description: 'Sprache der Titel vorgeschlagener Einheiten (Oberfläche); wird nicht gemerkt'}
+    SuggestionSettings:
+      type: object
+      description: Gemerkte Eingaben der Planungshilfe (SuggestionInput ohne `goal_id` und `language`)
+      additionalProperties: false
+      required: [sport_class, minutes, max_gain, recovery_weeks, intensity]
+      properties:
+        sport_class: {$ref: '#/components/schemas/SuggestionInput/properties/sport_class'}
+        minutes: {$ref: '#/components/schemas/SuggestionInput/properties/minutes'}
+        max_gain: {$ref: '#/components/schemas/SuggestionInput/properties/max_gain'}
+        recovery_weeks: {$ref: '#/components/schemas/SuggestionInput/properties/recovery_weeks'}
+        intensity: {$ref: '#/components/schemas/SuggestionInput/properties/intensity'}
     SuggestionResponse:
       type: object
       required: [data]
@@ -1812,6 +1837,10 @@ components:
               record_kind: improvement
               improvement_ms: 4300
               coverage_ratio: 0.98
+              activity_sport_class: cycling
+              activity_sub_sport: road
+              avg_heart_rate_bpm: 148
+              max_heart_rate_bpm: 167
             - id: 0198c1f9-0000-7000-8000-00000000a002
               segment_id: 0198c1f2-aaaa-7c1e-9d44-2f6a1b8e5a11
               segment_name: Puerta de la Cabra
@@ -1827,6 +1856,10 @@ components:
               record_kind: null
               improvement_ms: null
               coverage_ratio: 0.96
+              activity_sport_class: cycling
+              activity_sub_sport: road
+              avg_heart_rate_bpm: null
+              max_heart_rate_bpm: null
           meta:
             total: 2
             limit: 50

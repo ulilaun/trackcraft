@@ -8,6 +8,8 @@ Unit Domain/Geo/Services/Matching, Integration SQLite/Dateien/API/Jobs, E2E FIT/
 
 Backend fmt/clippy/test, Frontend lint/Vitest/Testing Library/build. Coverage ersetzt keine Golden Tests.
 
+API-Vertrag (RFC-0003 Abschnitt 13): Redocly-Linter auf `docs/api/openapi.yaml` in der CI; jede Antwort der API-Tests im Backend wird gegen das Antwortschema der Operation geprüft (`backend/tests/common/contract.rs`), die eingebetteten Beispiele gegen ihr Schema (`backend/tests/contract_tests.rs`).
+
 ## Coverage
 
 Festgelegt am 08.11.2026.

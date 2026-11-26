@@ -9,9 +9,7 @@ use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
 use chrono::NaiveDate;
-use http_body_util::BodyExt;
 use serde_json::{Value, json};
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState};
 use trackcraft::config::{self, Validated};
 use trackcraft::db::Db;
@@ -44,10 +42,7 @@ async fn fixture() -> Fixture {
 }
 
 async fn send(app: &Router, req: Request<Body>) -> (StatusCode, Value) {
-    let res = app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    common::contract::call_json(app, req).await
 }
 
 fn code(v: &Value) -> &str {
