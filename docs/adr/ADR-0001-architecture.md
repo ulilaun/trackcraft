@@ -20,6 +20,6 @@ Equipment und Wartung sind nicht Teil von V1.0, sondern Post-MVP (v1.1): [RFC-00
 
 TOML einzige Konfigurationsquelle, Standard `%ProgramData%\TrackCraft\config\trackcraft.toml` (Windows) bzw. `/config/trackcraft.toml` (Container), readonly/strict/restart; nur `TRACKCRAFT_CONFIG` Pfadwahl. Globale UI erst später. API `/api/v1`, vollständige OpenAPI noch ausarbeiten.
 
-Eine Vollsicherung in konfiguriertes Verzeichnis (USB, zweite Platte oder Netzwerkfreigabe); Backup/Restore mit Benutzeridentität/aktuellen TOML-Profilfeldern, sicheren Datei-/DB-Operationen und Revisionen. Keine Exportfunktion/Offline-Trainingskopie/Streak. Trainingsbelastung/Fitness sehr viel später.
+Eine Vollsicherung in konfiguriertes Verzeichnis (USB, zweite Platte oder Netzwerkfreigabe); Backup/Restore mit Benutzeridentität/aktuellen TOML-Profilfeldern, sicheren Datei-/DB-Operationen und Revisionen. Export nach RFC-0019 (Gesamt-ZIP, Original/GPX je Aktivität, CSV der Liste, seit #58); keine Offline-Trainingskopie/Streak. Trainingsbelastung/Fitness sehr viel später.
 
 Technik-/Fachrestpunkte nicht durch ADR implizit entschieden; keine Behauptung implementierter Software.

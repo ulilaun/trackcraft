@@ -115,6 +115,7 @@ describe("Einstellungen als Master-Detail", () => {
       "/einstellungen/sportarten",
       "/einstellungen/plan-vorlagen",
       "/einstellungen/orte",
+      "/einstellungen/export",
       "/einstellungen/darstellung",
     ]);
     expect(links[0]).toHaveAttribute("aria-current", "page");

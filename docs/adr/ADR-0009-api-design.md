@@ -8,6 +8,6 @@ Antwortprinzip: `data` für das Ergebnis, `meta` nur bei Listen (Offset-Paging m
 
 Fehlerform: `{"error":{"code":"segment_not_found","message":"Segment not found"}}`.
 
-Sicherung/Restore und Import sind explizite Operationen, keine versteckten Dateikopierfunktionen. Vorschau/Bestätigung müssen den geprüften Stand binden. Kein Export oder Dateidownload in V1; reguläre Trackdaten zur UI bleiben zulässig. Kein App-Login.
+Sicherung/Restore und Import sind explizite Operationen, keine versteckten Dateikopierfunktionen. Vorschau/Bestätigung müssen den geprüften Stand binden. Export und Dateidownload nur über die lesenden Endpunkte aus RFC-0019 (`/export`, `/activities/{id}/original`, `/activities/{id}/gpx`); reguläre Trackdaten zur UI bleiben zulässig. Kein App-Login.
 
 Die verbindliche Endpunktübersicht ist der Vertrag, die Gruppenübersicht steht in RFC-0003. Sie ersetzt alte unversionierte Kurzlisten im Projektplan und ADR-0001.

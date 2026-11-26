@@ -11,6 +11,7 @@ pub mod config;
 pub mod db;
 pub mod demo;
 pub mod domain;
+pub mod export;
 pub mod garmin;
 pub mod geo;
 pub mod import;

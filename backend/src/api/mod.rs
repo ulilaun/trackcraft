@@ -3,6 +3,7 @@
 pub mod activities;
 pub mod backup;
 pub mod error;
+pub mod export;
 pub mod garmin;
 pub mod guard;
 pub mod import;
@@ -77,6 +78,8 @@ pub fn router(state: AppState) -> Router {
         .route("/activities/{id}/deletion-preview", get(activities::deletion_preview))
         .route("/activities/{id}/track", get(activities::track))
         .route("/activities/{id}/efforts", get(activities::efforts))
+        .route("/activities/{id}/original", get(export::original))
+        .route("/activities/{id}/gpx", get(export::gpx))
         .route("/activities/{id}/location-suggestion", get(places::suggestion))
         .route("/activities/{id}/plan", get(plan::for_activity))
         .route("/plan", get(plan::list))
@@ -117,6 +120,7 @@ pub fn router(state: AppState) -> Router {
         .route("/jobs/{id}", get(segments::get_job))
         .route("/jobs/{id}/retry", post(segments::retry_job))
         .route("/import/jobs", get(import::list))
+        .route("/export", get(export::full))
         .route("/backups", get(backup::list).post(backup::start))
         .route("/backups/status", get(backup::status))
         .route("/backups/settings", patch(backup::update_settings))

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import {
   apiGet,
   type Activity,
@@ -36,6 +36,7 @@ import {
   type SortField,
 } from "./listModel";
 import { SportFilterPill } from "../../components/SportFilterPill";
+import { csvFileName, fetchAll, saveFile, toCsv } from "./csvExport";
 
 /** Zeitraum unter der Kennzahl „Aktivitäten“. */
 function periodText(z: ListPeriod, season: { start_date: string; end_date: string } | null): string {
@@ -135,6 +136,22 @@ export function ActivityListPage() {
     queryFn: ({ pageParam }) => apiGet<ActivityListResponse>(`/activities?${apiQuery(filter, today, pageParam, undefined, pickedSeason)}`),
     getNextPageParam: (last) => (last.meta.offset + last.data.length < last.meta.total ? last.meta.offset + last.data.length : undefined),
   });
+
+  // CSV der gefilterten Liste über alle Seiten (RFC-0019)
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvError, setCsvError] = useState<unknown>(null);
+  const downloadCsv = async () => {
+    setCsvBusy(true);
+    setCsvError(null);
+    try {
+      const all = await fetchAll(filter, today, pickedSeason);
+      saveFile(csvFileName(tz), toCsv(all, tz, catalog), "text/csv;charset=utf-8");
+    } catch (e) {
+      setCsvError(e);
+    } finally {
+      setCsvBusy(false);
+    }
+  };
 
   // Streckenfilter nur über die Streckenseite („Alle Fahrten“), hier als entfernbarer Filter (Uli 12.11.2026)
   const route = useQuery({
@@ -246,6 +263,16 @@ export function ActivityListPage() {
               aria-label={t("list.search")}
               className="min-w-[240px] max-w-[420px] flex-1 rounded-lg border border-line bg-card-2 px-3 py-1.5 text-sm"
             />
+            <button
+              type="button"
+              onClick={downloadCsv}
+              disabled={csvBusy || !list.data || rows.length === 0}
+              title={t("list.csvTitle")}
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-card-2 px-3 py-1.5 text-sm hover:border-accent disabled:opacity-40 disabled:hover:border-line"
+            >
+              <Download size={14} />
+              {csvBusy ? t("list.csvBusy") : t("list.csv")}
+            </button>
             {filter.route && (
               <span className="flex items-center gap-1.5 rounded-full bg-accent-strong py-1.5 pr-1.5 pl-3 text-sm text-white">
                 <Link to={segmentPath("route", filter.route)} className="max-w-[260px] truncate hover:underline">
@@ -289,6 +316,7 @@ export function ActivityListPage() {
           </div>
         </div>
       </Card>
+      {csvError != null && <Problem error={csvError} />}
 
       <Card className="overflow-hidden p-0">
         {list.error || config.error ? (

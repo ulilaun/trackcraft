@@ -6,10 +6,10 @@ Status: Neufassung, Piggy 011 (Entwurf zur Freigabe). Der exakte Vertrag (Pfade,
 
 - REST unter `/api/v1`, JSON für strukturierte Daten. Binär nur beim Datei-Upload (`multipart/form-data`, ein Datei-Part `file`).
 - Kein App-Login, keine Session, keine Rollen (ADR-0012). Es gibt daher kein 401. 403 steht nur für die Prüfung von Host und Herkunft (RFC-0011).
-- Kein Export, kein Download von Originalen oder Sicherungen, keine Konvertierung (ADR-0009). Trackdaten für Karte und Diagramm sind reguläre Leseoperationen.
+- Export nur nach RFC-0019: `GET /export` (Gesamt-ZIP), `GET /activities/{id}/original`, `GET /activities/{id}/gpx`. Kein Download von Sicherungen. Trackdaten für Karte und Diagramm sind reguläre Leseoperationen.
 - Der Benutzer ist fest. Aktivitäten und Segmente tragen ihn implizit, der Client wählt keinen Benutzer. Das Profil kommt nur aus der TOML und wird über `GET /config` gelesen, es gibt keine Schreib-API dafür.
 - Equipment und Wartung sind nicht Teil von V1.0 (RFC-0010).
-- Es gibt keinen Export-, Login- und Profilendpunkt, und keine Pfade für ausgeschlossene Funktionen.
+- Es gibt keinen Loginendpunkt, und keine Pfade für ausgeschlossene Funktionen.
 
 ## 2. Antwortform
 

@@ -58,8 +58,9 @@ All screenshots show made-up sample data on Mallorca ([scripts/demo](scripts/dem
 - Own HTTPS with a home-network certificate authority created by the setup.
 - Works on desktop, tablet and phone, light and dark theme.
 - One SQLite database plus your unchanged original files; every figure can be recomputed from the originals.
+- **Export:** all data as ZIP (originals, GPX per activity, data as JSON), original or GPX per activity, and the filtered activity list as CSV.
 
-**Not yet included** (planned for v1.0, see [milestone](../../milestones)): export of all data. Ideas for later are described as [issues](../../issues) (in German).
+Ideas for later are described as [issues](../../issues) (in German).
 
 ## Security: home network only
 
@@ -100,7 +101,7 @@ For your own analysis, yes: segments, leaderboards, statistics, form and plannin
 Via Garmin Connect (personal API key, fetches your whole history) or as FIT and GPX files by drag and drop, for example from another platform's data export (unpack compressed files first). TrackCraft detects duplicates itself.
 
 **How do I back up my data?**
-Everything lives in one data folder: a SQLite database and your unchanged original files. TrackCraft backs up both daily to a backup target of your choice (USB drive, second disk or network share), only when something changed, and keeps the last five backups (time and number adjustable); additionally before every schema migration. Restore works on the Backup page; export comes with v1.0.
+Everything lives in one data folder: a SQLite database and your unchanged original files. TrackCraft backs up both daily to a backup target of your choice (USB drive, second disk or network share), only when something changed, and keeps the last five backups (time and number adjustable); additionally before every schema migration. Restore works on the Backup page. All data as ZIP is under Settings → Export.
 
 **What leaves my network?**
 Only map tile requests (browser → OpenStreetMap or your provider), the optional place suggestion (server → Nominatim, rounded start coordinate, can be switched off) and, if configured, the Garmin Connect download. No telemetry, no accounts, no cloud.
