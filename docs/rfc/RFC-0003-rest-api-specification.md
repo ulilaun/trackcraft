@@ -144,12 +144,19 @@ Die verbindliche Liste mit Parametern und DTOs steht im Vertrag, hier die Gruppe
 
 ## 13. Prüfung des Vertrags
 
-`docs/api/openapi.yaml` wurde syntaktisch geparst (ohne doppelte Schlüssel), alle Referenzen aufgelöst, Operations-IDs und Pfadparameter geprüft, und die eingebetteten Beispiele wurden gegen ihre Schemas validiert, ergänzt um Negativtests. Der offizielle OpenAPI-Validator war in der Arbeitsumgebung nicht installierbar und ist beim Aufbau des Repositorys nachzuholen (RFC-0014). Das Backend wird gegen den Vertrag getestet (Antworten gegen die Schemas).
+Der Vertrag wird bei jedem Pull Request auf drei Wegen geprüft (Issue #5, RFC-0014):
+
+- **Linter:** Job „API-Vertrag“ in der CI, `npx @redocly/cli lint docs/api/openapi.yaml` mit fester Version. Regeln `recommended-strict` in `redocly.yaml` (Warnungen zählen als Fehler); abgeschaltet sind nur `security-defined` (kein App-Login) und `operation-4xx-response` (lesende Operationen ohne fachlichen 4xx-Fall). Einzelne bewusste Ausnahmen stehen mit Grund in `.redocly.lint-ignore.yaml`.
+- **Vertragstests:** Jede Antwort, die ein API-Test im Backend vom Router bekommt, läuft durch `backend/tests/common/contract.rs`: Operation aus Methode und Pfadvorlage (feste Segmente vor Parametern), dokumentierter Statuscode, Medientyp und JSON-Body gegen das Antwortschema (JSON Schema 2020-12 mit Formatprüfung). 403 und 415 des Browserschutzes gelten für jede Operation (`components/responses`), unbekannte Pfade dürfen nur mit 404/405 in der Fehlerhülle antworten. Eine Abweichung lässt den Test scheitern.
+- **Beispiele:** `backend/tests/contract_tests.rs` prüft alle eingebetteten Beispiele (`examples` an Schemas) gegen ihr Schema und mit Negativfällen, dass die Vertragsprüfung Abweichungen erkennt.
+- **Vollständigkeit:** Derselbe Test fragt jede Operation des Vertrags einmal an; landet sie im Router-Rückfall (`not_found`, `method_not_allowed`), fehlt sie im Backend. Bekannte Lücken stehen mit Issue in `NOT_IMPLEMENTED` (derzeit `GET /system`, #69). Mit `TRACKCRAFT_CONTRACT_LOG=<datei>` schreibt die Prüfung jede geprüfte Operation mit Status in die Datei (Abdeckung der API-Tests).
+
+Beispiele gibt es bewusst nur für die zentralen DTOs; neue Beispiele werden automatisch mitgeprüft.
 
 ## 14. Offene Punkte
 
-1. Offizielle Validierung des Vertrags und Vertragstests im Backend (RFC-0014).
-2. Ob der Vertrag zusätzlich Beispielantworten für alle Endpunkte erhält (bisher für die zentralen DTOs).
+1. Erledigt (#5): Linter in der CI und Vertragstests im Backend, siehe Abschnitt 13.
+2. Erledigt (#5): Beispielantworten nur für die zentralen DTOs, alle Beispiele werden gegen ihr Schema geprüft.
 3. Entfällt (M1b): Die geprüften Sessions stehen in `import_jobs.sessions_json`, die Datei bleibt bis zum Abschluss in `staging/<vorgang-id>`. Der `state_token` ist ein Hash über Vorgang, geprüfte Sessions, Sperren, vorhandene Aktivitäten und die IDs der Duplikatkandidaten. Beim Bestätigen wird die Datei erneut gelesen; weicht das Ergebnis ab (z. B. nach geänderter Konfiguration), antwortet das Backend mit `import_state_changed`. Die Bestätigung antwortet erst nach abgeschlossener Speicherung, `status` ist dann schon `done` oder `failed`; das Speichern läuft in einem eigenen Task und wird auch bei abgebrochener Verbindung zu Ende geführt.
 4. Erledigt (#57): Tabelle `operations` (RFC-0001), im Vertrag `Operation` unter `GET /operations/{id}`; `POST /backups` legt den Vorgang als `queued` an, ein zweiter gleichzeitiger antwortet 409 `operation_running`.
 5. Rate- und Größenlimits der Proxys unter Docker (Reverse Proxy, Nginx) und des Backends unter Windows passend zu den Upload-Grenzen (RFC-0005, RFC-0008).

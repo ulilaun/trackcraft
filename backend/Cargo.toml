@@ -45,6 +45,8 @@ windows-sys = { version = "0.61.2", features = ["Win32_System_EventLog", "Win32_
 
 [dev-dependencies]
 embedded-io-adapters = { version = "0.7", features = ["std"] }
+jsonschema = { version = "0.63.1", default-features = false }
+serde_yaml_ng = "0.10.0"
 tempfile = { version = "3.27.0", default-features = false }
 tokio = { version = "1.54.1", features = ["full"] }
 tower = { version = "0.5.3", features = ["util"] }

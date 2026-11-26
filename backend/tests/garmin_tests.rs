@@ -11,12 +11,10 @@ use axum::body::Body;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use axum::response::{IntoResponse, Response};
-use http_body_util::BodyExt;
 use rustyfit::profile::mesgdef;
 use rustyfit::profile::typedef::{self, DateTime};
 use rustyfit::proto::{FIT, Message};
 use serde_json::{Value, json};
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState};
 use trackcraft::config::{self, Validated};
 use trackcraft::db::Db;
@@ -178,10 +176,7 @@ async fn call(f: &Fixture, method: Method, path: &str, body: Option<Value>) -> (
         Some(b) => req.header("content-type", "application/json").body(Body::from(b.to_string())).unwrap(),
         None => req.body(Body::empty()).unwrap(),
     };
-    let res = f.app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    common::contract::call_json(&f.app, req).await
 }
 
 async fn run(f: &Fixture) -> garmin::Progress {

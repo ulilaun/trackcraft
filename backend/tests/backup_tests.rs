@@ -8,9 +8,7 @@ use std::sync::Arc;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
-use http_body_util::BodyExt;
 use serde_json::{Value, json};
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState};
 use trackcraft::backup::{Outcome, Runner, Trigger, format};
 use trackcraft::config::Validated;
@@ -47,10 +45,7 @@ async fn send(f: &Fixture, method: Method, path: &str, body: Option<Value>) -> (
         req = req.header("content-type", "application/json");
     }
     let req = req.body(body.map(|b| Body::from(b.to_string())).unwrap_or_else(Body::empty)).unwrap();
-    let res = f.app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    common::contract::call_json(&f.app, req).await
 }
 
 fn gpx(start: i64, n: usize) -> Vec<u8> {
@@ -87,9 +82,8 @@ async fn import(f: &Fixture, bytes: &[u8]) -> String {
         .header("content-type", format!("multipart/form-data; boundary={BOUNDARY}"))
         .body(Body::from(body))
         .unwrap();
-    let res = f.app.clone().oneshot(req).await.unwrap();
-    assert_eq!(res.status(), StatusCode::CREATED);
-    let v: Value = serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    let (status, v) = common::contract::call_json(&f.app, req).await;
+    assert_eq!(status, StatusCode::CREATED);
     let id = v["data"]["id"].as_str().unwrap().to_string();
     let decision = json!({ "state_token": v["data"]["state_token"], "sessions": [{ "session_index": 0, "action": "import" }] });
     let (s, v) = send(f, Method::POST, &format!("/api/v1/import/jobs/{id}/confirm"), Some(decision)).await;

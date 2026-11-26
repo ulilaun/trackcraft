@@ -7,9 +7,7 @@ use std::sync::Arc;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
-use http_body_util::BodyExt;
 use serde_json::{Value, json};
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState};
 use trackcraft::config;
 use trackcraft::startup;
@@ -39,10 +37,7 @@ async fn send(f: &Fixture, method: Method, body: Option<Value>) -> (StatusCode, 
         req = req.header("content-type", "application/json");
     }
     let req = req.body(body.map(|b| Body::from(b.to_string())).unwrap_or_else(Body::empty)).unwrap();
-    let res = f.app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    common::contract::call_json(&f.app, req).await
 }
 
 async fn counter(f: &Fixture) -> i64 {
@@ -77,8 +72,7 @@ async fn read_and_update_profile() {
 
     // /config zeigt den Spitznamen aus der Datenbank
     let req = Request::builder().uri("/api/v1/config").header("host", HOST).body(Body::empty()).unwrap();
-    let bytes = f.app.clone().oneshot(req).await.unwrap().into_body().collect().await.unwrap().to_bytes();
-    let c: Value = serde_json::from_slice(&bytes).unwrap();
+    let (_, c) = common::contract::call_json(&f.app, req).await;
     assert_eq!(c["data"]["user"]["display_name"], "Uli");
     f.db.close().await;
 }

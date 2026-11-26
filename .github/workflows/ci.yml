@@ -65,6 +65,17 @@ jobs:
           name: backend-lcov
           path: backend/lcov.info
 
+  api-contract:
+    name: API-Vertrag (Redocly)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Regeln in redocly.yaml, bewusste Ausnahmen in .redocly.lint-ignore.yaml (Issue #5).
+      - run: npx --yes @redocly/cli@2.76.0 lint docs/api/openapi.yaml
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

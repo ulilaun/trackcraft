@@ -29,7 +29,10 @@ Dann gilt:
   ```powershell
   cd backend; cargo fmt --check; cargo clippy --all-targets -- -D warnings; cargo test
   cd frontend; npm ci; npm run lint; npm test; npm run build
+  npx --yes @redocly/cli@2.76.0 lint docs/api/openapi.yaml
   ```
+
+- **API-Vertrag:** Die API-Tests im Backend prüfen jede Antwort gegen `docs/api/openapi.yaml` (`backend/tests/common/contract.rs`). Neue API-Tests schicken ihre Anfragen über `common::contract::call` bzw. `call_json`, damit sie mitgeprüft werden.
 
 - Keine echten Trainingsdaten, Hostnamen, Pfade oder Namen ins Repository; Beispiele mit `*.home.arpa`, `localhost` und den erfundenen Mallorca-Daten aus [scripts/demo](scripts/demo/README.md).
 - Mit dem Pull Request stimmst du zu, dass dein Beitrag unter der [AGPL-3.0-or-later](LICENSE) steht.

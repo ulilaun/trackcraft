@@ -9,9 +9,7 @@ use std::sync::Arc;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode, header};
-use http_body_util::BodyExt;
 use serde_json::{Value, json};
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState};
 use trackcraft::config::{self, Validated};
 use trackcraft::db::Db;
@@ -49,19 +47,16 @@ struct Raw {
 }
 
 async fn raw(f: &Fixture, path: &str) -> Raw {
-    let res = f.app.clone().oneshot(Request::builder().uri(path).header("host", HOST).body(Body::empty()).unwrap()).await.unwrap();
-    let h = |n: header::HeaderName| res.headers().get(n).map(|v| v.to_str().unwrap().to_string()).unwrap_or_default();
+    let req = Request::builder().uri(path).header("host", HOST).body(Body::empty()).unwrap();
+    let (status, headers, bytes) = common::contract::call(&f.app, req).await;
+    let h = |n: header::HeaderName| headers.get(n).map(|v| v.to_str().unwrap().to_string()).unwrap_or_default();
     let (content_type, disposition) = (h(header::CONTENT_TYPE), h(header::CONTENT_DISPOSITION));
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes().to_vec();
+    let bytes = bytes.to_vec();
     Raw { status, content_type, disposition, bytes }
 }
 
 async fn send(app: &Router, req: Request<Body>) -> (StatusCode, Value) {
-    let res = app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    common::contract::call_json(app, req).await
 }
 
 async fn with_body(f: &Fixture, method: Method, path: &str, body: Value) -> (StatusCode, Value) {

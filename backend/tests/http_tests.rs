@@ -7,8 +7,6 @@ use std::sync::Arc;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
-use http_body_util::BodyExt;
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState, SECURITY_HEADERS};
 use trackcraft::config;
 use trackcraft::startup;
@@ -45,10 +43,7 @@ async fn fixture(with_static: bool) -> Fixture {
 }
 
 async fn send(app: &Router, req: Request<Body>) -> (StatusCode, axum::http::HeaderMap, serde_json::Value) {
-    let res = app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let headers = res.headers().clone();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    let (status, headers, bytes) = common::contract::call(app, req).await;
     let json = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::String(String::from_utf8_lossy(&bytes).into()));
     (status, headers, json)
 }

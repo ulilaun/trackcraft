@@ -7,9 +7,7 @@ use std::sync::Arc;
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
-use http_body_util::BodyExt;
 use serde_json::{Value, json};
-use tower::ServiceExt;
 use trackcraft::api::{self, AppState};
 use trackcraft::config::{self, Validated};
 use trackcraft::db::Db;
@@ -43,10 +41,7 @@ async fn send(f: &Fixture, method: Method, path: &str, body: Option<Value>) -> (
         req = req.header("content-type", "application/json");
     }
     let req = req.body(body.map(|b| Body::from(b.to_string())).unwrap_or_else(Body::empty)).unwrap();
-    let res = f.app.clone().oneshot(req).await.unwrap();
-    let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+    common::contract::call_json(&f.app, req).await
 }
 
 async fn get(f: &Fixture, path: &str) -> Value {
@@ -95,9 +90,8 @@ async fn import(f: &Fixture, bytes: &[u8]) -> String {
         .header("content-type", format!("multipart/form-data; boundary={BOUNDARY}"))
         .body(Body::from(body))
         .unwrap();
-    let res = f.app.clone().oneshot(req).await.unwrap();
-    assert_eq!(res.status(), StatusCode::CREATED);
-    let v: Value = serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    let (status, v) = common::contract::call_json(&f.app, req).await;
+    assert_eq!(status, StatusCode::CREATED);
     let id = v["data"]["id"].as_str().unwrap().to_string();
     let decision = json!({ "state_token": v["data"]["state_token"], "sessions": [{ "session_index": 0, "action": "import" }] });
     let (s, v) = send(f, Method::POST, &format!("/api/v1/import/jobs/{id}/confirm"), Some(decision)).await;
@@ -179,6 +173,12 @@ async fn units_goal_and_plan_forecast() {
     assert_eq!((s, v["data"]["name"].as_str()), (StatusCode::CREATED, Some("Tour")), "{v}");
     let goal_id = v["data"]["id"].as_str().unwrap().to_string();
     assert_eq!((v["data"]["distance_m"].as_f64(), v["data"]["target_time_s"].clone()), (Some(120000.0), Value::Null));
+    let (s, v) = send(&f, Method::PATCH, &format!("/api/v1/plan/goals/{goal_id}"), Some(json!({ "target_time_s": 18000 }))).await;
+    assert_eq!((s, v["data"]["target_time_s"].as_i64(), v["data"]["name"].as_str()), (StatusCode::OK, Some(18000), Some("Tour")), "{v}");
+    let (s, v) = send(&f, Method::GET, &format!("/api/v1/plan/goals/{goal_id}"), None).await;
+    assert_eq!((s, v["data"]["target_time_s"].as_i64()), (StatusCode::OK, Some(18000)), "{v}");
+    let (s, v) = send(&f, Method::GET, "/api/v1/plan/goals", None).await;
+    assert_eq!((s, v["data"].as_array().map(Vec::len)), (StatusCode::OK, Some(1)), "{v}");
     let skipped = new_unit(&f, unit_body(&day(3), "Fällt aus")).await;
     let (s, _) = send(&f, Method::PATCH, &format!("/api/v1/plan/units/{skipped}"), Some(json!({ "status": "skipped" }))).await;
     assert_eq!(s, StatusCode::OK);
