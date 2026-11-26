@@ -8,6 +8,7 @@ import { finishedRun, garminState, intervalOptions, pollInterval, unsettledCount
 
 const base = (p: Partial<GarminStatus> = {}): GarminStatus => ({
   configured: true,
+  key_unreadable: false,
   key_set_at: "2026-11-14T18:00:00.000Z",
   enabled: false,
   start_date: null,
@@ -64,7 +65,7 @@ beforeEach(() => {
           return json(400, { error: { code: "garmin_key_invalid", message: "rejected" } });
         }
         status = { ...status, ...body, configured: body.api_key === undefined ? status.configured : body.api_key !== null };
-        if (body.api_key) status.key_set_at = "2026-11-14T19:00:00.000Z";
+        if (body.api_key) status = { ...status, key_set_at: "2026-11-14T19:00:00.000Z", key_unreadable: false };
         return json(200, { data: status });
       }
       if (url.endsWith("/garmin/sync")) {
@@ -92,6 +93,16 @@ function setup() {
 }
 
 describe("Einstellungen → Garmin Connect", () => {
+  it("meldet einen unlesbaren Schlüssel und lässt ihn neu eintragen", async () => {
+    status = base({ configured: false, key_unreadable: true });
+    setup();
+    expect(await screen.findByText(/Der gespeicherte Schlüssel lässt sich nicht mehr lesen/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Persönlicher API-Schlüssel"), { target: { value: "richtiger-schluessel" } });
+    fireEvent.click(screen.getByRole("button", { name: "Prüfen und speichern" }));
+    expect(await screen.findByText("Verbunden · Schlüssel seit 14.11.2026")).toBeInTheDocument();
+    expect(screen.queryByText(/Der gespeicherte Schlüssel lässt sich nicht mehr lesen/)).not.toBeInTheDocument();
+  });
+
   it("prüft den Schlüssel, zeigt Ablehnung und startet nichts von selbst", async () => {
     setup();
     expect(await screen.findByText("Nicht verbunden")).toBeInTheDocument();

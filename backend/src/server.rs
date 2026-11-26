@@ -32,6 +32,8 @@ where
         Some(t) => Some(tls::server_config(&t.cert_file, &t.key_file)?),
         None => None,
     };
+    // Geheimnisspeicher (#10): fehlt die Schlüsseldatei und lässt sie sich nicht anlegen, startet der Server trotzdem.
+    let secrets = Arc::new(crate::secrets::Secrets::open(&crate::secrets::key_path(&cfg)));
 
     let stop = Arc::new(Notify::new());
     let stopped = Arc::new(AtomicBool::new(false));
@@ -45,7 +47,7 @@ where
 
     let mut on_listening = Some(on_listening);
     loop {
-        let restart = serve_once(&cfg, tls.clone(), &stop, &stopped, &mut on_listening).await?;
+        let restart = serve_once(&cfg, tls.clone(), &secrets, &stop, &stopped, &mut on_listening).await?;
         if !restart || stopped.load(Ordering::SeqCst) {
             break;
         }
@@ -59,6 +61,7 @@ where
 async fn serve_once<L>(
     cfg: &Arc<Validated>,
     tls: Option<Arc<rustls::ServerConfig>>,
+    secrets: &Arc<crate::secrets::Secrets>,
     stop: &Arc<Notify>,
     stopped: &Arc<AtomicBool>,
     on_listening: &mut Option<L>,
@@ -68,9 +71,16 @@ where
 {
     let started = startup::prepare(cfg).await?;
     let db = started.db.clone();
+    seal_secrets(&db, secrets).await;
     let garmin = Arc::new(crate::garmin::Runner::default());
     let backup = Arc::new(crate::backup::Runner::default());
-    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: garmin.clone(), backup: backup.clone() });
+    let app = api::router(AppState {
+        cfg: cfg.clone(),
+        db: db.clone(),
+        garmin: garmin.clone(),
+        backup: backup.clone(),
+        secrets: secrets.clone(),
+    });
 
     // Aufbewahrung stündlich (C12); der erste Lauf war beim Start.
     let (mcfg, mdb) = (cfg.clone(), db.clone());
@@ -92,7 +102,7 @@ where
     let load_task = tokio::spawn(crate::load::worker(cfg.clone(), db.clone()));
 
     // Abruf aus Garmin Connect
-    let garmin_task = tokio::spawn(crate::garmin::scheduler(cfg.clone(), db.clone(), garmin));
+    let garmin_task = tokio::spawn(crate::garmin::scheduler(cfg.clone(), db.clone(), garmin, secrets.clone()));
 
     // Tägliche Sicherung und „Jetzt sichern“ (#57)
     let backup_task = tokio::spawn(crate::backup::scheduler(cfg.clone(), db.clone(), backup.clone()));
@@ -170,5 +180,24 @@ pub async fn os_shutdown_signal() {
     tokio::select! {
         _ = ctrl_c => {},
         _ = term => {},
+    }
+}
+
+/// Klartext-Altwerte verschlüsseln und unlesbare Werte melden (#10); Fehler halten den Start nicht auf.
+async fn seal_secrets(db: &crate::db::Db, secrets: &crate::secrets::Secrets) {
+    if let Some(reason) = secrets.unavailable_reason() {
+        tracing::warn!("Geheimnisspeicher nicht verfügbar ({reason}): Geheimnisse lassen sich nicht speichern");
+    }
+    match crate::garmin::store::seal_plaintext(db, secrets).await {
+        Ok(true) => tracing::info!("Garmin-Schlüssel verschlüsselt (bisher Klartext)"),
+        Ok(false) => {}
+        Err(e) => tracing::warn!(error = format!("{e:#}"), "Garmin-Schlüssel ließ sich nicht verschlüsseln"),
+    }
+    match crate::garmin::store::load(db, secrets).await {
+        Ok(s) if s.key_unreadable => {
+            tracing::warn!("Garmin-Schlüssel nicht lesbar (andere oder fehlende Schlüsseldatei): Abruf ruht, Schlüssel neu eintragen")
+        }
+        Ok(_) => {}
+        Err(e) => tracing::warn!(error = format!("{e:#}"), "Garmin-Einstellungen nicht lesbar"),
     }
 }

@@ -3239,6 +3239,7 @@ dependencies = [
  "quick-xml",
  "rcgen",
  "reqwest",
+ "ring",
  "rustls",
  "rustls-pki-types",
  "rustyfit",

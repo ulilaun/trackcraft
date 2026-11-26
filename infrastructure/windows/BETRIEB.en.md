@@ -99,6 +99,13 @@ Each backup is a folder `trackcraft-<date>-<time>-s<schema>-c<counter>` in the t
 - USB drive or second disk: path in `[backup] target_dir`, e.g. `'E:\TrackCraft-Backup'`. If the folder exists during `setup`, the service gets write access.
 - Network share (e.g. on a NAS): as a UNC path `'\\nas\backup\trackcraft'`, never as a drive letter. The service accesses it as the computer account; a NAS without a domain does not know this account. In that case run the service under a local account that has write access to the share on the NAS with the same name and password (Services → TrackCraft → Log On), and give this account the same rights on `C:\ProgramData\TrackCraft\data` and read access on `config`.
 
+## Secrets
+
+Stored secrets such as the Garmin key are kept in the database only in encrypted form. The key for this is in `C:\ProgramData\TrackCraft\config\secrets.key`, created by `setup` (readable only by administrators and the service). Backups and exports never contain it.
+
+- Do not delete or share the file. Without it, stored secrets can no longer be read; Settings → Garmin Connect reports this and downloads pause until the key is entered again.
+- When moving to another machine, copy the file along and the Garmin key stays valid. Otherwise enter the Garmin key again after restoring.
+
 ## Operation
 
 | Command | Effect |

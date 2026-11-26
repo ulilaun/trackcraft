@@ -199,7 +199,8 @@ async fn document(state: &AppState) -> anyhow::Result<(Value, Vec<Entry>, Vec<St
         _ => json!([]),
     };
 
-    let garmin = crate::garmin::store::load(db).await?;
+    // Ohne Geheimnisspeicher: der Export nennt nur, ob ein Schlüssel hinterlegt ist.
+    let garmin = crate::garmin::store::load(db, &crate::secrets::Secrets::default()).await?;
     let backup = crate::backup::load_state(db).await?;
     let doc = json!({
         "format": FORMAT,
@@ -225,7 +226,7 @@ async fn document(state: &AppState) -> anyhow::Result<(Value, Vec<Entry>, Vec<St
         "place_settings": crate::places::settings(db).await?,
         // ohne Schlüssel (RFC-0019, #10)
         "garmin": {
-            "configured": garmin.api_key.is_some(),
+            "configured": garmin.api_key.is_some() || garmin.key_unreadable,
             "enabled": garmin.enabled,
             "start_date": garmin.start_date,
             "interval_minutes": garmin.interval_minutes,

@@ -15,6 +15,7 @@ use tokio::sync::Notify;
 
 use crate::config::Validated;
 use crate::db::Db;
+use crate::secrets::Secrets;
 
 /// Abstand, in dem der Planer nachsieht.
 const TICK: Duration = Duration::from_secs(60);
@@ -75,11 +76,11 @@ impl Runner {
     }
 
     /// Führt einen Lauf aus, wenn keiner läuft (Planer, Tests).
-    pub async fn run_once(&self, cfg: &Arc<Validated>, db: &Db) -> Option<Result<Progress, sync::RunError>> {
+    pub async fn run_once(&self, cfg: &Arc<Validated>, db: &Db, secrets: &Secrets) -> Option<Result<Progress, sync::RunError>> {
         if self.running.swap(true, Ordering::SeqCst) {
             return None;
         }
-        let r = sync::run(cfg, db, self).await;
+        let r = sync::run(cfg, db, self, secrets).await;
         if let Ok(mut g) = self.progress.lock() {
             g.phase = "idle";
         }
@@ -94,14 +95,14 @@ fn due(s: &store::Settings, now: i64) -> bool {
 }
 
 /// Läuft bis zum Abbruch der Aufgabe.
-pub async fn scheduler(cfg: Arc<Validated>, db: Db, runner: Arc<Runner>) {
+pub async fn scheduler(cfg: Arc<Validated>, db: Db, runner: Arc<Runner>, secrets: Arc<Secrets>) {
     loop {
         tokio::select! {
             _ = runner.wake.notified() => {}
             _ = tokio::time::sleep(TICK) => {}
         }
         let requested = runner.requested.swap(false, Ordering::SeqCst);
-        let run = match store::load(&db).await {
+        let run = match store::load(&db, &secrets).await {
             Ok(s) => (requested && s.api_key.is_some()) || due(&s, chrono::Utc::now().timestamp_millis()),
             Err(e) => {
                 tracing::error!(error = format!("{e:#}"), "Garmin-Einstellungen nicht lesbar");
@@ -110,7 +111,7 @@ pub async fn scheduler(cfg: Arc<Validated>, db: Db, runner: Arc<Runner>) {
         };
         if run {
             // Fehler sind im Status vermerkt und geloggt.
-            let _ = runner.run_once(&cfg, &db).await;
+            let _ = runner.run_once(&cfg, &db, &secrets).await;
         }
     }
 }

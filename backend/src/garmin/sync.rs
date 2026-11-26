@@ -15,6 +15,7 @@ use super::{Progress, Runner};
 use crate::config::Validated;
 use crate::db::{Db, new_id};
 use crate::import_job::{self, ConfirmError, CreateError, DecisionAction, ImportDecision, SessionDecision};
+use crate::secrets::Secrets;
 
 /// Seitengröße der Liste.
 const PAGE: usize = 100;
@@ -65,8 +66,8 @@ pub fn start_limit_ms(date: Option<&str>, tz: chrono_tz::Tz) -> Option<i64> {
 }
 
 /// Führt einen Lauf aus und hält Fortschritt und Status fest.
-pub async fn run(cfg: &Arc<Validated>, db: &Db, runner: &Runner) -> Result<Progress, RunError> {
-    let settings = store::load(db).await?;
+pub async fn run(cfg: &Arc<Validated>, db: &Db, runner: &Runner, secrets: &Secrets) -> Result<Progress, RunError> {
+    let settings = store::load(db, secrets).await?;
     let Some(key) = settings.api_key.clone() else {
         return Err(RunError::NotConfigured);
     };

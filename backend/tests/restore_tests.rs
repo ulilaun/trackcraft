@@ -34,7 +34,13 @@ async fn fixture() -> Fixture {
     let db = started.db.clone();
     drop(started);
     let runner = Arc::new(Runner::default());
-    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: Default::default(), backup: runner.clone() });
+    let app = api::router(AppState {
+        cfg: cfg.clone(),
+        db: db.clone(),
+        garmin: Default::default(),
+        backup: runner.clone(),
+        secrets: Default::default(),
+    });
     Fixture { _dir: dir, cfg, app, db, runner }
 }
 
@@ -114,7 +120,13 @@ async fn restart(f: Fixture) -> Fixture {
     let db = started.db.clone();
     drop(started);
     let runner = Arc::new(Runner::default());
-    let app = api::router(AppState { cfg: f.cfg.clone(), db: db.clone(), garmin: Default::default(), backup: runner.clone() });
+    let app = api::router(AppState {
+        cfg: f.cfg.clone(),
+        db: db.clone(),
+        garmin: Default::default(),
+        backup: runner.clone(),
+        secrets: Default::default(),
+    });
     Fixture { _dir: f._dir, cfg: f.cfg, app, db, runner }
 }
 

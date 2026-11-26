@@ -99,6 +99,13 @@ Proxmox users can additionally back up the whole container (vzdump, mode “Stop
 
 Mount a NAS share on the Proxmox host and pass it into the container as a bind mount, or mount it directly in the container (e.g. CIFS in `/etc/fstab`). Enter the path in `[backup] target_dir` and run `setup.sh` again: it makes the folder writable for the service and adds it to the systemd unit.
 
+## Secrets
+
+Stored secrets such as the Garmin key are kept in the database only in encrypted form. The key for this is in `/etc/trackcraft/secrets.key`, created by `setup.sh` (readable only by root and the service). Backups and exports never contain it.
+
+- Do not delete or share the file. Without it, stored secrets can no longer be read; Settings → Garmin Connect reports this and downloads pause until the key is entered again.
+- When moving to another machine, copy the file along and the Garmin key stays valid. Otherwise enter the Garmin key again after restoring.
+
 ## Operation
 
 | Command | Effect |
@@ -119,8 +126,9 @@ Data and original files are platform-independent; the database only stores relat
 2. On Windows, stop the service (administrator): `trackcraft.exe service stop`.
 3. Copy the folders `database` and `activities` from `C:\ProgramData\TrackCraft\data` completely to `/var/lib/trackcraft/`, replacing the existing folders there. The folder is only readable for the service, so copy as administrator, e.g. `robocopy C:\ProgramData\TrackCraft\data\database C:\trackcraft\move\database /E` (same for `activities`). If a non-empty `trackcraft.db-wal` lies next to the database afterwards, the service was still running: copy again. Unpack an archive on Linux with `tar --no-same-owner -xzf …`; otherwise `tar` fails on the Windows owners in an unprivileged container.
 4. Take over values from the Windows configuration that differ from the template (e.g. `[segments.matching]`, time zone, display name) into `/etc/trackcraft/trackcraft.toml`. Paths and `[server]`/`[tls]` stay the Linux ones.
-5. Run `sudo ./setup.sh` again: it sets the permissions on the copied data and starts the service.
-6. On Windows, run `trackcraft.exe uninstall` so that the old service does not start again.
+5. Copy `C:\ProgramData\TrackCraft\config\secrets.key` (if present) to `/etc/trackcraft/secrets.key`, replacing the one created there; otherwise enter the Garmin key again afterwards.
+6. Run `sudo ./setup.sh` again: it sets the permissions on the copied data and the key file and starts the service.
+7. On Windows, run `trackcraft.exe uninstall` so that the old service does not start again.
 
 ## Update
 

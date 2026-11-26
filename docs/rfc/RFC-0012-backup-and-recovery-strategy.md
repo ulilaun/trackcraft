@@ -6,6 +6,8 @@ Status: Konsolidierte Regeln und technischer Entwurf, Piggy 007.
 
 Vollsicherung: konsistente SQLite-DB mit Benutzer/Zuordnungen/Fachdaten/Datenstandsidentität, alle referenzierten Originale (gemeinsame FIT einmal), Manifest mit Formatkennung `trackcraft-backup` (unveränderlich, RFC-0021) und Formatversion, Prüfsummen und separate Kopie wirksamer TOML.
 
+Geheimnisse (#10) stehen in der Datenbank nur verschlüsselt; die Schlüsseldatei (`secrets.key`, RFC-0011) gehört nie in eine Sicherung. Wiederherstellen auf demselben Rechner ändert daran nichts; auf einem anderen Rechner ohne die mitkopierte Schlüsseldatei sind die Geheimnisse nicht lesbar und werden neu eingetragen (die Oberfläche meldet es).
+
 Keine Logs/temporären Import-/Operationsdateien/unreferenzierten oder zurückgewiesenen Uploads/anderen Sicherungen. Keine Rekursion. Prüfsumme beweist keine Herkunft.
 
 Genau eine Sicherungsart in V1: diese Vollsicherung in ein per TOML konfiguriertes Sicherungsverzeichnis, wahlweise externes USB-Laufwerk, zweite Platte oder Netzwerkfreigabe (unter Windows als UNC-Pfad, z. B. auf der DS214, RFC-0005). Einzige lokale Ausnahme ist die Sicherung vor Schemamigration (siehe unten). Snapshots von Synology oder Windows sind nicht Teil der Definition. Das aktive FIT/GPX-Archiv (`activities_dir`) ist keine Sicherung.

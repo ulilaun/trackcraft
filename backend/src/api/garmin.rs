@@ -22,13 +22,19 @@ pub const GARMIN_KEY_INVALID: ApiError =
 pub const GARMIN_UNREACHABLE: ApiError =
     ApiError::new(StatusCode::BAD_GATEWAY, "garmin_unreachable", "Garmin Connect is not reachable, try again later");
 pub const GARMIN_NOT_CONFIGURED: ApiError = ApiError::new(StatusCode::CONFLICT, "garmin_not_configured", "No Garmin API key is set");
+pub const SECRETS_UNAVAILABLE: ApiError = ApiError::new(
+    StatusCode::SERVICE_UNAVAILABLE,
+    "secrets_unavailable",
+    "The key file for stored secrets is missing or unreadable, the key cannot be stored",
+);
 pub const GARMIN_SYNC_RUNNING: ApiError = ApiError::new(StatusCode::CONFLICT, "garmin_sync_running", "A Garmin sync is already running");
 
 async fn status(state: &AppState) -> Result<Value, ApiError> {
-    let s = store::load(&state.db).await?;
+    let s = store::load(&state.db, &state.secrets).await?;
     let error = s.last_error_code.as_ref().map(|c| json!({ "code": c, "message": s.last_error_message.clone().unwrap_or_default() }));
     Ok(json!({
         "configured": s.api_key.is_some(),
+        "key_unreadable": s.key_unreadable,
         "key_set_at": s.key_set_at_ms.map(timestamp),
         "enabled": s.enabled,
         "start_date": s.start_date,
@@ -97,6 +103,9 @@ pub async fn update(State(state): State<AppState>, body: Bytes) -> Response {
         Ok(c) => c,
         Err(e) => return e.into_response(),
     };
+    if matches!(change.api_key, Some(Some(_))) && !state.secrets.is_available() {
+        return SECRETS_UNAVAILABLE.into_response();
+    }
     // Neuen Schlüssel sofort prüfen, damit ein Tippfehler nicht erst beim Abruf auffällt.
     if let Some(Some(key)) = &change.api_key {
         let client = match Client::new(&state.cfg.raw.garmin.api_base_url) {
@@ -114,7 +123,7 @@ pub async fn update(State(state): State<AppState>, body: Bytes) -> Response {
             }
         }
     }
-    if let Err(e) = store::update(&state.db, &change, chrono::Utc::now().timestamp_millis()).await {
+    if let Err(e) = store::update(&state.db, &state.secrets, &change, chrono::Utc::now().timestamp_millis()).await {
         return ApiError::from(e).into_response();
     }
     tracing::info!(
@@ -132,7 +141,7 @@ pub async fn update(State(state): State<AppState>, body: Bytes) -> Response {
 
 /// Lauf sofort anstoßen (auch wenn der regelmäßige Abruf ausgeschaltet ist).
 pub async fn sync_now(State(state): State<AppState>) -> Result<(StatusCode, Json<Value>), ApiError> {
-    if store::load(&state.db).await?.api_key.is_none() {
+    if store::load(&state.db, &state.secrets).await?.api_key.is_none() {
         return Err(GARMIN_NOT_CONFIGURED);
     }
     if !state.garmin.request() {

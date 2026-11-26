@@ -113,7 +113,7 @@ export interface VersionResponse {
 
 export type Platform = "windows_service" | "windows_console" | "linux_service" | "linux_console" | "container";
 export interface SystemWarning {
-  /** z. B. `low_disk_space`, `backup_pending`, `backup_failed`, `job_failed`, `certificate_expiring` */
+  /** z. B. `low_disk_space`, `backup_pending`, `backup_failed`, `job_failed`, `certificate_expiring`, `secrets_unavailable`, `garmin_key_unreadable` */
   code: string;
   message: string;
   since: string;
@@ -722,6 +722,8 @@ export interface GarminProgress {
 export interface GarminStatus {
   /** Schlüssel gesetzt; der Schlüssel selbst kommt nie zurück */
   configured: boolean;
+  /** Gespeicherter Schlüssel nicht entschlüsselbar (#10): Abruf ruht, neu eintragen */
+  key_unreadable: boolean;
   key_set_at: string | null;
   enabled: boolean;
   start_date: string | null;

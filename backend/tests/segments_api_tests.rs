@@ -34,7 +34,13 @@ async fn fixture_with(extra: &str) -> Fixture {
     let db = started.db.clone();
     drop(started);
     let cfg = Arc::new(cfg);
-    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: Default::default(), backup: Default::default() });
+    let app = api::router(AppState {
+        cfg: cfg.clone(),
+        db: db.clone(),
+        garmin: Default::default(),
+        backup: Default::default(),
+        secrets: Default::default(),
+    });
     Fixture { _dir: dir, cfg, app, db }
 }
 
@@ -523,7 +529,13 @@ async fn new_calculation_version_recomputes_efforts_and_drops_the_old_one() {
     let f = Fixture {
         _dir: common::temp(),
         cfg: cfg.clone(),
-        app: api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: Default::default(), backup: Default::default() }),
+        app: api::router(AppState {
+            cfg: cfg.clone(),
+            db: db.clone(),
+            garmin: Default::default(),
+            backup: Default::default(),
+            secrets: Default::default(),
+        }),
         db: db.clone(),
     };
     let (a, _, _) = three_rides(&f).await;

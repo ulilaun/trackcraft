@@ -97,6 +97,13 @@ Je Stand entsteht im Ziel ein Ordner `trackcraft-<datum>-<uhrzeit>-s<schema>-c<z
 - USB-Laufwerk oder zweite Platte: Pfad in `[backup] target_dir`, z. B. `'E:\TrackCraft-Sicherung'`. Ist der Ordner beim `setup` vorhanden, erhält der Dienst Schreibrecht.
 - Netzwerkfreigabe (z. B. auf einem NAS): als UNC-Pfad `'\\nas\backup\trackcraft'`, nie als Laufwerksbuchstabe. Der Dienst greift als Computerkonto zu; ein NAS ohne Domäne kennt dieses Konto nicht. Dann den Dienst unter einem lokalen Konto laufen lassen, das auf dem NAS mit gleichem Namen und Passwort Schreibrecht auf die Freigabe hat (Dienste → TrackCraft → Anmelden), und diesem Konto dieselben Rechte auf `C:\ProgramData\TrackCraft\data` und Lesen auf `config` geben.
 
+## Geheimnisse
+
+Gespeicherte Geheimnisse wie der Garmin-Schlüssel liegen nur verschlüsselt in der Datenbank. Den Schlüssel dafür enthält `C:\ProgramData\TrackCraft\config\secrets.key`, angelegt von `setup` (nur Administratoren und der Dienst lesen sie). Sicherungen und Export enthalten ihn nie.
+
+- Die Datei nicht löschen und nicht weitergeben. Ohne sie sind gespeicherte Geheimnisse nicht mehr lesbar; die Seite Einstellungen → Garmin Connect meldet das, der Abruf ruht, bis der Schlüssel neu eingetragen ist.
+- Bei einem Umzug auf einen anderen Rechner die Datei mitkopieren, dann bleibt der Garmin-Schlüssel gültig. Sonst nach dem Wiederherstellen den Garmin-Schlüssel neu eintragen.
+
 ## Betrieb
 
 | Befehl | Wirkung |

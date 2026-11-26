@@ -60,6 +60,8 @@ pub struct AppState {
     pub garmin: Arc<crate::garmin::Runner>,
     /// Sicherung (#57)
     pub backup: Arc<crate::backup::Runner>,
+    /// Geheimnisspeicher (#10)
+    pub secrets: Arc<crate::secrets::Secrets>,
 }
 
 pub fn router(state: AppState) -> Router {

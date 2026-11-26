@@ -139,7 +139,13 @@ async fn every_operation_is_routed() {
     let started = trackcraft::startup::prepare(&cfg).await.unwrap();
     let db = started.db.clone();
     drop(started);
-    let app = api::router(AppState { cfg: Arc::new(cfg), db: db.clone(), garmin: Default::default(), backup: Default::default() });
+    let app = api::router(AppState {
+        cfg: Arc::new(cfg),
+        db: db.clone(),
+        garmin: Default::default(),
+        backup: Default::default(),
+        secrets: Default::default(),
+    });
 
     let mut missing = Vec::new();
     for (path, item) in CONTRACT.spec()["paths"].as_object().unwrap() {

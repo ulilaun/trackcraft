@@ -306,6 +306,12 @@ pub fn setup(args: SetupArgs) -> anyhow::Result<()> {
     chown(&layout.config_file, &group, false)?;
     chmod(&layout.config_file, 0o640)?;
     let cfg = config::load(&layout.config_file);
+    // Geheimnisse (#10): Der Dienst darf /etc/trackcraft nicht beschreiben, deshalb legt das Setup die Datei an.
+    let key_file = cfg.as_ref().map(crate::secrets::key_path).unwrap_or_else(|_| layout.config_dir.join("secrets.key"));
+    let created = crate::secrets::ensure_key_file(&key_file)?;
+    chown(&key_file, &group, false)?;
+    chmod(&key_file, 0o640)?;
+    println!("   Schlüsseldatei für Geheimnisse {}: {}", key_file.display(), if created { "angelegt" } else { "vorhanden" });
 
     println!("5. Zertifikat");
     match &cfg {

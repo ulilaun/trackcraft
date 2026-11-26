@@ -27,6 +27,7 @@ pub mod plan_assist;
 pub mod platform;
 pub mod profile;
 pub mod seasons;
+pub mod secrets;
 pub mod segments;
 pub mod server;
 pub mod sports;

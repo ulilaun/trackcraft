@@ -112,6 +112,23 @@ async fn system(state: &AppState) -> anyhow::Result<Value> {
         warnings.push(Warning { code: "backup_pending", message: "Changes not yet backed up".into(), since_ms });
     }
 
+    // Geheimnisse (#10)
+    if state.secrets.unavailable_reason().is_some() {
+        warnings.push(Warning {
+            code: "secrets_unavailable",
+            message: "Key file for secrets is missing or unreadable".into(),
+            since_ms: started_ms,
+        });
+    }
+    let garmin = crate::garmin::store::load(db, &state.secrets).await?;
+    if garmin.key_unreadable {
+        warnings.push(Warning {
+            code: "garmin_key_unreadable",
+            message: "Stored Garmin key cannot be decrypted, enter it again".into(),
+            since_ms: started_ms,
+        });
+    }
+
     // Aufträge
     let row = sqlx::query(
         "SELECT coalesce(sum(status = 'queued'), 0) AS queued, coalesce(sum(status = 'running'), 0) AS running, \

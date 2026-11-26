@@ -37,7 +37,13 @@ async fn fixture() -> Fixture {
     let started = startup::prepare(&cfg).await.unwrap();
     let db = started.db.clone();
     drop(started);
-    let app = api::router(AppState { cfg: Arc::new(cfg), db: db.clone(), garmin: Default::default(), backup: Default::default() });
+    let app = api::router(AppState {
+        cfg: Arc::new(cfg),
+        db: db.clone(),
+        garmin: Default::default(),
+        backup: Default::default(),
+        secrets: Default::default(),
+    });
     Fixture { dir, app, db }
 }
 
@@ -182,8 +188,13 @@ async fn startup_with_demo_refuses_real_data_and_shifts_demo_data() {
     let day = chrono::Utc.timestamp_millis_opt(start).unwrap().with_timezone(&BERLIN).date_naive();
     assert_eq!(day, yesterday);
 
-    let app =
-        api::router(AppState { cfg: Arc::new(demo_cfg), db: started.db.clone(), garmin: Default::default(), backup: Default::default() });
+    let app = api::router(AppState {
+        cfg: Arc::new(demo_cfg),
+        db: started.db.clone(),
+        garmin: Default::default(),
+        backup: Default::default(),
+        secrets: Default::default(),
+    });
     let req = Request::builder().uri("/api/v1/config").header("host", HOST).body(Body::empty()).unwrap();
     let (_, v) = common::contract::call_json(&app, req).await;
     assert_eq!(v["data"]["demo"], true);

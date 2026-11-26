@@ -40,6 +40,8 @@ pub struct Config {
     #[serde(default)]
     pub garmin: GarminSection,
     #[serde(default)]
+    pub secrets: SecretsSection,
+    #[serde(default)]
     pub places: PlacesSection,
     #[serde(default)]
     pub demo: DemoSection,
@@ -149,6 +151,15 @@ impl Default for MapsSection {
     fn default() -> Self {
         Self { tile_url: default_tile_url(), attribution: default_attribution(), track_max_points: default_track_max_points() }
     }
+}
+
+/// Geheimnisspeicher (#10).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SecretsSection {
+    /// Schlüsseldatei; ohne Angabe `secrets.key` neben dieser Konfigurationsdatei. Gehört nie in eine Sicherung.
+    #[serde(default)]
+    pub key_file: Option<PathBuf>,
 }
 
 /// Abruf aus Garmin Connect. Schlüssel, Anfangsdatum und Intervall pflegt die Oberfläche (Datenbank).
@@ -698,6 +709,12 @@ fn validate(path: &Path, raw: Config) -> Result<Validated, ConfigError> {
                 p.push(format!("[tls] {key}: '{}' ist kein absoluter Pfad", file.display()));
             }
         }
+    }
+
+    if let Some(file) = &raw.secrets.key_file
+        && !file.is_absolute()
+    {
+        p.push(format!("[secrets] key_file: '{}' ist kein absoluter Pfad", file.display()));
     }
 
     // Pfade

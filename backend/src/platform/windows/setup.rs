@@ -344,6 +344,11 @@ pub fn setup(args: SetupArgs) -> anyhow::Result<()> {
     icacls_grant(&layout.config_dir, "(OI)(CI)RX")?;
     icacls_restrict(&layout.data_dir, true, Some("M"))?;
     secure_certificates(&layout)?;
+    // Geheimnisse (#10): Der Dienst hat auf den Konfigurationsordner nur Leserechte, deshalb legt das Setup die Datei an.
+    let key_file = cfg.as_ref().map(crate::secrets::key_path).unwrap_or_else(|_| layout.config_dir.join("secrets.key"));
+    let created = crate::secrets::ensure_key_file(&key_file).with_context(|| format!("{} lässt sich nicht anlegen", key_file.display()))?;
+    icacls_restrict(&key_file, false, Some("R"))?;
+    println!("   Schlüsseldatei für Geheimnisse {}: {}", key_file.display(), if created { "angelegt" } else { "vorhanden" });
     if let Ok(cfg) = &cfg {
         let target = &cfg.raw.backup.target_dir;
         if target.is_dir() && !super::is_unc(target) {

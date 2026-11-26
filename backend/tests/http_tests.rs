@@ -38,7 +38,13 @@ async fn fixture(with_static: bool) -> Fixture {
     let db = started.db.clone();
     // Sperre freigeben, damit der Temp-Ordner aufgeräumt werden kann; die Verbindungen bleiben offen.
     drop(started);
-    let app = api::router(AppState { cfg: Arc::new(cfg), db: db.clone(), garmin: Default::default(), backup: Default::default() });
+    let app = api::router(AppState {
+        cfg: Arc::new(cfg),
+        db: db.clone(),
+        garmin: Default::default(),
+        backup: Default::default(),
+        secrets: Default::default(),
+    });
     Fixture { _dir: dir, app, db }
 }
 
