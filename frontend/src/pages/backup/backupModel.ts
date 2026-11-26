@@ -1,4 +1,4 @@
-// Reine Logik der Seite „Sicherung“ (#57): Zustand der Statuszeile und Abfragetakt.
+// Reine Logik der Sicherung auf der Seite „Daten“ (#57): Zustand der Statuszeile und Abfragetakt.
 import type { BackupStatus, Operation } from "../../api/client";
 
 export type BackupState = "running" | "failed" | "missing" | "never" | "pending" | "ok";

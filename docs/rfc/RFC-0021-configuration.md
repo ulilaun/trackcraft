@@ -28,7 +28,7 @@ Spalte „Wirkung“: **Neuberechnung** löst eine versionierte Neuberechnung au
 | `[paths] logs_dir` | Pflicht (Windows `…\data\logs`, Container `/data/logs`) | Betrieb | nein |
 | `[backup] target_dir` | Pflicht (Sicherungsziel: USB, zweite Platte oder Netzwerkfreigabe; unter Windows Laufwerkspfad oder UNC-Pfad, im Container separat eingebunden) | Betrieb | nein |
 | `[backup] migration_dir` | Pflicht (Windows `…\data\backups`, Container `/data/backups`) | Betrieb | nein |
-| `[backup] daily_time` | optional, Vorgabe `03:00` (in `timezone`); eine auf der Seite Sicherung gesetzte Uhrzeit hat Vorrang | Betrieb | nein |
+| `[backup] daily_time` | optional, Vorgabe `03:00` (in `timezone`); eine auf der Seite Daten gesetzte Uhrzeit hat Vorrang | Betrieb | nein |
 | `[logging] level` | optional, Vorgabe `info` (`error`, `warn`, `info`, `debug`, `trace`) | Betrieb | nein |
 | `[monitoring] low_disk_free_gb` | optional, Vorgabe `1.0` | Betrieb | nein |
 | `[maps] tile_url` | optional, Vorgabe OSM-Standard | Betrieb | ja |
@@ -77,7 +77,7 @@ Spalte „Wirkung“: **Neuberechnung** löst eine versionierte Neuberechnung au
 | `[places] nominatim_url` | optional, Vorgabe `https://nominatim.openstreetmap.org` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests); Rückwärtssuche des Ortsvorschlags (RFC-0017), etwa für eine eigene Nominatim-Instanz | Betrieb | nein |
 | `[demo] enabled` | optional, Vorgabe `false`. `true`: Hinweisband „Demo mit erfundenen Daten“; beim Start werden alle Daten um ganze Tage verschoben, sodass die letzte Aktivität gestern war. Nur mit einer Demo-Datenbank (`trackcraft demo mark`, Migration 20), sonst bricht der Start ab. `trackcraft demo start` schreibt eine eigene Konfiguration mit `true` | Neustart | nein |
 
-Feste Werte in V1 (nicht konfigurierbar): genau eine Vollsicherung. Die Zahl aufbewahrter Sicherungsstände (Vorgabe fünf) wird auf der Seite Sicherung eingestellt, nicht in der TOML.
+Feste Werte in V1 (nicht konfigurierbar): genau eine Vollsicherung. Die Zahl aufbewahrter Sicherungsstände (Vorgabe fünf) wird auf der Seite Daten eingestellt, nicht in der TOML.
 
 Schlüssel, Anfangsdatum und Intervall des Garmin-Abrufs stehen nicht in der TOML, sondern in der Datenbank und werden in der Oberfläche gepflegt (RFC-0008 Abschnitt 10). Ebenso, ob der Ortsvorschlag OpenStreetMap fragen darf (Einstellungen → Orte).
 

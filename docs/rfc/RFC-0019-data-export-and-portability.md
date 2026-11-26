@@ -13,7 +13,7 @@ Sicherungsersatz (RFC-0012) und wird in V1 nicht wieder eingelesen.
 
 | Was | Wo | Endpunkt |
 |---|---|---|
-| Gesamtexport als ZIP | Einstellungen → Export | `GET /export` |
+| Gesamtexport als ZIP | Seite Daten → Export | `GET /export` |
 | Originaldatei einer Aktivität | Aktivitätsdetail | `GET /activities/{id}/original` |
 | GPX einer Aktivität aus den aufbereiteten Punkten | Aktivitätsdetail | `GET /activities/{id}/gpx` |
 | CSV der gefilterten Aktivitätenliste | Aktivitätenliste | keiner, entsteht im Browser aus `GET /activities` |

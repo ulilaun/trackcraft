@@ -42,7 +42,7 @@ Schema-, fachliche Datenstands- und Berechnungsversion strikt trennen. Neue Rech
 
 Kompatibles vorheriges Programm bzw. Image und zugehörigen gültigen Sicherungsstand nach dem sicheren Restoreverfahren aus RFC-0012 verwenden. Keine pauschale Zusage, dass ein altes Image gegen ein bereits migriertes Schema laufen kann. Ein Programm, das eine neuere Schemaversion als die eigene vorfindet, startet nicht und nennt beide Versionen; es ändert dabei nichts an den Daten.
 
-Ablauf unter Windows: Dienst stoppen, Programmordner aus dem aufbewahrten alten ZIP ersetzen. War schon migriert, die Datenordner leeren bzw. beiseitelegen, Dienst starten und die Sicherung vor der Migration (lokal im Migrationsordner oder im Ziel) über die Seite Sicherung wiederherstellen. Unter Docker entsprechend mit der alten Imageversion. Restore ersetzt vollständig und braucht bei älterem/nicht vergleichbarem Stand Warnung/Bestätigung.
+Ablauf unter Windows: Dienst stoppen, Programmordner aus dem aufbewahrten alten ZIP ersetzen. War schon migriert, die Datenordner leeren bzw. beiseitelegen, Dienst starten und die Sicherung vor der Migration (lokal im Migrationsordner oder im Ziel) über die Seite Daten wiederherstellen. Unter Docker entsprechend mit der alten Imageversion. Restore ersetzt vollständig und braucht bei älterem/nicht vergleichbarem Stand Warnung/Bestätigung.
 
 ## Checkliste
 
