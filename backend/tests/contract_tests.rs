@@ -121,9 +121,7 @@ fn check_rejects_deviations() {
 }
 
 /// Operationen, die im Vertrag stehen, aber im Backend noch fehlen (mit Issue).
-const NOT_IMPLEMENTED: &[&str] = &[
-    "get /system", // #69
-];
+const NOT_IMPLEMENTED: &[&str] = &[];
 
 /// Jede Operation des Vertrags erreicht einen Handler: Der Router-Rückfall (`not_found`,
 /// `method_not_allowed`) kommt nur für unbekannte Pfade und Methoden.

@@ -25,6 +25,7 @@ where
     S: Future<Output = ()> + Send + 'static,
     L: FnOnce(SocketAddr) + Send + 'static,
 {
+    crate::api::system::mark_started();
     let cfg = Arc::new(cfg);
     // TLS vor dem Datenbankstart laden: ein Zertifikatsfehler soll nichts migrieren.
     let tls = match &cfg.raw.tls {

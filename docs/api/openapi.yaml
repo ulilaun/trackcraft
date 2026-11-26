@@ -2995,7 +2995,7 @@ components:
           properties:
             uptime_s: {type: integer, minimum: 0}
             started_at: {$ref: '#/components/schemas/Timestamp'}
-            platform: {type: string, enum: [windows_service, windows_console, container], description: 'Betriebsart nach RFC-0005'}
+            platform: {type: string, enum: [windows_service, windows_console, linux_service, linux_console, container], description: 'Betriebsart nach RFC-0005; `linux_service` = systemd-Dienst'}
             tzdata_version: {type: string, description: 'Version der im Programm enthaltenen IANA-Zeitzonendaten, z. B. `2026a`'}
             tls_certificate_expires_at:
               description: 'Ablauf des Zertifikats aus `[tls]`; null, wenn das Backend kein TLS terminiert (Docker)'
@@ -3029,7 +3029,7 @@ components:
                 type: object
                 required: [code, message, since]
                 properties:
-                  code: {type: string, description: 'Zum Beispiel `low_disk_space`, `backup_pending`, `backup_failed`, `job_failed`, `calculation_stale`, `certificate_expiring` (30 Tage vor Ablauf, RFC-0013)'}
+                  code: {type: string, description: 'Derzeit `low_disk_space` (Datenbereich oder Sicherungsziel unter `[monitoring] low_disk_free_gb`), `backup_pending` (seit der ersten ungesicherten Änderung), `backup_failed` (letzter Versuch), `job_failed` (seit dem ältesten fehlgeschlagenen Auftrag), `certificate_expiring` (ab 30 Tage vor Ablauf, RFC-0013). Unbekannte Codes zeigt die Oberfläche mit `message` an.'}
                   message: {type: string}
                   since: {$ref: '#/components/schemas/Timestamp'}
     ConfigResponse:

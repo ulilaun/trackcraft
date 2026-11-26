@@ -240,3 +240,66 @@ async fn container_mode_sets_no_frontend_headers() {
     assert!(h.get("content-security-policy").is_none(), "Nginx setzt die Header im Container");
     f.db.close().await;
 }
+
+/// Zertifikat mit Ablauf in `days` Tagen (PEM).
+fn cert_expiring_in(days: i64) -> String {
+    let mut params = rcgen::CertificateParams::new(vec![HOST.to_string()]).unwrap();
+    params.not_before = time::OffsetDateTime::now_utc() - time::Duration::days(1);
+    params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(days);
+    let key = rcgen::KeyPair::generate().unwrap();
+    params.self_signed(&key).unwrap().pem()
+}
+
+fn warning_codes(v: &serde_json::Value) -> Vec<String> {
+    v["data"]["warnings"].as_array().unwrap().iter().map(|w| w["code"].as_str().unwrap().to_string()).collect()
+}
+
+#[tokio::test]
+async fn system_reports_state() {
+    let f = fixture(false).await;
+    let (s, _, v) = send(&f.app, get("/api/v1/system").body(Body::empty()).unwrap()).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    let d = &v["data"];
+    let expected: &[&str] = if cfg!(windows) { &["windows_console"] } else { &["linux_console", "linux_service", "container"] };
+    assert!(expected.contains(&d["platform"].as_str().unwrap()), "{d}");
+    assert_eq!(d["tzdata_version"], chrono_tz::IANA_TZDB_VERSION);
+    // Ohne [tls] kein Zertifikat
+    assert!(d["tls_certificate_expires_at"].is_null());
+    assert_eq!(d["counts"], serde_json::json!({ "activities": 0, "segments": 0, "efforts": 0 }));
+    assert_eq!(d["jobs"], serde_json::json!({ "queued": 0, "running": 0, "failed": 0 }));
+    assert!(d["storage"]["data_free_bytes"].as_u64().unwrap() > 0);
+    assert!(!warning_codes(&v).iter().any(|c| c == "certificate_expiring" || c == "job_failed"), "{v}");
+
+    // Fehlgeschlagener Auftrag: Zähler und Warnung seit seinem Ende
+    sqlx::query(
+        "INSERT INTO jobs (id, kind, status, error_message, created_at_ms, finished_at_ms) \
+         VALUES ('j1', 'recalculation', 'failed', 'kaputt', 1000, 1782892800500)",
+    )
+    .execute(&f.db.writer)
+    .await
+    .unwrap();
+    let (_, _, v) = send(&f.app, get("/api/v1/system").body(Body::empty()).unwrap()).await;
+    assert_eq!(v["data"]["jobs"]["failed"], 1);
+    let w = v["data"]["warnings"].as_array().unwrap().iter().find(|w| w["code"] == "job_failed").unwrap().clone();
+    assert_eq!(w["since"], "2026-07-01T08:00:00.500Z");
+    f.db.close().await;
+}
+
+#[tokio::test]
+async fn system_warns_before_certificate_expires() {
+    let f = fixture(true).await;
+    let cert = f._dir.path().join("c.pem");
+    std::fs::write(&cert, cert_expiring_in(10)).unwrap();
+    let (s, _, v) = send(&f.app, get("/api/v1/system").body(Body::empty()).unwrap()).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert!(v["data"]["tls_certificate_expires_at"].is_string(), "{v}");
+    let w = v["data"]["warnings"].as_array().unwrap().iter().find(|w| w["code"] == "certificate_expiring").unwrap().clone();
+    assert!(w["message"].as_str().unwrap().contains("10 days"), "{w}");
+
+    // Mehr als 30 Tage: keine Warnung
+    std::fs::write(&cert, cert_expiring_in(60)).unwrap();
+    let (_, _, v) = send(&f.app, get("/api/v1/system").body(Body::empty()).unwrap()).await;
+    assert!(v["data"]["tls_certificate_expires_at"].is_string());
+    assert!(!warning_codes(&v).contains(&"certificate_expiring".to_string()), "{v}");
+    f.db.close().await;
+}

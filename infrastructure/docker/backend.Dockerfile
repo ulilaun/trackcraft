@@ -15,6 +15,8 @@ RUN useradd --system --uid 10001 --no-create-home trackcraft \
     && chown 10001:10001 /data /backup-target
 COPY --from=build /src/target/release/trackcraft /usr/local/bin/trackcraft
 USER 10001
+# Betriebsart „container“ in GET /system
+ENV TRACKCRAFT_CONTAINER=1
 EXPOSE 8080
 VOLUME ["/data"]
 ENTRYPOINT ["/usr/local/bin/trackcraft"]
