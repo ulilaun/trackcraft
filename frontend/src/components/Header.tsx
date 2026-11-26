@@ -34,7 +34,7 @@ export function Header() {
   const profile = useProfile().data?.data;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-card">
+    <header className="sticky top-0 z-[1500] border-b border-line bg-card">
       <div className="relative mx-auto flex max-w-[1400px] items-center gap-2 px-4 py-2">
         <NavLink to="/" className="mr-2 flex shrink-0 items-center gap-2 font-semibold" onClick={() => setOpen(false)}>
           <img src={brand.icon} alt="" className="h-7 w-7 rounded-md" />
