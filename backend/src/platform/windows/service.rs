@@ -24,6 +24,7 @@ pub fn run_dispatcher() -> anyhow::Result<()> {
 }
 
 fn service_main(_args: Vec<OsString>) {
+    crate::platform::mark_windows_service();
     if let Err(e) = run() {
         event_log_error(&format!("Dienst konnte nicht gestartet werden: {e:#}"));
     }

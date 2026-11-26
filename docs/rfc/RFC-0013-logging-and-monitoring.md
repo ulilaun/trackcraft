@@ -37,7 +37,7 @@ Zeitpunkt, Komponente, Fehlermeldung und ggf. Fehlerkette.
 - Readiness `/api/v1/ready`, System `/api/v1/system`, Version `/api/v1/version`.
 - Import und Auswertung getrennt, laufende/fehlgeschlagene Operationen, sichere Rücknahme/Restorestatus.
 - Versionierter Berechnungsstand, veraltet/laufend/Fehler, letzte vollständig veröffentlichte Ergebnisse.
-- Uptime, Version, Plattform (Windows-Dienst oder Container), Version der Zeitzonendaten, Speicherverbrauch; Aktivitäten/Segmente.
+- Uptime, Version, Plattform (Windows-Dienst/-Konsole, systemd-Dienst/Linux-Konsole oder Container), Version der Zeitzonendaten, freier Speicher; Aktivitäten/Segmente/Versuche.
 - Ablaufdatum des TLS-Zertifikats, wenn das Backend TLS selbst terminiert; Warnung 30 Tage vor Ablauf.
 - Antwort-/Import-/Matchingzeiten messen; keine unbewiesenen Performancezusagen.
 

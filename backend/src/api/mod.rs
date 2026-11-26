@@ -15,6 +15,7 @@ pub mod seasons;
 pub mod segments;
 pub mod sports;
 pub mod stats;
+pub mod system;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -69,6 +70,7 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/ready", get(ready))
         .route("/version", get(version_info))
+        .route("/system", get(system::get))
         .route("/config", get(public_config))
         .route("/profile", get(profile::get).patch(profile::update))
         // Größe und Dauer prüft der Upload selbst, mit eigenen Fehlercodes (RFC-0008 Abschnitt 2).

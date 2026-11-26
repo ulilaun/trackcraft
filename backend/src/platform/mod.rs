@@ -3,6 +3,7 @@
 //! Außerhalb dieses Moduls gibt es keine Plattformzweige in der Fachlogik.
 
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[cfg(target_os = "linux")]
 pub mod linux;
@@ -53,4 +54,25 @@ pub fn report_startup_error(message: &str) {
     eprintln!("TrackCraft: {message}");
     #[cfg(windows)]
     windows::event_log_error(message);
+}
+
+static WINDOWS_SERVICE: AtomicBool = AtomicBool::new(false);
+
+/// Vom Windows-Dienst beim Start gesetzt, damit `GET /system` die Betriebsart kennt.
+pub fn mark_windows_service() {
+    WINDOWS_SERVICE.store(true, Ordering::Relaxed);
+}
+
+/// Betriebsart nach RFC-0005 für `GET /system`: `windows_service`, `windows_console`, `linux_service` (systemd),
+/// `linux_console` oder `container`.
+pub fn kind() -> &'static str {
+    if cfg!(windows) {
+        return if WINDOWS_SERVICE.load(Ordering::Relaxed) { "windows_service" } else { "windows_console" };
+    }
+    // Das Backend-Image setzt TRACKCRAFT_CONTAINER; die Dateien legen Docker bzw. Podman an.
+    if std::env::var_os("TRACKCRAFT_CONTAINER").is_some() || Path::new("/.dockerenv").exists() || Path::new("/run/.containerenv").exists() {
+        return "container";
+    }
+    // systemd setzt INVOCATION_ID für jeden Dienstlauf.
+    if std::env::var_os("INVOCATION_ID").is_some() { "linux_service" } else { "linux_console" }
 }

@@ -111,6 +111,29 @@ export interface VersionResponse {
   data: { app_version: string; api_version: "v1"; schema_version: number; algorithm_version: number };
 }
 
+export type Platform = "windows_service" | "windows_console" | "linux_service" | "linux_console" | "container";
+export interface SystemWarning {
+  /** z. B. `low_disk_space`, `backup_pending`, `backup_failed`, `job_failed`, `certificate_expiring` */
+  code: string;
+  message: string;
+  since: string;
+}
+export interface SystemInfo {
+  uptime_s: number;
+  started_at: string;
+  platform: Platform;
+  tzdata_version: string;
+  tls_certificate_expires_at: string | null;
+  counts: { activities: number; segments: number; efforts: number };
+  storage: { data_free_bytes: number; backup_target_free_bytes: number | null };
+  calculation: Calculation;
+  jobs: { queued: number; running: number; failed: number };
+  warnings: SystemWarning[];
+}
+export interface SystemResponse {
+  data: SystemInfo;
+}
+
 export type CheckStatus = "ok" | "warn" | "fail";
 export interface HealthResponse {
   data: {
