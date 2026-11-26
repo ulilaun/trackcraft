@@ -109,7 +109,7 @@ Each backup is a folder `trackcraft-<date>-<time>-s<schema>-c<counter>` in the t
 | `trackcraft.exe cert` | check the certificate and renew it if needed (administrator) |
 | `trackcraft.exe` | start in the foreground for diagnosis (stop the service first), end with Ctrl+C |
 
-- Logs: `C:\ProgramData\TrackCraft\data\logs\app.<date>.log`. Start errors before the log exists: Event Viewer → Windows Logs → Application, source `TrackCraft`.
+- Logs: `C:\ProgramData\TrackCraft\data\logs\app.<date>.log`. Start errors before the log exists: Event Viewer → Windows Logs → Application, source `TrackCraft`. The 30 most recent daily files are kept. They contain no keys, positions or health values, but do contain upload file names – check them before passing them on.
 - TrackCraft can only be reached while the PC is running.
 - After a crash Windows restarts the service after one minute, at most twice a day. With a configuration error it stays stopped.
 

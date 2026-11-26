@@ -107,7 +107,7 @@ Je Stand entsteht im Ziel ein Ordner `trackcraft-<datum>-<uhrzeit>-s<schema>-c<z
 | `trackcraft.exe cert` | Zertifikat prüfen und bei Bedarf erneuern (Administrator) |
 | `trackcraft.exe` | Start im Vordergrund zur Diagnose (vorher Dienst stoppen), Ende mit Strg+C |
 
-- Logs: `C:\ProgramData\TrackCraft\data\logs\app.<datum>.log`. Startfehler vor dem Log: Ereignisanzeige → Windows-Protokolle → Anwendung, Quelle `TrackCraft`.
+- Logs: `C:\ProgramData\TrackCraft\data\logs\app.<datum>.log`. Startfehler vor dem Log: Ereignisanzeige → Windows-Protokolle → Anwendung, Quelle `TrackCraft`. Die 30 neuesten Tagesdateien bleiben. Sie enthalten keine Schlüssel, Positionen oder Gesundheitswerte, aber Dateinamen von Uploads – vor dem Weitergeben durchsehen.
 - TrackCraft ist nur erreichbar, wenn der PC läuft.
 - Bei einem Absturz startet Windows den Dienst nach einer Minute neu, höchstens zweimal am Tag. Bei einem Konfigurationsfehler bleibt er gestoppt.
 

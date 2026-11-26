@@ -61,7 +61,7 @@ pub struct Notice {
     pub message: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Preview {
     pub token: String,
     pub stand: format::StandInfo,
@@ -69,6 +69,20 @@ pub struct Preview {
     pub comparison: Comparison,
     pub requires_acknowledgement: bool,
     pub warnings: Vec<Notice>,
+}
+
+/// Ohne Vorschau-Token im Klartext (ADR-0013).
+impl std::fmt::Debug for Preview {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Preview")
+            .field("token", &crate::logging::Hidden)
+            .field("stand", &self.stand)
+            .field("current", &self.current)
+            .field("comparison", &self.comparison)
+            .field("requires_acknowledgement", &self.requires_acknowledgement)
+            .field("warnings", &self.warnings)
+            .finish()
+    }
 }
 
 #[derive(Debug)]

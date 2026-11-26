@@ -1,5 +1,23 @@
-//! Logging nach RFC-0013: Datei in `logs_dir`, täglich rotiert; in Konsole und Container zusätzlich stdout.
-//! Aufbewahrung 30 Dateien ist der Betriebsentwurf bis C7.
+//! Logging nach RFC-0013: eine Datei `app.<datum>.log` in `logs_dir`, täglich rotiert, die 30 neuesten
+//! bleiben; in Konsole und Container zusätzlich stdout.
+
+/// Platzhalter für Geheimnisse im `Debug`-Format (ADR-0013): Strukturen mit Schlüssel oder Token
+/// leiten `Debug` nicht ab, sondern zeigen an deren Stelle nur diesen Text.
+pub const REDACTED: &str = "<ausgeblendet>";
+
+/// Steht im `Debug`-Format für ein Geheimnis; `Option<Hidden>` zeigt noch, ob eines gesetzt ist.
+pub struct Hidden;
+
+impl std::fmt::Debug for Hidden {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(REDACTED)
+    }
+}
+
+/// `Some(<ausgeblendet>)` oder `None`.
+pub fn hidden<T>(value: &Option<T>) -> Option<Hidden> {
+    value.as_ref().map(|_| Hidden)
+}
 
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::{Builder, Rotation};
