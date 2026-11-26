@@ -2927,6 +2927,7 @@ dependencies = [
  "embedded-io-adapters",
  "fs4",
  "geo",
+ "http-body",
  "http-body-util",
  "quick-xml",
  "rcgen",

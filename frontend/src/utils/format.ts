@@ -156,6 +156,20 @@ export function localDate(date: Date, timeZone?: string): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+/** Lokaler Zeitpunkt `JJJJ-MM-TT HH:MM` in der Zeitzone der TOML, für Tabellenkalkulationen (CSV). */
+export function localDateTime(iso: string, timeZone?: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+  const get = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${localDate(d, timeZone)} ${get("hour")}:${get("minute")}`;
+}
+
+/** Zahl ohne Tausendertrennung mit dem Dezimalzeichen des Gebietsschemas (CSV), leer bei unbekannt. */
+export function plainNumber(value: number | null | undefined, digits = 0): string {
+  if (value == null) return "";
+  return value.toFixed(digits).replace(".", decimalSeparator());
+}
+
 /** Kalendertag verschieben (`JJJJ-MM-TT`), ohne Zeitzonen. */
 export function addDays(day: string, days: number): string {
   const d = new Date(`${day}T12:00:00Z`);

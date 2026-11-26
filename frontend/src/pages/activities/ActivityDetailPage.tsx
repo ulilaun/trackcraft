@@ -24,6 +24,8 @@ import { ActivityChart } from "./ActivityChart";
 import { ActivityMap } from "./ActivityMap";
 import { CreateSegmentDialog } from "./CreateSegmentDialog";
 import { DeleteDialog } from "./DeleteDialog";
+import { DownloadMenu } from "../../components/DownloadMenu";
+import { API_BASE } from "../../api/client";
 import { EditDialog } from "./EditDialog";
 import { LoadCard } from "./LoadCard";
 import { PlannedUnitCard } from "./PlannedUnitCard";
@@ -172,6 +174,14 @@ export function ActivityDetailPage() {
               <Pencil size={14} />
               {t("detail.edit")}
             </button>
+            <DownloadMenu
+              label={t("detail.download")}
+              className={textButton}
+              items={[
+                { href: `${API_BASE}/activities/${a.id}/original`, label: t("detail.downloadOriginal"), hint: t("detail.downloadOriginalHint") },
+                ...(a.has_position ? [{ href: `${API_BASE}/activities/${a.id}/gpx`, label: t("detail.downloadGpx"), hint: t("detail.downloadGpxHint") }] : []),
+              ]}
+            />
             <button type="button" className={textButton} onClick={() => setDialog("delete")}>
               <Trash2 size={14} />
               {t("detail.delete")}

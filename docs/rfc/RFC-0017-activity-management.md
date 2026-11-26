@@ -28,7 +28,7 @@ Aktivität samt Messpunkten/Zuordnungen/Versuchen entfernen, PRs/Statistik neu b
 
 Historische Backups bleiben bis Retention, Restore kann Gelöschtes zurückbringen. Vollständiger Reimport nach vollständiger Entfernung; fehlende FIT-Sessions schon bei verbliebenen Geschwistern ergänzbar.
 
-Erstellungs-/Änderungszeit und fachliche Revision führen. Tags/Bulkedit/Massenlöschung und manuelle Erfassung von Aktivitäten ohne Datei spätere Option (V2, RFC-0100)en. Kein Export/Original-/Backupdownload, keine Streak.
+Erstellungs-/Änderungszeit und fachliche Revision führen. Tags/Bulkedit/Massenlöschung und manuelle Erfassung von Aktivitäten ohne Datei spätere Option (V2, RFC-0100)en. Original- und GPX-Download nach RFC-0019, kein Backupdownload, keine Streak.
 
 ## Ortsvorschlag
 

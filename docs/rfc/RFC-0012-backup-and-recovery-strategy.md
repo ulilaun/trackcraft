@@ -77,7 +77,7 @@ Kein garantiertes Datenverlustfenster: Änderungen seit der letzten erfolgreiche
 
 Umgesetzt mit #57, siehe „Umsetzung“. Offen: eine Platzprüfung vor dem Bereitstellen (bisher scheitert das Kopieren ohne Folgen, wenn der Platz fehlt). Restore unter anderen Berechnungsparametern technisch mit versionierter Neuberechnung koordinieren.
 
-Cloudziele/automatische Restoretests spätere Optionen, keine Zusage. Keine Exportfunktion durch Betriebsbackup.
+Cloudziele/automatische Restoretests spätere Optionen, keine Zusage. Das Betriebsbackup ist kein Export; den Export regelt RFC-0019.
 
 ## Umsetzung (#57, Schemaversion 21)
 

@@ -71,8 +71,9 @@ Alle Bilder zeigen erfundene Beispieldaten auf Mallorca ([scripts/demo](scripts/
 - Eigenes HTTPS mit einer Heimnetz-Zertifizierungsstelle, die das Setup anlegt; Handy und Tablet vertrauen ihr nach einmaligem Import.
 - Bedienbar am PC, Tablet und Handy, helles und dunkles Design.
 - Eine Datenbank (SQLite) und die unveränderten Originaldateien; jede Kennzahl lässt sich aus den Originalen neu berechnen.
+- **Export:** alle Daten als ZIP (Originale, GPX je Aktivität, Fachdaten als JSON), je Aktivität Original oder GPX, die gefilterte Aktivitätenliste als CSV.
 
-**Noch nicht enthalten** (geplant bis v1.0, siehe [Meilenstein](../../milestones)): Export aller Daten. Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
+**Noch nicht enthalten:** Später denkbar und als [Issues](../../issues) beschrieben: Ausrüstung und Wartung, Leistungsdaten (Watt), Laufprognosen, Gesundheitsdaten, mehrere Benutzer mit Anmeldung, weitere Sprachen, Raspberry Pi, MCP-Server.
 
 ## Sicherheit: nur fürs Heimnetz
 
@@ -140,7 +141,7 @@ erkennt TrackCraft selbst.
 Alles steckt in einem Datenordner: eine SQLite-Datenbank und die unveränderten Originaldateien. TrackCraft
 sichert beides täglich in ein Sicherungsziel deiner Wahl (USB-Laufwerk, zweite Platte oder Netzwerkfreigabe),
 nur bei Änderungen, und behält die letzten fünf Stände (Uhrzeit und Anzahl einstellbar); vor jeder Datenbankmigration zusätzlich.
-Wiederherstellen geht auf der Seite Sicherung; der Export kommt mit v1.0.
+Wiederherstellen geht auf der Seite Sicherung. Alle Daten als ZIP gibt es unter Einstellungen → Export.
 
 **Was verlässt mein Netz?**
 Nur die Abrufe von Kartenkacheln (Browser → OpenStreetMap oder dein Anbieter), der abschaltbare Ortsvorschlag

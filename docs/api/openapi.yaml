@@ -35,6 +35,8 @@ tags:
   - name: Garmin
     description: Abruf aus Garmin Connect über die persönliche Garmin-API (RFC-0008 Abschnitt 10)
   - name: Backup
+  - name: Export
+    description: Gesamtexport und Downloads je Aktivität (RFC-0019)
   - name: Jobs
 paths:
   /health:
@@ -189,6 +191,60 @@ paths:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/ActivityTrackResponse'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
+  /activities/{id}/original:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Export]
+      operationId: downloadActivityOriginal
+      summary: Originaldatei der Aktivität unverändert
+      description: |
+        RFC-0019 „Einzelne Aktivität“. Die Datei aus dem Archiv, Byte für Byte, als Anhang `<JJJJ-MM-TT-HHMM>-<titel>.fit` bzw. `.gpx`.
+        Aktivitäten aus derselben Datei liefern dieselbe Datei. `404 original_missing`, wenn die Datei im Archiv fehlt.
+      responses:
+        '200':
+          description: 'Originaldatei'
+          headers:
+            Content-Disposition: {schema: {type: string}, description: 'attachment; filename=…'}
+          content:
+            application/vnd.ant.fit: {schema: {type: string, format: binary}}
+            application/gpx+xml: {schema: {type: string, format: binary}}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /activities/{id}/gpx:
+    parameters:
+      - {$ref: '#/components/parameters/Id'}
+    get:
+      tags: [Export]
+      operationId: downloadActivityGpx
+      summary: GPX 1.1 aus den aufbereiteten Punkten
+      description: |
+        RFC-0019. Je Abschnitt ein `trkseg` mit Position, Höhe, Zeit und Herzfrequenz (Garmin TrackPointExtension v1); Punkte ohne Position fehlen.
+        `409 activity_without_position`, wenn die Aktivität keinen Punkt mit Position hat.
+      responses:
+        '200':
+          description: 'GPX-Datei'
+          headers:
+            Content-Disposition: {schema: {type: string}, description: 'attachment; filename=…'}
+          content:
+            application/gpx+xml: {schema: {type: string, format: binary}}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /export:
+    get:
+      tags: [Export]
+      operationId: downloadExport
+      summary: Gesamtexport als ZIP, im Strom erzeugt
+      description: |
+        RFC-0019 „Gesamtexport“. `originals/` (unverändert), `gpx/` (je Aktivität mit Position) und zuletzt `trackcraft-export.json`
+        (Format `trackcraft-export`, Version 1, Felder wie die Darstellungen dieser API, ohne Geheimnisse). Anhang `trackcraft-export-JJJJ-MM-TT.zip`.
+        Die Länge ist vorab nicht bekannt (chunked). Fehlende Originale stehen in `missing_originals` und brechen nicht ab.
+      responses:
+        '200':
+          description: 'ZIP-Archiv'
+          headers:
+            Content-Disposition: {schema: {type: string}, description: 'attachment; filename=…'}
+          content:
+            application/zip: {schema: {type: string, format: binary}}
   /activities/{id}/location-suggestion:
     parameters:
       - {$ref: '#/components/parameters/Id'}
@@ -1167,12 +1223,12 @@ components:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
     NotFound:
-      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `hr_zone_set_not_found`, `planned_unit_not_found`, `plan_goal_not_found`, `backup_not_found`, `operation_not_found`).
+      description: Objekt nicht gefunden (`activity_not_found`, `segment_not_found`, `import_job_not_found`, `job_not_found`, `season_not_found`, `hr_zone_set_not_found`, `planned_unit_not_found`, `plan_goal_not_found`, `backup_not_found`, `operation_not_found`, `original_missing`).
       content:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
     Conflict:
-      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `hr_zone_set_date_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `acknowledgement_required` (400), `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`).
+      description: Zustandskonflikt (zum Beispiel `season_overlap` mit `details.season`, `season_name_taken`, `hr_zone_set_date_taken`, `sub_sport_name_taken`, `sub_sport_in_use` mit `details.activity_count` und `details.mapping_count`, `route_already_matched`, `import_state_changed`, `import_not_confirmable`, `operation_running`, `restore_preview_stale`, `acknowledgement_required` (400), `job_not_retryable`, `garmin_not_configured`, `garmin_sync_running`, `activity_without_position`).
       content:
         application/json:
           schema: {$ref: '#/components/schemas/ErrorResponse'}
