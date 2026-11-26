@@ -1054,7 +1054,15 @@ export interface BackupStatus {
   };
   daily_time: string;
   keep: number;
+  /** In der Oberfläche gesetzte Werte (`null` = Vorgabe) und Grenzen */
+  settings: { daily_time: string | null; keep: number | null; default_daily_time: string; default_keep: number; max_keep: number };
   current: { revision_id: string; change_counter: number } | null;
+}
+
+/** `null` setzt auf die Vorgabe zurück. */
+export interface BackupSettingsUpdate {
+  daily_time?: string | null;
+  keep?: number | null;
 }
 
 export interface BackupStatusResponse {

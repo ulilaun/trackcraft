@@ -285,3 +285,40 @@ async fn missing_original_is_noted_not_fatal() {
     assert_eq!(v["data"][0]["missing_original_count"], 1);
     assert_eq!(v["data"][0]["check_status"], "ok");
 }
+
+#[tokio::test]
+async fn settings_change_time_and_retention() {
+    let f = fixture().await;
+    let target = f.cfg.raw.backup.target_dir.clone();
+    std::fs::create_dir_all(&target).unwrap();
+
+    // Vorgaben aus TOML bzw. fünf
+    let (_, v) = send(&f, Method::GET, "/api/v1/backups/status", None).await;
+    let d = &v["data"];
+    assert_eq!((d["daily_time"].as_str(), d["keep"].as_i64()), (Some("03:00"), Some(5)));
+    assert_eq!(d["settings"]["daily_time"], Value::Null);
+    assert_eq!(d["settings"]["max_keep"], 30);
+
+    // Ungültiges wird abgewiesen, nichts geändert
+    for bad in [json!({ "daily_time": "25:00" }), json!({ "keep": 0 }), json!({ "keep": 31 }), json!({ "keep": "3" }), json!({ "x": 1 })] {
+        let (s, v) = send(&f, Method::PATCH, "/api/v1/backups/settings", Some(bad.clone())).await;
+        assert_eq!(s, StatusCode::BAD_REQUEST, "{bad} {v}");
+    }
+    let (s, v) = send(&f, Method::PATCH, "/api/v1/backups/settings", Some(json!({ "daily_time": "22:30", "keep": 2 }))).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!((v["data"]["daily_time"].as_str(), v["data"]["keep"].as_i64()), (Some("22:30"), Some(2)));
+    assert_eq!(v["data"]["settings"]["daily_time"], "22:30");
+
+    // Aufbewahrung mit der eingestellten Zahl
+    for i in 0..3 {
+        import(&f, &gpx(T0 + i * 86_400, 30)).await;
+        let Outcome::Created { .. } = attempt(&f).await else { panic!("Sicherung erwartet") };
+    }
+    assert_eq!(format::list(&target).unwrap().len(), 2);
+
+    // Zurück auf die Vorgabe; nur die Uhrzeit
+    let (_, v) = send(&f, Method::PATCH, "/api/v1/backups/settings", Some(json!({ "daily_time": null }))).await;
+    assert_eq!((v["data"]["daily_time"].as_str(), v["data"]["keep"].as_i64()), (Some("03:00"), Some(2)));
+    let (_, v) = send(&f, Method::PATCH, "/api/v1/backups/settings", Some(json!({ "keep": null }))).await;
+    assert_eq!(v["data"]["keep"], 5);
+}

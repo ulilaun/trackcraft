@@ -40,6 +40,7 @@ const base = (p: Partial<BackupStatus> = {}): BackupStatus => ({
   },
   daily_time: "03:00",
   keep: 5,
+  settings: { daily_time: null, keep: null, default_daily_time: "03:00", default_keep: 5, max_keep: 30 },
   current: { revision_id: "r12", change_counter: 12 },
   ...p,
 });
@@ -105,12 +106,14 @@ let status: BackupStatus;
 let entries: BackupEntry[];
 let op: Operation;
 let writes: string[];
+let patches: unknown[];
 
 beforeEach(() => {
   status = base();
   entries = [];
   op = operation();
   writes = [];
+  patches = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -119,6 +122,17 @@ beforeEach(() => {
       if (url.endsWith("/backups") && method === "POST") {
         op = operation({ status: "queued", phase: null });
         return json(202, { data: op });
+      }
+      if (url.endsWith("/backups/settings")) {
+        const body = JSON.parse(String(init?.body));
+        patches.push(body);
+        status = {
+          ...status,
+          daily_time: body.daily_time ?? status.daily_time,
+          keep: body.keep ?? status.keep,
+          settings: { ...status.settings, ...body },
+        };
+        return json(200, { data: status });
       }
       if (url.endsWith("/backups/status")) return json(200, { data: status });
       if (url.endsWith("/backups"))
@@ -171,7 +185,8 @@ describe("Seite Sicherung", () => {
     setup();
     expect(await screen.findByText("Ungesicherte Änderungen")).toBeInTheDocument();
     expect(screen.getByText("Letzte erfolgreiche Sicherung: 26.11.2026 03:00")).toBeInTheDocument();
-    expect(screen.getByText(/täglich ab 03:00/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Uhrzeit der täglichen Sicherung")).toHaveValue("03:00");
+    expect(screen.getByLabelText("Zahl der aufbewahrten Stände")).toHaveValue("5");
     expect(screen.getByText(/frei$/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(3));
     const rows = screen.getAllByRole("row");
@@ -234,5 +249,18 @@ describe("Seite Sicherung", () => {
     expect(screen.getByRole("button", { name: "Jetzt sichern" })).toBeDisabled();
     expect(await screen.findByText("Das Sicherungsziel ist nicht erreichbar.")).toBeInTheDocument();
     expect(screen.getByText(/Ziel nicht erreichbar, übersprungen/)).toBeInTheDocument();
+  });
+
+  it("ändert Uhrzeit und Aufbewahrung und setzt auf die Vorgaben zurück", async () => {
+    setup();
+    const time = await screen.findByLabelText("Uhrzeit der täglichen Sicherung");
+    expect(screen.queryByRole("button", { name: /Vorgaben/ })).not.toBeInTheDocument();
+    fireEvent.change(time, { target: { value: "22:30" } });
+    await waitFor(() => expect(screen.getByLabelText("Uhrzeit der täglichen Sicherung")).toHaveValue("22:30"));
+    fireEvent.change(screen.getByLabelText("Zahl der aufbewahrten Stände"), { target: { value: "10" } });
+    await waitFor(() => expect(screen.getByLabelText("Zahl der aufbewahrten Stände")).toHaveValue("10"));
+    fireEvent.click(screen.getByRole("button", { name: "Vorgaben (03:00, 5)" }));
+    await waitFor(() => expect(patches).toHaveLength(3));
+    expect(patches).toEqual([{ daily_time: "22:30" }, { keep: 10 }, { daily_time: null, keep: null }]);
   });
 });

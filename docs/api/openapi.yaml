@@ -1018,6 +1018,20 @@ paths:
         Änderungen, laufender Vorgang und Zustand des Sicherungsziels. Die Liste der Stände liefert `GET /backups`.
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/BackupStatusResponse'}}}}
+  /backups/settings:
+    patch:
+      tags: [Backup]
+      operationId: updateBackupSettings
+      summary: Uhrzeit des täglichen Versuchs und Zahl der aufbewahrten Stände ändern
+      description: Eine geringere Zahl entfernt überzählige Stände erst nach der nächsten erfolgreichen Sicherung.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BackupSettingsUpdate'}
+      responses:
+        '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/BackupStatusResponse'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
   /backups:
     get:
       tags: [Backup]
@@ -2650,7 +2664,7 @@ components:
     BackupOutcome: {type: string, enum: [created, skipped_no_changes, skipped_target_unavailable, failed]}
     BackupStatus:
       type: object
-      required: [last_attempt, last_success, pending_changes, running_operation_id, target, daily_time, keep, current]
+      required: [last_attempt, last_success, pending_changes, running_operation_id, target, daily_time, keep, settings, current]
       properties:
         last_attempt:
           oneOf:
@@ -2683,8 +2697,9 @@ components:
             free_bytes: {type: [integer, 'null'], minimum: 0}
             path: {type: string, description: 'Konfiguriertes Sicherungsziel (`[backup] target_dir`), nur zur Anzeige'}
             problem: {type: [string, 'null']}
-        daily_time: {type: string, description: 'Uhrzeit des täglichen Versuchs (HH:MM, Anwendungszeitzone)'}
-        keep: {type: integer, minimum: 1, description: 'Aufbewahrte erfolgreiche Stände'}
+        daily_time: {type: string, description: 'Wirksame Uhrzeit des täglichen Versuchs (HH:MM, Anwendungszeitzone)'}
+        keep: {type: integer, minimum: 1, description: 'Wirksame Zahl aufbewahrter erfolgreicher Stände'}
+        settings: {$ref: '#/components/schemas/BackupSettings'}
         current:
           oneOf:
             - type: 'null'
@@ -2693,6 +2708,23 @@ components:
               properties:
                 revision_id: {type: string}
                 change_counter: {type: integer, minimum: 0}
+    BackupSettings:
+      type: object
+      description: In der Oberfläche gesetzte Werte (`null` = Vorgabe) und Grenzen.
+      required: [daily_time, keep, default_daily_time, default_keep, max_keep]
+      properties:
+        daily_time: {type: [string, 'null'], pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'}
+        keep: {type: [integer, 'null'], minimum: 1, maximum: 30}
+        default_daily_time: {type: string, description: '`[backup] daily_time` der TOML bzw. 03:00'}
+        default_keep: {type: integer}
+        max_keep: {type: integer}
+    BackupSettingsUpdate:
+      type: object
+      additionalProperties: false
+      description: Nur gesendete Felder ändern sich; `null` setzt auf die Vorgabe zurück.
+      properties:
+        daily_time: {type: [string, 'null'], pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'}
+        keep: {type: [integer, 'null'], minimum: 1, maximum: 30}
     BackupStatusResponse:
       type: object
       required: [data]

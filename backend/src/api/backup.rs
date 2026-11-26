@@ -37,6 +37,10 @@ fn operation_json(op: &Operation) -> Value {
 
 /// `GET /backups/status`
 pub async fn status(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    Ok(Json(json!({ "data": status_value(&state).await? })))
+}
+
+async fn status_value(state: &AppState) -> Result<Value, ApiError> {
     let cfg = &state.cfg;
     let s = backup::load_state(&state.db).await?;
     let current = backup::current_revision(&state.db).await?;
@@ -61,7 +65,7 @@ pub async fn status(State(state): State<AppState>) -> Result<Json<Value>, ApiErr
             "change_counter": s.last_success_counter,
         })
     });
-    Ok(Json(json!({ "data": {
+    Ok(json!({
         "last_attempt": last_attempt,
         "last_success": last_success,
         "pending_changes": backup::pending(&s, current.as_ref(), &format::parameters(cfg)),
@@ -72,10 +76,17 @@ pub async fn status(State(state): State<AppState>) -> Result<Json<Value>, ApiErr
             "path": target.display().to_string(),
             "problem": problem,
         },
-        "daily_time": cfg.raw.backup.daily_time,
-        "keep": format::KEEP,
+        "daily_time": s.daily_time(cfg),
+        "keep": s.keep(),
+        "settings": {
+            "daily_time": s.daily_time,
+            "keep": s.keep,
+            "default_daily_time": cfg.raw.backup.daily_time,
+            "default_keep": format::KEEP,
+            "max_keep": format::KEEP_MAX,
+        },
         "current": current.map(|(revision_id, change_counter)| json!({ "revision_id": revision_id, "change_counter": change_counter })),
-    }})))
+    }))
 }
 
 fn entry_json(s: &format::StandInfo) -> Value {
@@ -196,4 +207,40 @@ pub async fn restore(State(state): State<AppState>, body: Bytes) -> Result<Respo
     };
     let op = backup::operation(&state.db, &id).await?.ok_or(ApiError::INTERNAL)?;
     Ok((StatusCode::ACCEPTED, Json(json!({ "data": operation_json(&op) }))).into_response())
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Einstellungen (Uli 25.11.2026)
+
+/// Liest die Änderung streng: nur bekannte Felder, `null` setzt auf die Vorgabe zurück.
+fn parse_settings(body: &serde_json::Map<String, Value>) -> Result<backup::SettingsChange, ApiError> {
+    let mut c = backup::SettingsChange::default();
+    for (k, v) in body {
+        match k.as_str() {
+            "daily_time" => {
+                c.daily_time = Some(match v {
+                    Value::Null => None,
+                    Value::String(t) if crate::config::valid_hh_mm(t) => Some(t.clone()),
+                    _ => return Err(ApiError::validation("daily_time", "invalid_time", "Expected HH:MM")),
+                })
+            }
+            "keep" => {
+                c.keep = Some(match v {
+                    Value::Null => None,
+                    Value::Number(n) if n.as_i64().is_some_and(|k| (1..=format::KEEP_MAX).contains(&k)) => n.as_i64(),
+                    _ => return Err(ApiError::validation("keep", "out_of_range", "Expected an integer from 1 to 30")),
+                })
+            }
+            other => return Err(ApiError::validation(other, "unknown_field", "Unknown field")),
+        }
+    }
+    Ok(c)
+}
+
+/// `PATCH /backups/settings`: Uhrzeit des täglichen Versuchs und Zahl der aufbewahrten Stände; Antwort wie der Status.
+pub async fn update_settings(State(state): State<AppState>, body: Bytes) -> Result<Json<Value>, ApiError> {
+    let body: serde_json::Map<String, Value> = parse_json(&body)?;
+    let change = parse_settings(&body)?;
+    backup::update_settings(&state.db, &change).await?;
+    Ok(Json(json!({ "data": status_value(&state).await? })))
 }

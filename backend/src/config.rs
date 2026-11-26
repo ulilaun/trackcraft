@@ -870,7 +870,7 @@ pub fn parse_origin(s: &str) -> Result<Origin, String> {
     Ok(Origin { origin: s.to_string(), host, port })
 }
 
-fn valid_hh_mm(s: &str) -> bool {
+pub fn valid_hh_mm(s: &str) -> bool {
     let b = s.as_bytes();
     if b.len() != 5 || b[2] != b':' {
         return false;

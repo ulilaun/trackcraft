@@ -17,6 +17,7 @@ import { useConfig } from "../../hooks/useConfig";
 import { t, tn, type TextKey } from "../../i18n";
 import { dateTime, fileSize, num } from "../../utils/format";
 import { RestoreDialog } from "./RestoreDialog";
+import { ScheduleSettings } from "./ScheduleSettings";
 import { backupState, finished, operationPollInterval, statusPollInterval, type BackupState } from "./backupModel";
 
 const primary =
@@ -98,7 +99,9 @@ function StatusCard({
             )}
           </dd>
           <dt className="text-muted">{t("backup.schedule")}</dt>
-          <dd>{t("backup.scheduleText", { time: s.daily_time, keep: s.keep })}</dd>
+          <dd>
+            <ScheduleSettings s={s} />
+          </dd>
         </dl>
         <p className="text-xs text-muted">{t("backup.hint")}</p>
       </div>
