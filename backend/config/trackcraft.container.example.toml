@@ -15,6 +15,11 @@ database_dir   = "/data/database"
 activities_dir = "/data/activities"
 logs_dir       = "/data/logs"
 
+# Schlüssel für gespeicherte Geheimnisse (#10). /config ist schreibgeschützt eingebunden, deshalb liegt er im
+# Datenvolume; TrackCraft-Sicherungen enthalten ihn nie. Bei einem Umzug mitkopieren.
+[secrets]
+key_file = "/data/secrets.key"
+
 [backup]
 target_dir    = "/backup-target"   # separat eingebundenes Sicherungsziel
 migration_dir = "/data/backups"    # nur lokale Migrationssicherung, nur die letzte

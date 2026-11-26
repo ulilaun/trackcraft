@@ -73,6 +73,7 @@ Spalte „Wirkung“: **Neuberechnung** löst eine versionierte Neuberechnung au
 | `[segments.route_matching] direction_reference_m` | optional, Vorgabe `50.0` | Neuberechnung | nein |
 | `[garmin] api_base_url` | optional, Vorgabe `https://personal.connectapi.garmin.com` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests) | Betrieb | nein |
 | `[garmin] request_delay_ms` | optional, Vorgabe `1000`, höchstens `60000` (Pause vor jedem Download) | Betrieb | nein |
+| `[secrets] key_file` | optional, absoluter Pfad, Vorgabe `secrets.key` im Ordner der Konfigurationsdatei. Schlüssel für gespeicherte Geheimnisse (RFC-0011, #10); fehlt die Datei, legt das Setup bzw. der Start sie an. Im Container `/data/secrets.key`, weil `/config` schreibgeschützt eingehängt ist | Neustart | nein |
 | `[places] nominatim_url` | optional, Vorgabe `https://nominatim.openstreetmap.org` (nur `https://`, `http://` nur für 127.0.0.1/localhost in Tests); Rückwärtssuche des Ortsvorschlags (RFC-0017), etwa für eine eigene Nominatim-Instanz | Betrieb | nein |
 | `[demo] enabled` | optional, Vorgabe `false`. `true`: Hinweisband „Demo mit erfundenen Daten“; beim Start werden alle Daten um ganze Tage verschoben, sodass die letzte Aktivität gestern war. Nur mit einer Demo-Datenbank (`trackcraft demo mark`, Migration 20), sonst bricht der Start ab. `trackcraft demo start` schreibt eine eigene Konfiguration mit `true` | Neustart | nein |
 

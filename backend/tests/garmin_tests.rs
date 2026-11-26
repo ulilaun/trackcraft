@@ -19,6 +19,7 @@ use trackcraft::api::{self, AppState};
 use trackcraft::config::{self, Validated};
 use trackcraft::db::Db;
 use trackcraft::garmin::{self, Runner};
+use trackcraft::secrets::{self, Secrets};
 use trackcraft::startup;
 
 const HOST: &str = "trackcraft.test";
@@ -149,10 +150,15 @@ struct Fixture {
     db: Db,
     app: Router,
     runner: Arc<Runner>,
+    secrets: Arc<Secrets>,
     mock: Mock,
 }
 
 async fn fixture(acts: Vec<Act>) -> Fixture {
+    fixture_with(acts, Secrets::ephemeral()).await
+}
+
+async fn fixture_with(acts: Vec<Act>, secrets: Secrets) -> Fixture {
     let mock = Mock { acts: Arc::new(Mutex::new(acts)), ..Default::default() };
     let base = mock_server(mock.clone()).await;
     let dir = common::temp();
@@ -163,8 +169,15 @@ async fn fixture(acts: Vec<Act>) -> Fixture {
     let db = started.db.clone();
     drop(started);
     let runner = Arc::new(Runner::default());
-    let app = api::router(AppState { cfg: cfg.clone(), db: db.clone(), garmin: runner.clone(), backup: Default::default() });
-    Fixture { _dir: dir, cfg, db, app, runner, mock }
+    let secrets = Arc::new(secrets);
+    let app = api::router(AppState {
+        cfg: cfg.clone(),
+        db: db.clone(),
+        garmin: runner.clone(),
+        backup: Default::default(),
+        secrets: secrets.clone(),
+    });
+    Fixture { _dir: dir, cfg, db, app, runner, secrets, mock }
 }
 
 async fn call(f: &Fixture, method: Method, path: &str, body: Option<Value>) -> (StatusCode, Value) {
@@ -180,7 +193,7 @@ async fn call(f: &Fixture, method: Method, path: &str, body: Option<Value>) -> (
 }
 
 async fn run(f: &Fixture) -> garmin::Progress {
-    f.runner.run_once(&f.cfg, &f.db).await.expect("kein Lauf aktiv").expect("Lauf erfolgreich")
+    f.runner.run_once(&f.cfg, &f.db, &f.secrets).await.expect("kein Lauf aktiv").expect("Lauf erfolgreich")
 }
 
 async fn scalar(db: &Db, sql: &str) -> Value {
@@ -234,6 +247,64 @@ async fn settings_check_key_and_never_return_it() {
     let (s, v) = call(&f, Method::PATCH, "/garmin", Some(json!({ "api_key": null }))).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(v["data"]["configured"], false);
+}
+
+async fn stored_key(db: &Db) -> Option<String> {
+    sqlx::query_scalar("SELECT api_key FROM garmin_settings WHERE id = 1").fetch_one(&db.reader).await.unwrap()
+}
+
+#[tokio::test]
+async fn key_is_stored_encrypted_and_plaintext_is_sealed() {
+    let f = fixture(vec![]).await;
+    let (s, _) = call(&f, Method::PATCH, "/garmin", Some(json!({ "api_key": KEY }))).await;
+    assert_eq!(s, StatusCode::OK);
+    let stored = stored_key(&f.db).await.unwrap();
+    assert!(Secrets::is_sealed(&stored) && !stored.contains(KEY), "{stored}");
+    assert_eq!(garmin::store::load(&f.db, &f.secrets).await.unwrap().api_key.as_deref(), Some(KEY));
+
+    // Klartext aus der Zeit vor #10 wird beim Start verschlüsselt und bleibt nutzbar.
+    sqlx::query("UPDATE garmin_settings SET api_key = ?").bind(KEY).execute(&f.db.writer).await.unwrap();
+    assert_eq!(garmin::store::load(&f.db, &f.secrets).await.unwrap().api_key.as_deref(), Some(KEY));
+    assert!(garmin::store::seal_plaintext(&f.db, &f.secrets).await.unwrap());
+    assert!(!garmin::store::seal_plaintext(&f.db, &f.secrets).await.unwrap());
+    assert!(Secrets::is_sealed(&stored_key(&f.db).await.unwrap()));
+    assert_eq!(garmin::store::load(&f.db, &f.secrets).await.unwrap().api_key.as_deref(), Some(KEY));
+}
+
+#[tokio::test]
+async fn key_from_other_key_file_pauses_sync_until_replaced() {
+    let f = fixture(vec![]).await;
+    // Wie nach einer Wiederherstellung auf einem anderen Rechner: Wert gehört zu einer anderen Schlüsseldatei.
+    let foreign = Secrets::ephemeral().seal(secrets::GARMIN_API_KEY, KEY).unwrap();
+    sqlx::query("UPDATE garmin_settings SET api_key = ?, enabled = 1").bind(&foreign).execute(&f.db.writer).await.unwrap();
+
+    let (_, v) = call(&f, Method::GET, "/garmin", None).await;
+    assert_eq!((v["data"]["configured"].clone(), v["data"]["key_unreadable"].clone()), (json!(false), json!(true)));
+    let (s, v) = call(&f, Method::POST, "/garmin/sync", None).await;
+    assert_eq!((s, v["error"]["code"].clone()), (StatusCode::CONFLICT, json!("garmin_not_configured")));
+    assert!(matches!(f.runner.run_once(&f.cfg, &f.db, &f.secrets).await, Some(Err(_))));
+    assert_eq!(f.mock.downloads.load(Ordering::SeqCst), 0);
+    let (_, v) = call(&f, Method::GET, "/system", None).await;
+    assert!(v["data"]["warnings"].as_array().unwrap().iter().any(|w| w["code"] == "garmin_key_unreadable"), "{v}");
+
+    let (s, v) = call(&f, Method::PATCH, "/garmin", Some(json!({ "api_key": KEY }))).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!((v["data"]["configured"].clone(), v["data"]["key_unreadable"].clone()), (json!(true), json!(false)));
+    let (_, v) = call(&f, Method::GET, "/system", None).await;
+    assert!(!v.to_string().contains("garmin_key_unreadable"), "{v}");
+}
+
+#[tokio::test]
+async fn without_key_file_a_key_cannot_be_stored() {
+    let f = fixture_with(vec![], Secrets::unavailable("test")).await;
+    let (s, v) = call(&f, Method::PATCH, "/garmin", Some(json!({ "api_key": KEY }))).await;
+    assert_eq!((s, v["error"]["code"].clone()), (StatusCode::SERVICE_UNAVAILABLE, json!("secrets_unavailable")));
+    assert_eq!(stored_key(&f.db).await, None);
+    // Andere Einstellungen gehen weiter.
+    let (s, _) = call(&f, Method::PATCH, "/garmin", Some(json!({ "interval_minutes": 90 }))).await;
+    assert_eq!(s, StatusCode::OK);
+    let (_, v) = call(&f, Method::GET, "/system", None).await;
+    assert!(v["data"]["warnings"].as_array().unwrap().iter().any(|w| w["code"] == "secrets_unavailable"), "{v}");
 }
 
 #[tokio::test]
@@ -317,7 +388,7 @@ async fn start_date_limits_backfill_and_expired_key_is_reported() {
 
     // Schlüssel abgelaufen: Lauf bricht ab, Status nennt den Grund.
     sqlx::query("UPDATE garmin_settings SET api_key = 'expired-key-9'").execute(&f.db.writer).await.unwrap();
-    let r = f.runner.run_once(&f.cfg, &f.db).await.unwrap();
+    let r = f.runner.run_once(&f.cfg, &f.db, &f.secrets).await.unwrap();
     assert!(r.is_err());
     let (_, v) = call(&f, Method::GET, "/garmin", None).await;
     assert_eq!(v["data"]["last_error"]["code"], "garmin_key_invalid");

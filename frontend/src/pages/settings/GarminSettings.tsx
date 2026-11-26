@@ -47,6 +47,7 @@ function StatusLine({ s, tz }: { s: GarminStatus; tz: string | undefined }) {
           {s.last_success_at && state === "error" && ` · ${t("garmin.lastSuccess", { time: dateTime(s.last_success_at, tz, true) })}`}
         </p>
       )}
+      {s.key_unreadable && <p className="text-warn">{t("garmin.keyUnreadable")}</p>}
       {s.last_error && !s.running && <p className="text-danger">{s.last_error.message}</p>}
     </div>
   );

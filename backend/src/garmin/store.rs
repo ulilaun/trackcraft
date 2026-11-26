@@ -8,13 +8,18 @@ use sqlx::Row;
 use crate::db::Db;
 use crate::import_job::timestamp;
 use crate::logging::hidden;
+use crate::secrets::{GARMIN_API_KEY, SecretError, Secrets};
 
 /// Versuche, nach denen eine immer wieder scheiternde Aktivität liegen bleibt (bis der Benutzer sie neu anstößt).
 pub const MAX_ATTEMPTS: i64 = 5;
 
 #[derive(Clone, Default)]
 pub struct Settings {
+    /// Entschlüsselter Schlüssel; `None` auch, wenn der gespeicherte Wert nicht lesbar ist.
     pub api_key: Option<String>,
+    /// Gespeicherter Schlüssel lässt sich nicht entschlüsseln (andere oder fehlende Schlüsseldatei, #10): Abruf ruht,
+    /// bis ein neuer eingetragen ist.
+    pub key_unreadable: bool,
     pub key_set_at_ms: Option<i64>,
     pub enabled: bool,
     pub start_date: Option<String>,
@@ -32,6 +37,7 @@ impl std::fmt::Debug for Settings {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Settings")
             .field("api_key", &hidden(&self.api_key))
+            .field("key_unreadable", &self.key_unreadable)
             .field("key_set_at_ms", &self.key_set_at_ms)
             .field("enabled", &self.enabled)
             .field("start_date", &self.start_date)
@@ -46,15 +52,22 @@ impl std::fmt::Debug for Settings {
     }
 }
 
-pub async fn load(db: &Db) -> anyhow::Result<Settings> {
+pub async fn load(db: &Db, secrets: &Secrets) -> anyhow::Result<Settings> {
     let r = sqlx::query(
         "SELECT api_key, key_set_at_ms, enabled, start_date, interval_minutes, backfill_done, last_run_started_ms, \
          last_run_finished_ms, last_success_ms, last_error_code, last_error_message FROM garmin_settings WHERE id = 1",
     )
     .fetch_one(&db.reader)
     .await?;
+    let stored: Option<String> = r.get("api_key");
+    let (api_key, key_unreadable) = match stored.map(|v| secrets.open_value(GARMIN_API_KEY, &v)) {
+        None => (None, false),
+        Some(Ok(k)) => (Some(k), false),
+        Some(Err(_)) => (None, true),
+    };
     Ok(Settings {
-        api_key: r.get("api_key"),
+        api_key,
+        key_unreadable,
         key_set_at_ms: r.get("key_set_at_ms"),
         enabled: r.get::<i64, _>("enabled") == 1,
         start_date: r.get("start_date"),
@@ -89,10 +102,16 @@ impl std::fmt::Debug for Change {
     }
 }
 
-pub async fn update(db: &Db, change: &Change, now: i64) -> anyhow::Result<()> {
+/// Schreibt die Änderung; ein neuer Schlüssel wird verschlüsselt (#10), ohne Geheimnisspeicher scheitert das.
+pub async fn update(db: &Db, secrets: &Secrets, change: &Change, now: i64) -> anyhow::Result<()> {
+    let sealed = match &change.api_key {
+        Some(Some(k)) => Some(Some(secrets.seal(GARMIN_API_KEY, k)?)),
+        Some(None) => Some(None),
+        None => None,
+    };
     let mut tx = db.writer.begin().await?;
     let old: Option<String> = sqlx::query_scalar("SELECT start_date FROM garmin_settings WHERE id = 1").fetch_one(&mut *tx).await?;
-    if let Some(key) = &change.api_key {
+    if let Some(key) = &sealed {
         // Neuer Schlüssel: alter Fehler (meist „abgelaufen“) ist erledigt.
         sqlx::query(
             "UPDATE garmin_settings SET api_key = ?, key_set_at_ms = ?, last_error_code = NULL, last_error_message = NULL WHERE id = 1",
@@ -123,6 +142,34 @@ pub async fn update(db: &Db, change: &Change, now: i64) -> anyhow::Result<()> {
     sqlx::query("UPDATE garmin_settings SET updated_at_ms = ? WHERE id = 1").bind(now).execute(&mut *tx).await?;
     tx.commit().await?;
     Ok(())
+}
+
+/// Verschlüsselt einen Klartext-Schlüssel aus der Zeit vor #10 (Start, auch nach einer Wiederherstellung). Der alte
+/// Wert wird dabei überschrieben (`secure_delete`) und das WAL geleert, damit er nicht in der Datei liegen bleibt.
+/// `true`, wenn etwas umgestellt wurde.
+pub async fn seal_plaintext(db: &Db, secrets: &Secrets) -> anyhow::Result<bool> {
+    let stored: Option<String> = sqlx::query_scalar("SELECT api_key FROM garmin_settings WHERE id = 1").fetch_one(&db.reader).await?;
+    let Some(plain) = stored.filter(|v| !Secrets::is_sealed(v)) else {
+        return Ok(false);
+    };
+    let sealed = match secrets.seal(GARMIN_API_KEY, &plain) {
+        Ok(v) => v,
+        Err(SecretError::Unavailable(_)) => return Ok(false),
+        Err(e) => return Err(e.into()),
+    };
+    let mut conn = db.writer.acquire().await?;
+    sqlx::query("PRAGMA secure_delete = ON").execute(&mut *conn).await?;
+    let updated = sqlx::query("UPDATE garmin_settings SET api_key = ? WHERE id = 1 AND api_key = ?")
+        .bind(&sealed)
+        .bind(&plain)
+        .execute(&mut *conn)
+        .await;
+    sqlx::query("PRAGMA secure_delete = OFF").execute(&mut *conn).await?;
+    let changed = updated?.rows_affected() > 0;
+    if changed {
+        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)").execute(&mut *conn).await?;
+    }
+    Ok(changed)
 }
 
 pub async fn run_started(db: &Db, now: i64) -> anyhow::Result<()> {

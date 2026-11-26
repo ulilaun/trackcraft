@@ -16,7 +16,7 @@ const icon: Record<CheckStatus, ReactElement> = {
 };
 
 /** Bekannte Warnungscodes aus `GET /system`; unbekannte zeigen nur die Meldung des Backends. */
-const WARNINGS = ["low_disk_space", "backup_pending", "backup_failed", "job_failed", "certificate_expiring"];
+const WARNINGS = ["low_disk_space", "backup_pending", "backup_failed", "job_failed", "certificate_expiring", "secrets_unavailable", "garmin_key_unreadable"];
 
 /** Laufzeit grob: ab einem Tag Tage und Stunden, sonst Stunden und Minuten. */
 export function uptime(seconds: number): string {

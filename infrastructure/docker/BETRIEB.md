@@ -69,6 +69,13 @@ Je Stand entsteht im Ziel ein Ordner `trackcraft-<datum>-<uhrzeit>-s<schema>-c<z
 
 Das Sicherungsziel ist in `compose.yaml` als `/backup-target` eingehängt (Zeile `/pfad/zum/sicherungsziel` anpassen), in der Konfiguration steht `target_dir = "/backup-target"`. Der Container läuft als Benutzer 10001; der Ordner muss für ihn beschreibbar sein, z. B. `sudo chown 10001:10001 /pfad/zum/sicherungsziel`.
 
+## Geheimnisse
+
+Gespeicherte Geheimnisse wie der Garmin-Schlüssel liegen nur verschlüsselt in der Datenbank. Den Schlüssel dafür enthält `data/secrets.key` (im Container `/data/secrets.key`, Einstellung `[secrets] key_file`), angelegt beim ersten Start. Sicherungen und Export enthalten ihn nie.
+
+- Die Datei nicht löschen und nicht weitergeben. Ohne sie sind gespeicherte Geheimnisse nicht mehr lesbar; die Seite Einstellungen → Garmin Connect meldet das, der Abruf ruht, bis der Schlüssel neu eingetragen ist.
+- Bei einem Umzug auf einen anderen Rechner die Datei mitkopieren, dann bleibt der Garmin-Schlüssel gültig. Sonst nach dem Wiederherstellen den Garmin-Schlüssel neu eintragen. Wer das ganze Datenvolume sichert, sichert die Datei mit; dann dieses Ziel genauso schützen.
+
 ## Update
 
 1. In `compose.yaml` bei beiden Images die neue genaue Version eintragen (nie `latest`).

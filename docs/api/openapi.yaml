@@ -901,7 +901,7 @@ paths:
       tags: [Garmin]
       operationId: getGarminStatus
       summary: Einstellungen, Laufstatus und Zähler des Garmin-Abrufs
-      description: Der Schlüssel wird nie zurückgegeben; `configured` sagt nur, ob einer gesetzt ist.
+      description: Der Schlüssel wird nie zurückgegeben; `configured` sagt nur, ob ein nutzbarer gesetzt ist. `key_unreadable` meldet einen gespeicherten Schlüssel, der sich nicht entschlüsseln lässt (#10).
       responses:
         '200': {description: 'OK', content: {application/json: {schema: {$ref: '#/components/schemas/GarminStatusResponse'}}}}
     patch:
@@ -911,7 +911,9 @@ paths:
       description: |
         Nur die gesendeten Felder ändern sich. Ein neuer Schlüssel wird sofort bei Garmin geprüft
         (`garmin_key_invalid` 400, `garmin_unreachable` 502) und löscht einen gespeicherten Fehler. `api_key: null`
-        entfernt den Schlüssel. Ein früheres oder fehlendes Anfangsdatum setzt `backfill_done` zurück.
+        entfernt den Schlüssel. Ein früheres oder fehlendes Anfangsdatum setzt `backfill_done` zurück. Der Schlüssel wird
+        verschlüsselt gespeichert (#10); fehlt die Schlüsseldatei und lässt sie sich nicht anlegen, scheitert das Setzen mit
+        `secrets_unavailable` (503).
       requestBody:
         required: true
         content:
@@ -921,6 +923,7 @@ paths:
         '200': {description: 'Geändert', content: {application/json: {schema: {$ref: '#/components/schemas/GarminStatusResponse'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '502': {description: 'Garmin nicht erreichbar (`garmin_unreachable`)', content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}}}}
+        '503': {description: 'Geheimnisspeicher nicht verfügbar (`secrets_unavailable`)', content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}}}}
   /garmin/sync:
     post:
       tags: [Garmin]
@@ -2486,10 +2489,11 @@ components:
         failed: {type: integer, minimum: 0}
     GarminStatus:
       type: object
-      required: [configured, key_set_at, enabled, start_date, interval_minutes, backfill_done, running, progress,
+      required: [configured, key_unreadable, key_set_at, enabled, start_date, interval_minutes, backfill_done, running, progress,
                  last_run_started_at, last_run_finished_at, last_success_at, last_error, counts]
       properties:
-        configured: {type: boolean, description: 'Schlüssel gesetzt'}
+        configured: {type: boolean, description: 'Nutzbarer Schlüssel gesetzt'}
+        key_unreadable: {type: boolean, description: 'Gespeicherter Schlüssel lässt sich nicht entschlüsseln (andere oder fehlende Schlüsseldatei, z. B. nach Wiederherstellung auf einem anderen Rechner); Abruf ruht, bis ein neuer eingetragen ist'}
         key_set_at: {type: [string, 'null'], format: date-time}
         enabled: {type: boolean, description: 'Regelmäßiger Abruf eingeschaltet'}
         start_date: {type: [string, 'null'], format: date, description: 'Frühester Starttag (Konfigurationszone), null = gesamte Historie'}
@@ -3029,7 +3033,7 @@ components:
                 type: object
                 required: [code, message, since]
                 properties:
-                  code: {type: string, description: 'Derzeit `low_disk_space` (Datenbereich oder Sicherungsziel unter `[monitoring] low_disk_free_gb`), `backup_pending` (seit der ersten ungesicherten Änderung), `backup_failed` (letzter Versuch), `job_failed` (seit dem ältesten fehlgeschlagenen Auftrag), `certificate_expiring` (ab 30 Tage vor Ablauf, RFC-0013). Unbekannte Codes zeigt die Oberfläche mit `message` an.'}
+                  code: {type: string, description: 'Derzeit `low_disk_space` (Datenbereich oder Sicherungsziel unter `[monitoring] low_disk_free_gb`), `backup_pending` (seit der ersten ungesicherten Änderung), `backup_failed` (letzter Versuch), `job_failed` (seit dem ältesten fehlgeschlagenen Auftrag), `certificate_expiring` (ab 30 Tage vor Ablauf, RFC-0013), `secrets_unavailable` (Schlüsseldatei fehlt oder ist unlesbar, #10), `garmin_key_unreadable` (gespeicherter Garmin-Schlüssel nicht entschlüsselbar, #10). Unbekannte Codes zeigt die Oberfläche mit `message` an.'}
                   message: {type: string}
                   since: {$ref: '#/components/schemas/Timestamp'}
     ConfigResponse:

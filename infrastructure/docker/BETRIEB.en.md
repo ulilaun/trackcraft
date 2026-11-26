@@ -71,6 +71,13 @@ Each backup is a folder `trackcraft-<date>-<time>-s<schema>-c<counter>` in the t
 
 The backup target is mounted as `/backup-target` in `compose.yaml` (adjust the line `/pfad/zum/sicherungsziel`), the configuration says `target_dir = "/backup-target"`. The container runs as user 10001; the folder must be writable for it, e.g. `sudo chown 10001:10001 /path/to/backup-target`.
 
+## Secrets
+
+Stored secrets such as the Garmin key are kept in the database only in encrypted form. The key for this is in `data/secrets.key` (inside the container `/data/secrets.key`, setting `[secrets] key_file`), created on first start. Backups and exports never contain it.
+
+- Do not delete or share the file. Without it, stored secrets can no longer be read; Settings → Garmin Connect reports this and downloads pause until the key is entered again.
+- When moving to another machine, copy the file along and the Garmin key stays valid. Otherwise enter the Garmin key again after restoring. If you back up the whole data volume, the file is included; protect that target accordingly.
+
 ## Update
 
 1. In `compose.yaml`, enter the new exact version for both images (never `latest`).
