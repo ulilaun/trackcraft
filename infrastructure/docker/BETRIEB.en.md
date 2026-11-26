@@ -94,7 +94,7 @@ Changes since the update are then missing; the original files in `data/activitie
 
 ## Logs
 
-`docker compose logs trackcraft-backend` and `data/logs/app.<date>.log`.
+`docker compose logs trackcraft-backend` and `data/logs/app.<date>.log`. The 30 most recent daily files are kept. They contain no keys, positions or health values, but do contain upload file names – check them before passing them on.
 
 ## Uninstall
 

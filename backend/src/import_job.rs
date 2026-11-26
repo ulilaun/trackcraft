@@ -509,11 +509,18 @@ pub fn remove_staging(cfg: &Validated, id: &str) {
 // ---------------------------------------------------------------------------------------------------------
 // Bestätigen
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ImportDecision {
     pub state_token: String,
     pub sessions: Vec<SessionDecision>,
+}
+
+/// Ohne Zustands-Token im Klartext (ADR-0013).
+impl std::fmt::Debug for ImportDecision {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ImportDecision").field("state_token", &crate::logging::Hidden).field("sessions", &self.sessions).finish()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

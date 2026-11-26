@@ -92,7 +92,7 @@ docker compose up -d
 
 ## Logs
 
-`docker compose logs trackcraft-backend` sowie `data/logs/app.<datum>.log`.
+`docker compose logs trackcraft-backend` sowie `data/logs/app.<datum>.log`. Die 30 neuesten Tagesdateien bleiben. Sie enthalten keine Schlüssel, Positionen oder Gesundheitswerte, aber Dateinamen von Uploads – vor dem Weitergeben durchsehen.
 
 ## Deinstallieren
 

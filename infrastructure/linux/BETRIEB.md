@@ -106,7 +106,7 @@ Eine NAS-Freigabe auf dem Proxmox-Host einhängen und per Bind-Mount in den Cont
 | `journalctl -u trackcraft -n 100` | Ausgaben des Dienstes, auch Startfehler |
 | `sudo -u trackcraft /opt/trackcraft/trackcraft check-config` | Konfiguration prüfen, ändert nichts |
 
-- Logs: `/var/lib/trackcraft/logs/app.<datum>.log` und das Journal.
+- Logs: `/var/lib/trackcraft/logs/app.<datum>.log` und das Journal. Die 30 neuesten Tagesdateien bleiben. Sie enthalten keine Schlüssel, Positionen oder Gesundheitswerte, aber Dateinamen von Uploads – vor dem Weitergeben durchsehen.
 - Bei einem Absturz oder Startfehler startet systemd den Dienst alle fünf Sekunden neu (`systemctl status` zeigt dann „activating (auto-restart)“); die Ursache steht im Journal.
 
 ## Umzug von Windows

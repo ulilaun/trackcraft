@@ -108,7 +108,7 @@ Mount a NAS share on the Proxmox host and pass it into the container as a bind m
 | `journalctl -u trackcraft -n 100` | service output, including start errors |
 | `sudo -u trackcraft /opt/trackcraft/trackcraft check-config` | check the configuration, changes nothing |
 
-- Logs: `/var/lib/trackcraft/logs/app.<date>.log` and the journal.
+- Logs: `/var/lib/trackcraft/logs/app.<date>.log` and the journal. The 30 most recent daily files are kept. They contain no keys, positions or health values, but do contain upload file names – check them before passing them on.
 - After a crash or start error, systemd restarts the service every five seconds (`systemctl status` then shows “activating (auto-restart)”); the cause is in the journal.
 
 ## Moving from Windows

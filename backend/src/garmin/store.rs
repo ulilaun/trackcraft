@@ -7,11 +7,12 @@ use sqlx::Row;
 
 use crate::db::Db;
 use crate::import_job::timestamp;
+use crate::logging::hidden;
 
 /// Versuche, nach denen eine immer wieder scheiternde Aktivität liegen bleibt (bis der Benutzer sie neu anstößt).
 pub const MAX_ATTEMPTS: i64 = 5;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Settings {
     pub api_key: Option<String>,
     pub key_set_at_ms: Option<i64>,
@@ -24,6 +25,25 @@ pub struct Settings {
     pub last_success_ms: Option<i64>,
     pub last_error_code: Option<String>,
     pub last_error_message: Option<String>,
+}
+
+/// Ohne Schlüssel im Klartext (ADR-0013).
+impl std::fmt::Debug for Settings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Settings")
+            .field("api_key", &hidden(&self.api_key))
+            .field("key_set_at_ms", &self.key_set_at_ms)
+            .field("enabled", &self.enabled)
+            .field("start_date", &self.start_date)
+            .field("interval_minutes", &self.interval_minutes)
+            .field("backfill_done", &self.backfill_done)
+            .field("last_run_started_ms", &self.last_run_started_ms)
+            .field("last_run_finished_ms", &self.last_run_finished_ms)
+            .field("last_success_ms", &self.last_success_ms)
+            .field("last_error_code", &self.last_error_code)
+            .field("last_error_message", &self.last_error_message)
+            .finish()
+    }
 }
 
 pub async fn load(db: &Db) -> anyhow::Result<Settings> {
@@ -49,12 +69,24 @@ pub async fn load(db: &Db) -> anyhow::Result<Settings> {
 }
 
 /// Änderung aus der Oberfläche; `None` = unverändert, `Some(None)` = entfernen.
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Change {
     pub api_key: Option<Option<String>>,
     pub enabled: Option<bool>,
     pub start_date: Option<Option<String>>,
     pub interval_minutes: Option<i64>,
+}
+
+/// Ohne Schlüssel im Klartext (ADR-0013).
+impl std::fmt::Debug for Change {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Change")
+            .field("api_key", &self.api_key.as_ref().map(hidden))
+            .field("enabled", &self.enabled)
+            .field("start_date", &self.start_date)
+            .field("interval_minutes", &self.interval_minutes)
+            .finish()
+    }
 }
 
 pub async fn update(db: &Db, change: &Change, now: i64) -> anyhow::Result<()> {
