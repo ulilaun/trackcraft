@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { DemoBanner } from "../components/DemoBanner";
 import { FlashProvider } from "../components/Flash";
 import { Header } from "../components/Header";
@@ -48,7 +48,10 @@ export function App() {
                 <Route path="/form" element={<FormPage />} />
                 <Route path="/plan" element={<PlanPage />} />
                 <Route path="/import" element={<ImportPage />} />
-                <Route path="/sicherung" element={<BackupPage />} />
+                <Route path="/daten" element={<BackupPage />} />
+                {/* Alte Adressen (bis 26.11.2026): Seite Sicherung und Einstellungen → Export */}
+                <Route path="/sicherung" element={<Navigate to="/daten" replace />} />
+                <Route path="/einstellungen/export" element={<Navigate to="/daten" replace />} />
                 <Route path="/system" element={<SystemPage />} />
                 <Route path="/einstellungen" element={<SettingsPage />} />
                 <Route path="/einstellungen/:section" element={<SettingsPage />} />

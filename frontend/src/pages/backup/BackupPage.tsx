@@ -16,6 +16,7 @@ import { Problem, problemText } from "../../components/Problem";
 import { useConfig } from "../../hooks/useConfig";
 import { t, tn, type TextKey } from "../../i18n";
 import { dateTime, fileSize, num } from "../../utils/format";
+import { ExportCard } from "./ExportCard";
 import { RestoreDialog } from "./RestoreDialog";
 import { ScheduleSettings } from "./ScheduleSettings";
 import { backupState, finished, operationPollInterval, statusPollInterval, type BackupState } from "./backupModel";
@@ -52,7 +53,7 @@ function StatusCard({
   const busy = state === "running";
   const phase = op && !finished(op) ? op.phase : null;
   return (
-    <Card className="min-w-0">
+    <Card title={t("backup.title")} className="min-w-0">
       <div className="grid gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="grid min-w-0 gap-1 text-sm">
@@ -213,8 +214,21 @@ function EntriesCard({ s, tz }: { s: BackupStatus; tz: string | undefined }) {
   );
 }
 
-/** Seite „Sicherung“ (#57, RFC-0012): Status, „Jetzt sichern“, Stände im Sicherungsziel. */
+/**
+ * Seite „Daten“ (`/daten`, Uli 26.11.2026): Sicherung (#57, RFC-0012) mit Status, „Jetzt sichern“ und den Ständen im
+ * Sicherungsziel, darunter der Gesamtexport (#58, RFC-0019). Der Export erscheint auch, wenn der Sicherungsstatus fehlt.
+ */
 export function BackupPage() {
+  return (
+    <div className="grid grid-cols-1 gap-4">
+      <h1 className="text-2xl font-bold">{t("nav.data")}</h1>
+      <BackupSection />
+      <ExportCard />
+    </div>
+  );
+}
+
+function BackupSection() {
   const queryClient = useQueryClient();
   const tz = useConfig().data?.data.timezone;
   const status = useQuery({
@@ -255,9 +269,9 @@ export function BackupPage() {
   const shown: BackupStatus = activeId && op.data && !done ? { ...s, running_operation_id: activeId } : s;
 
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <>
       <StatusCard s={shown} op={op.data?.data} tz={tz} onRun={() => run.mutate()} runError={run.error} />
       <EntriesCard s={s} tz={tz} />
-    </div>
+    </>
   );
 }

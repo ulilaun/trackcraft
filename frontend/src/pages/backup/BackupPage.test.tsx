@@ -161,7 +161,16 @@ function setup() {
   );
 }
 
-describe("Seite Sicherung", () => {
+describe("Seite Daten", () => {
+  it("zeigt Sicherung, Stände und Export", async () => {
+    setup();
+    expect(screen.getByRole("heading", { level: 1, name: "Daten" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Export" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Alles exportieren (ZIP)" })).toHaveAttribute("href", "/api/v1/export");
+    expect(await screen.findByRole("heading", { level: 2, name: "Sicherung" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Stände im Sicherungsziel" })).toBeInTheDocument();
+  });
+
   it("zeigt Status und Stände", async () => {
     status = base({
       last_success: success,

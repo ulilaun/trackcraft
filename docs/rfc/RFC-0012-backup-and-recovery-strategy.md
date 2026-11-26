@@ -16,7 +16,7 @@ Bei externem Ziel regelmäßige Trennung/Rotation und Restoretest ohne die urspr
 
 Das Sicherungsformat ist plattformunabhängig: Pfade im Manifest und in der Datenbank sind relativ mit `/` als Trenner, eine unter Windows erstellte Sicherung lässt sich unter Docker wiederherstellen und umgekehrt. Die TOML-Referenzkopie enthält plattformabhängige Pfade und wird ohnehin nicht automatisch aktiviert.
 
-Letzte fünf (Vorgabe; auf der Seite Sicherung 1 bis 30) erfolgreiche validierte vollständige Stände unabhängig vom Alter; überzählige älteste erst nach erfolgreichem neuen Stand entfernen. Fehler/Überspringen keine Retention-Löschung, weniger als eingestellt alle behalten. Eine geringere Zahl wirkt erst bei der nächsten erfolgreichen Sicherung.
+Letzte fünf (Vorgabe; auf der Seite Daten 1 bis 30) erfolgreiche validierte vollständige Stände unabhängig vom Alter; überzählige älteste erst nach erfolgreichem neuen Stand entfernen. Fehler/Überspringen keine Retention-Löschung, weniger als eingestellt alle behalten. Eine geringere Zahl wirkt erst bei der nächsten erfolgreichen Sicherung.
 
 Unverschlüsselt, Sicherungsziel physisch und zugriffsseitig schützen: Trainings-/Positions-/Gesundheits-/Profildaten sowie Konfiguration lesbar. HTTPS unabhängig Pflicht.
 
@@ -24,7 +24,7 @@ Fachliches Löschen verändert historische Sicherungen nicht rückwirkend; Resto
 
 ## Automatischer Sicherungsversuch
 
-Initial täglich 03:00 bzw. `[backup] daily_time`, konfigurierte Anwendungszeitzone; auf der Seite Sicherung änderbar (Datenbank führt, `backup_state.daily_time`). Nach lokalem konsistentem Stand prüfen: sicherungsrelevante Änderung seit erfolgreicher Sicherung und Ziel vorhanden/beschreibbar?
+Initial täglich 03:00 bzw. `[backup] daily_time`, konfigurierte Anwendungszeitzone; auf der Seite Daten änderbar (Datenbank führt, `backup_state.daily_time`). Nach lokalem konsistentem Stand prüfen: sicherungsrelevante Änderung seit erfolgreicher Sicherung und Ziel vorhanden/beschreibbar?
 
 Nur dann sichern. Keine Änderung/Ziel fehlt: überspringen ohne Erfolg vorzutäuschen. Erste Sicherung ohne Basis ausstehend. Bearbeiten/Löschen und tatsächliche Benutzerprofiländerungen zählen, unveränderter Profilabgleich/Logs/Backupprüfungen nicht.
 
@@ -40,7 +40,7 @@ Vor jeder Migration immer eine Vollsicherung, auch ohne Datenänderung. Sie wird
 
 ## Manuell und konsistent
 
-Jetzt sichern auf der Seite Backup/Restore, dieselben Änderungs-/Zielprüfungen, kein neuer Stand ohne Änderung. Manueller Versuch verbraucht Tagesversuch nicht, erfolgreicher aktualisiert Revision. Keine parallelen Läufe, Status/Ergebnis sichtbar.
+Jetzt sichern auf der Seite Daten, dieselben Änderungs-/Zielprüfungen, kein neuer Stand ohne Änderung. Manueller Versuch verbraucht Tagesversuch nicht, erfolgreicher aktualisiert Revision. Keine parallelen Läufe, Status/Ergebnis sichtbar.
 
 1. Bedingungen prüfen.
 2. Schreibende Services/Jobs koordinieren, laufende Änderungen geordnet abschließen, kurze Schreibsperre; Lesen möglich.

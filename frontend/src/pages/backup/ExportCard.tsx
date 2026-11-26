@@ -3,10 +3,10 @@ import { API_BASE } from "../../api/client";
 import { Card } from "../../components/Card";
 import { t } from "../../i18n";
 
-/** Einstellungen → Export (RFC-0019, #58): Gesamtexport als ZIP, vom Server beim Herunterladen erzeugt. */
-export function ExportSettings() {
+/** Seite Daten → Export (RFC-0019, #58): Gesamtexport als ZIP, vom Server beim Herunterladen erzeugt. */
+export function ExportCard() {
   return (
-    <Card>
+    <Card title={t("export.title")} className="min-w-0">
       <div className="grid gap-3 text-sm">
         <p className="text-muted">{t("export.intro")}</p>
         <ul className="grid list-disc gap-1 pl-5 text-muted">

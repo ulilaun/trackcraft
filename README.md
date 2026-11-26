@@ -141,7 +141,7 @@ erkennt TrackCraft selbst.
 Alles steckt in einem Datenordner: eine SQLite-Datenbank und die unveränderten Originaldateien. TrackCraft
 sichert beides täglich in ein Sicherungsziel deiner Wahl (USB-Laufwerk, zweite Platte oder Netzwerkfreigabe),
 nur bei Änderungen, und behält die letzten fünf Stände (Uhrzeit und Anzahl einstellbar); vor jeder Datenbankmigration zusätzlich.
-Wiederherstellen geht auf der Seite Sicherung. Alle Daten als ZIP gibt es unter Einstellungen → Export.
+Wiederherstellen und den Export aller Daten als ZIP gibt es auf der Seite Daten.
 
 **Was verlässt mein Netz?**
 Nur die Abrufe von Kartenkacheln (Browser → OpenStreetMap oder dein Anbieter), der abschaltbare Ortsvorschlag
