@@ -79,6 +79,8 @@ body {
 .leaflet-container {
   background: var(--tc-card-2);
   font: inherit;
+  /* Leaflet-Ebenen (z-index 400–1000) bleiben in der Karte und laufen nicht über Kopfzeile und Menü. */
+  isolation: isolate;
 }
 
 /* Ziehbare Start- und Zielmarker im Erstellen-Dialog (RFC-0016); nur Klassen wegen CSP style-src 'self'. */
