@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { Activity, ArrowLeft, CalendarRange, ChevronRight, MapPin, Palette, RefreshCw, type LucideIcon } from "lucide-react";
+import { Activity, ArrowLeft, CalendarRange, ChevronRight, MapPin, Palette, RefreshCw, Server, type LucideIcon } from "lucide-react";
 import { t, type TextKey } from "../../i18n";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { GarminSettings } from "./GarminSettings";
 import { PlaceSettings } from "./PlaceSettings";
 import { PlanTemplateSettings } from "./PlanTemplateSettings";
 import { SportsSettings } from "./SportsSettings";
+import { SystemPage } from "../SystemPage";
 
 type Section = { slug: string; title: TextKey; hint: TextKey; icon: LucideIcon; render: () => ReactNode };
 
@@ -17,11 +18,13 @@ const SECTIONS: Section[] = [
   { slug: "plan-vorlagen", title: "settings.planTemplates", hint: "settings.planTemplatesHint", icon: CalendarRange, render: () => <PlanTemplateSettings /> },
   { slug: "orte", title: "settings.places", hint: "settings.placesHint", icon: MapPin, render: () => <PlaceSettings /> },
   { slug: "darstellung", title: "settings.appearance", hint: "settings.appearanceHint", icon: Palette, render: () => <AppearanceSettings /> },
+  { slug: "system", title: "settings.system", hint: "settings.systemHint", icon: Server, render: () => <SystemPage /> },
 ];
 
 /**
  * Einstellungen hinter dem Zahnrad der Kopfzeile als Master-Detail (Uli 16.11.2026):
  * links die Abschnitte (ca. 28 %), rechts der gewählte; Abschnitt in der URL `/einstellungen/:section`.
+ * System (Versionen, Betrieb, Gesundheit) steht seit 27.11.2026 als letzter Abschnitt hier statt in der Kopfzeile.
  * Unter `lg` zuerst nur die Liste, ein Abschnitt dann allein mit Zurück-Link.
  */
 export function SettingsPage() {

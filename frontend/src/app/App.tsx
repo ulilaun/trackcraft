@@ -7,7 +7,6 @@ import { Header } from "../components/Header";
 import { useApplyLocale, useLocale } from "../hooks/useLocale";
 import { useApplyTheme } from "../hooks/useTheme";
 import { BackupPage } from "../pages/backup/BackupPage";
-import { SystemPage } from "../pages/SystemPage";
 import { ImportPage } from "../pages/import/ImportPage";
 import { ActivityDetailPage } from "../pages/activities/ActivityDetailPage";
 import { ActivityListPage } from "../pages/activities/ActivityListPage";
@@ -52,7 +51,8 @@ export function App() {
                 {/* Alte Adressen (bis 26.11.2026): Seite Sicherung und Einstellungen → Export */}
                 <Route path="/sicherung" element={<Navigate to="/daten" replace />} />
                 <Route path="/einstellungen/export" element={<Navigate to="/daten" replace />} />
-                <Route path="/system" element={<SystemPage />} />
+                {/* Alte Adresse (bis 27.11.2026): Systemseite in der Kopfzeile */}
+                <Route path="/system" element={<Navigate to="/einstellungen/system" replace />} />
                 <Route path="/einstellungen" element={<SettingsPage />} />
                 <Route path="/einstellungen/:section" element={<SettingsPage />} />
                 <Route path="/konto" element={<AccountPage />} />

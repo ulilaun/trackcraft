@@ -116,6 +116,7 @@ describe("Einstellungen als Master-Detail", () => {
       "/einstellungen/plan-vorlagen",
       "/einstellungen/orte",
       "/einstellungen/darstellung",
+      "/einstellungen/system",
     ]);
     expect(links[0]).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { level: 2, name: "Synchronisierung" })).toBeInTheDocument();
@@ -136,6 +137,15 @@ describe("Einstellungen als Master-Detail", () => {
     fireEvent.click(screen.getByRole("link", { name: /Darstellung/ }));
     expect(await screen.findByRole("heading", { level: 2, name: "Darstellung" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Alle Einstellungen/ })).toHaveAttribute("href", "/einstellungen");
+  });
+
+  it("System ist der letzte Abschnitt hinter dem Zahnrad", () => {
+    setup("/einstellungen/system");
+    const nav = screen.getByRole("navigation", { name: "Abschnitte der Einstellungen" });
+    const links = within(nav).getAllByRole("link");
+    expect(links.at(-1)).toHaveAttribute("href", "/einstellungen/system");
+    expect(links.at(-1)).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { level: 2, name: "System" })).toBeInTheDocument();
   });
 
   it("unbekannter Abschnitt führt zur Übersicht", () => {
