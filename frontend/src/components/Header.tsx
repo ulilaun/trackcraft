@@ -16,7 +16,6 @@ const main: { to: string; key: TextKey }[] = [
 ];
 const side: { to: string; key: TextKey }[] = [
   { to: "/daten", key: "nav.data" },
-  { to: "/system", key: "nav.system" },
 ];
 
 function linkClass({ isActive }: { isActive: boolean }) {
@@ -25,8 +24,8 @@ function linkClass({ isActive }: { isActive: boolean }) {
   }`;
 }
 
-/** Kopfzeile nach RFC-0006: Logo zum Dashboard, links die Bereiche, rechts Daten (Sicherung und Export), System, abgesetzt Import, Zahnrad
- *  (Einstellungen) und ganz rechts das Benutzersymbol zur Kontoseite. Hell/Dunkel steht unter
+/** Kopfzeile nach RFC-0006: Logo zum Dashboard, links die Bereiche, rechts Daten (Sicherung und Export), abgesetzt Import, Zahnrad
+ *  (Einstellungen, darin auch System) und ganz rechts das Benutzersymbol zur Kontoseite. Hell/Dunkel steht unter
  *  Einstellungen → Darstellung.
  *  Die volle Zeile braucht gut 850 px; darunter (auch auf dem Tablet) zeigt sie das Menü-Symbol. */
 export function Header() {
